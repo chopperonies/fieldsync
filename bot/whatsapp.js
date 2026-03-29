@@ -21,18 +21,21 @@ async function send(to, body) {
 }
 
 async function getOrCreateEmployee(whatsappNumber, name) {
-  let { data } = await supabase
+  let { data, error: fetchError } = await supabase
     .from('employees')
     .select('*')
     .eq('whatsapp_number', whatsappNumber)
     .single();
 
+  if (fetchError) console.log('Fetch result (may be no rows):', fetchError.message);
+
   if (!data) {
-    const { data: newEmp } = await supabase
+    const { data: newEmp, error: insertError } = await supabase
       .from('employees')
       .insert({ name, whatsapp_number: whatsappNumber, role: 'crew' })
       .select()
       .single();
+    if (insertError) console.error('Insert error:', insertError.message);
     data = newEmp;
   }
   return data;
