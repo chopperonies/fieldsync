@@ -318,6 +318,54 @@ app.delete('/api/clients/:id/followups/:fid', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Service Agreements ────────────────────────────────────────────────────────
+
+app.get('/api/agreements', auth, async (req, res) => {
+  const { data } = await scoped(
+    supabaseAdmin.from('service_agreements').select('*, clients(name)').order('next_due').order('name'),
+    req.tenantId
+  );
+  res.json(data || []);
+});
+
+app.post('/api/agreements', auth, async (req, res) => {
+  const { name, client_id, description, schedule, value, start_date, next_due } = req.body;
+  if (!name) return res.status(400).json({ error: 'Name is required' });
+  const { data, error } = await supabaseAdmin.from('service_agreements')
+    .insert({ name, client_id: client_id || null, description, schedule, value: value || null, start_date: start_date || null, next_due: next_due || null, tenant_id: req.tenantId })
+    .select('*, clients(name)').single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+app.get('/api/agreements/:id', auth, async (req, res) => {
+  const { id } = req.params;
+  const [{ data: agreement }, { data: jobs }] = await Promise.all([
+    supabaseAdmin.from('service_agreements').select('*, clients(name)').eq('id', id).single(),
+    supabaseAdmin.from('jobs').select('id, name, address, status').eq('client_id',
+      (await supabaseAdmin.from('service_agreements').select('client_id').eq('id', id).single()).data?.client_id || ''
+    ).order('created_at', { ascending: false }),
+  ]);
+  res.json({ agreement, jobs: jobs || [] });
+});
+
+app.patch('/api/agreements/:id', auth, async (req, res) => {
+  const { id } = req.params;
+  const fields = ['name','client_id','description','schedule','value','start_date','next_due','status'];
+  const updates = {};
+  fields.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f] || null; });
+  if (req.body.name) updates.name = req.body.name.trim();
+  const { data, error } = await supabaseAdmin.from('service_agreements')
+    .update(updates).eq('id', id).select('*, clients(name)').single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+app.delete('/api/agreements/:id', auth, async (req, res) => {
+  await supabaseAdmin.from('service_agreements').delete().eq('id', req.params.id);
+  res.json({ ok: true });
+});
+
 // ── Reports ───────────────────────────────────────────────────────────────────
 
 app.get('/api/reports', auth, async (req, res) => {
