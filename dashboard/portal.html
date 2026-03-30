@@ -20,6 +20,20 @@
     .login-btn { width: 100%; background: #0265dc; color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; }
     .login-btn:hover { background: #1b5abe; }
     .login-err { margin-top: 10px; font-size: 12px; color: #dc2626; text-align: center; min-height: 18px; }
+    .login-tab { flex:1; padding:9px; text-align:center; font-size:13px; font-weight:600; color:#737475; cursor:pointer; background:#f5f5f5; }
+    .login-tab.active { background:#e8e8e8; color:#17191c; }
+
+    /* ── Set password banner ── */
+    .set-pw-banner { background:#e8f0fd; border:1px solid #bfdbfe; border-radius:10px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .set-pw-banner p { font-size:13px; color:#1d4ed8; flex:1; }
+    .set-pw-btn { background:#0265dc; color:#fff; border:none; padding:7px 14px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .set-pw-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:200; align-items:center; justify-content:center; padding:20px; }
+    .set-pw-modal.visible { display:flex; }
+    .set-pw-box { background:#fff; border-radius:12px; padding:28px; width:100%; max-width:360px; }
+    .set-pw-title { font-size:17px; font-weight:700; color:#17191c; margin-bottom:6px; }
+    .set-pw-sub { font-size:13px; color:#737475; margin-bottom:20px; }
+    .set-pw-success { font-size:13px; color:#166534; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:10px 14px; margin-top:10px; display:none; }
+    .set-pw-success.visible { display:block; }
 
     /* ── App shell ── */
     .app { display: none; flex-direction: column; min-height: 100vh; }
@@ -103,10 +117,30 @@
 <div class="login-screen" id="login-screen">
   <div class="login-card">
     <div class="login-logo">Field<span>Sync</span></div>
-    <div class="login-sub">Paste the portal link you received, or ask your contractor to send you a new one.</div>
-    <label class="login-label">Portal Link or Access Code</label>
-    <input class="login-input" type="text" id="token-input" placeholder="Paste your portal link or access code..." autocomplete="off">
-    <button class="login-btn" onclick="loginWithToken()">Access Portal</button>
+    <div class="login-sub">Client Portal</div>
+
+    <div style="display:flex;border:1px solid #e8e8e8;border-radius:8px;overflow:hidden;margin-bottom:20px">
+      <div id="ltab-password" class="login-tab active" onclick="switchLoginTab('password')">Email & Password</div>
+      <div id="ltab-link" class="login-tab" onclick="switchLoginTab('link')">Invite Link</div>
+    </div>
+
+    <!-- Email + password login -->
+    <div id="login-pw-form">
+      <label class="login-label">Email</label>
+      <input class="login-input" type="email" id="pw-email" placeholder="your@email.com" autocomplete="email">
+      <label class="login-label">Password</label>
+      <input class="login-input" type="password" id="pw-password" placeholder="••••••••" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')loginWithPassword()">
+      <button class="login-btn" onclick="loginWithPassword()">Sign In</button>
+    </div>
+
+    <!-- Invite link login -->
+    <div id="login-link-form" style="display:none">
+      <label class="login-label">Portal Link or Access Code</label>
+      <input class="login-input" type="text" id="token-input" placeholder="Paste your portal link or access code..." autocomplete="off">
+      <button class="login-btn" onclick="loginWithToken()">Access Portal</button>
+    </div>
+
     <div class="login-err" id="login-err"></div>
   </div>
 </div>
@@ -128,6 +162,12 @@
   </div>
 
   <div class="portal-content">
+    <!-- Set password banner (shown until password is set) -->
+    <div class="set-pw-banner" id="set-pw-banner" style="display:none">
+      <p>Set up a email and password so you can log in without needing a new link each time.</p>
+      <button class="set-pw-btn" onclick="openSetPassword()">Set Up</button>
+    </div>
+
     <!-- Jobs -->
     <div class="tab-view active" id="tab-jobs">
       <div class="section-title">My Jobs</div>
@@ -156,6 +196,27 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Set Password Modal -->
+<div class="set-pw-modal" id="set-pw-modal">
+  <div class="set-pw-box">
+    <div class="set-pw-title">Create Your Login</div>
+    <div class="set-pw-sub">You'll use these to sign in next time — no link needed.</div>
+    <label class="login-label">Email</label>
+    <input class="login-input" type="email" id="spw-email" placeholder="your@email.com" style="margin-bottom:10px">
+    <label class="login-label">Password</label>
+    <input class="login-input" type="password" id="spw-password" placeholder="At least 6 characters" style="margin-bottom:10px">
+    <label class="login-label">Confirm Password</label>
+    <input class="login-input" type="password" id="spw-confirm" placeholder="Repeat password" style="margin-bottom:14px"
+      onkeydown="if(event.key==='Enter')savePassword()">
+    <div style="display:flex;gap:8px">
+      <button onclick="closeSetPassword()" style="flex:1;padding:10px;border:1px solid #e8e8e8;border-radius:8px;background:#f5f5f5;font-size:13px;font-weight:600;cursor:pointer">Cancel</button>
+      <button id="spw-save-btn" onclick="savePassword()" style="flex:1;padding:10px;border:none;border-radius:8px;background:#0265dc;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Save</button>
+    </div>
+    <div class="set-pw-success" id="spw-success">✅ Login created! You can now sign in with your email and password.</div>
+    <div class="login-err" id="spw-err"></div>
   </div>
 </div>
 
@@ -210,6 +271,7 @@
     document.getElementById('portal-client-name').textContent = client.name || '';
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').classList.add('visible');
+    if (!client.has_password) document.getElementById('set-pw-banner').style.display = 'flex';
     loadJobs();
   }
 
@@ -368,6 +430,83 @@
 
     btn.disabled = false;
     btn.textContent = 'Submit Request';
+  }
+
+  // ── Login tabs ────────────────────────────────────────────────────────────
+
+  function switchLoginTab(tab) {
+    document.getElementById('ltab-password').classList.toggle('active', tab === 'password');
+    document.getElementById('ltab-link').classList.toggle('active', tab === 'link');
+    document.getElementById('login-pw-form').style.display = tab === 'password' ? 'block' : 'none';
+    document.getElementById('login-link-form').style.display = tab === 'link' ? 'block' : 'none';
+  }
+
+  async function loginWithPassword() {
+    const email = document.getElementById('pw-email').value.trim();
+    const password = document.getElementById('pw-password').value;
+    if (!email || !password) return;
+    document.getElementById('login-err').textContent = '';
+
+    const res = await fetch('/portal/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      document.getElementById('login-err').textContent = json.error;
+      return;
+    }
+    localStorage.setItem('portal_token', json.token);
+    portalToken = json.token;
+    await showApp();
+  }
+
+  // ── Set password ──────────────────────────────────────────────────────────
+
+  function openSetPassword() {
+    document.getElementById('spw-email').value = '';
+    document.getElementById('spw-password').value = '';
+    document.getElementById('spw-confirm').value = '';
+    document.getElementById('spw-err').textContent = '';
+    document.getElementById('spw-success').classList.remove('visible');
+    document.getElementById('set-pw-modal').classList.add('visible');
+  }
+
+  function closeSetPassword() {
+    document.getElementById('set-pw-modal').classList.remove('visible');
+  }
+
+  async function savePassword() {
+    const email = document.getElementById('spw-email').value.trim();
+    const password = document.getElementById('spw-password').value;
+    const confirm = document.getElementById('spw-confirm').value;
+    const errEl = document.getElementById('spw-err');
+    errEl.textContent = '';
+
+    if (!email || !password) { errEl.textContent = 'Fill in all fields.'; return; }
+    if (password !== confirm) { errEl.textContent = 'Passwords do not match.'; return; }
+    if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+
+    const btn = document.getElementById('spw-save-btn');
+    btn.disabled = true;
+
+    const res = await portalFetch('/portal/api/set-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    const json = await res.json();
+
+    if (!res.ok) {
+      errEl.textContent = json.error;
+      btn.disabled = false;
+      return;
+    }
+
+    document.getElementById('spw-success').classList.add('visible');
+    document.getElementById('set-pw-banner').style.display = 'none';
+    setTimeout(closeSetPassword, 2500);
+    btn.disabled = false;
   }
 
   // ── Start ─────────────────────────────────────────────────────────────────

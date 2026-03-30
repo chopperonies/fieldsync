@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
+const bcrypt = require('bcryptjs');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const { createClient } = require('@supabase/supabase-js');
 const cron = require('node-cron');
@@ -478,8 +479,11 @@ app.post('/api/clients/:id/invite', auth, async (req, res) => {
 
 // Portal: client info
 app.get('/portal/api/me', portalAuth, async (req, res) => {
-  const { data } = await supabaseAdmin.from('clients').select('name, email, phone').eq('id', req.clientId).single();
-  res.json(data);
+  const [{ data: client }, { data: cu }] = await Promise.all([
+    supabaseAdmin.from('clients').select('name, email, phone').eq('id', req.clientId).single(),
+    supabaseAdmin.from('client_users').select('email').eq('client_id', req.clientId).single(),
+  ]);
+  res.json({ ...client, has_password: !!cu?.email });
 });
 
 // Portal: client's jobs
@@ -507,6 +511,41 @@ app.get('/portal/api/photos', portalAuth, async (req, res) => {
     .limit(60);
 
   res.json(data || []);
+});
+
+// Portal: login with email + password (no token needed)
+app.post('/portal/api/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+
+  const { data: clientUser } = await supabaseAdmin
+    .from('client_users')
+    .select('client_id, tenant_id, portal_token, password_hash')
+    .eq('email', email.toLowerCase().trim())
+    .single();
+
+  if (!clientUser?.password_hash) return res.status(401).json({ error: 'No account found. Please use your invite link first.' });
+
+  const valid = await bcrypt.compare(password, clientUser.password_hash);
+  if (!valid) return res.status(401).json({ error: 'Incorrect password.' });
+
+  res.json({ token: clientUser.portal_token });
+});
+
+// Portal: set email + password (must be logged in with token first)
+app.post('/portal/api/set-password', portalAuth, async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+  if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+  const hash = await bcrypt.hash(password, 10);
+  const { error } = await supabaseAdmin
+    .from('client_users')
+    .update({ email: email.toLowerCase().trim(), password_hash: hash })
+    .eq('client_id', req.clientId);
+
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ ok: true });
 });
 
 // Portal: submit a new job request (with optional photo)
