@@ -176,6 +176,64 @@
     /* ── Empty state ── */
     .empty { text-align: center; padding: 36px; color: #17191c; }
     .empty .e-icon { font-size: 36px; margin-bottom: 8px; }
+
+    /* ── Main nav tabs ── */
+    .main-tabs { display: flex; gap: 0; background: #fff; border-bottom: 1px solid #e8e8e8; padding: 0 24px; }
+    .main-tab { padding: 12px 20px; font-size: 13px; font-weight: 600; color: #737475; cursor: pointer; border-bottom: 2px solid transparent; }
+    .main-tab.active { color: #0265dc; border-bottom-color: #0265dc; }
+    .main-tab:hover:not(.active) { color: #17191c; }
+
+    /* ── CRM layout ── */
+    .crm-layout { display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - 148px); }
+    .crm-list-panel { border-right: 1px solid #e8e8e8; overflow-y: auto; background: #fff; }
+    .crm-detail-panel { overflow-y: auto; padding: 24px; background: #f5f5f5; }
+    .crm-search-bar { padding: 12px 14px; border-bottom: 1px solid #e8e8e8; display: flex; gap: 8px; }
+    .crm-search { flex: 1; background: #f5f5f5; border: 1px solid #e8e8e8; border-radius: 6px; padding: 7px 11px; font-size: 13px; color: #17191c; }
+    .crm-search:focus { outline: none; border-color: #0265dc; }
+    .btn-add-client { background: #0265dc; color: #fff; border: none; padding: 7px 13px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .btn-add-client:hover { background: #1b5abe; }
+    .client-row { padding: 12px 16px; border-bottom: 1px solid #e8e8e8; cursor: pointer; transition: background 0.1s; }
+    .client-row:hover { background: #f5f5f5; }
+    .client-row.active { background: #e8f0fd; border-left: 3px solid #0265dc; }
+    .client-row .cr-name { font-size: 14px; font-weight: 600; color: #17191c; }
+    .client-row .cr-sub { font-size: 12px; color: #737475; margin-top: 2px; }
+    .client-row .cr-badges { display: flex; gap: 5px; margin-top: 5px; }
+    .cr-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+    .cr-badge-blue { background: #e8f0fd; color: #0265dc; }
+    .cr-badge-yellow { background: #fefce8; color: #d97706; }
+
+    /* ── Client detail ── */
+    .cd-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+    .cd-name { font-size: 22px; font-weight: 800; color: #17191c; }
+    .cd-contact { font-size: 13px; color: #737475; margin-top: 4px; }
+    .btn-edit-client { background: #e8e8e8; border: none; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; color: #17191c; }
+    .btn-edit-client:hover { background: #d0d0d0; }
+    .cd-section { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+    .cd-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #737475; margin-bottom: 12px; }
+    .cd-notes { font-size: 14px; color: #17191c; line-height: 1.5; white-space: pre-wrap; }
+    .cd-notes-empty { font-size: 13px; color: #949596; font-style: italic; }
+    .followup-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+    .followup-item:last-child { border-bottom: none; }
+    .followup-check { width: 18px; height: 18px; border-radius: 4px; border: 2px solid #e8e8e8; cursor: pointer; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+    .followup-check.done { background: #0265dc; border-color: #0265dc; color: #fff; }
+    .followup-text { flex: 1; font-size: 13px; color: #17191c; }
+    .followup-text.done { text-decoration: line-through; color: #949596; }
+    .followup-due { font-size: 11px; color: #737475; margin-top: 2px; }
+    .followup-due.overdue { color: #dc2626; }
+    .btn-del-followup { background: none; border: none; color: #d0d0d0; cursor: pointer; font-size: 13px; padding: 2px 4px; border-radius: 3px; }
+    .btn-del-followup:hover { color: #dc2626; background: #fef2f2; }
+    .add-followup-row { display: flex; gap: 7px; margin-top: 10px; }
+    .add-followup-input { flex: 1; background: #f5f5f5; border: 1px solid #e8e8e8; border-radius: 6px; padding: 7px 10px; font-size: 13px; color: #17191c; }
+    .add-followup-input:focus { outline: none; border-color: #0265dc; }
+    .add-followup-date { background: #f5f5f5; border: 1px solid #e8e8e8; border-radius: 6px; padding: 7px 10px; font-size: 13px; color: #17191c; }
+    .add-followup-date:focus { outline: none; border-color: #0265dc; }
+    .btn-add-followup { background: #0265dc; color: #fff; border: none; padding: 7px 13px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .btn-add-followup:hover { background: #1b5abe; }
+    .job-history-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+    .job-history-item:last-child { border-bottom: none; }
+    .jh-name { font-size: 13px; font-weight: 600; color: #17191c; flex: 1; }
+    .jh-address { font-size: 11px; color: #737475; margin-top: 1px; }
+    .jh-status { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -251,6 +309,14 @@
   </div>
 </div>
 
+<!-- Main nav tabs -->
+<div class="main-tabs">
+  <div class="main-tab active" id="mtab-jobs" onclick="switchMainTab('jobs')">📋 Jobs</div>
+  <div class="main-tab" id="mtab-clients" onclick="switchMainTab('clients')">👤 Clients</div>
+</div>
+
+<!-- Jobs view -->
+<div id="jobs-view">
 <div class="main">
   <div class="jobs-panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -280,8 +346,44 @@
     </div>
   </div>
 </div>
+</div><!-- end jobs-view -->
+
+<!-- Clients view -->
+<div id="clients-view" style="display:none">
+  <div class="crm-layout">
+    <div class="crm-list-panel">
+      <div class="crm-search-bar">
+        <input class="crm-search" type="text" placeholder="Search clients..." oninput="filterClients(this.value)">
+        <button class="btn-add-client" onclick="openAddClient()">+ Add</button>
+      </div>
+      <div id="clients-list"><div class="empty"><div class="e-icon">👤</div>Loading...</div></div>
+    </div>
+    <div class="crm-detail-panel" id="crm-detail-panel">
+      <div class="empty" style="margin-top:60px"><div class="e-icon">👈</div>Select a client</div>
+    </div>
+  </div>
+</div>
 
 </div><!-- end #app-shell -->
+
+<!-- ── Add / Edit Client Modal ── -->
+<div class="modal-overlay" id="client-modal">
+  <div class="modal" style="width:460px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <h3 style="margin:0" id="client-modal-title">Add Client</h3>
+      <button class="btn-cancel" onclick="closeClientModal()" style="padding:4px 10px">✕</button>
+    </div>
+    <div class="form-group"><label>Full Name *</label><input type="text" id="cm-name" placeholder="e.g. Sarah Johnson"></div>
+    <div class="form-group"><label>Phone</label><input type="tel" id="cm-phone" placeholder="+1 (555) 000-0000"></div>
+    <div class="form-group"><label>Email</label><input type="email" id="cm-email" placeholder="sarah@email.com"></div>
+    <div class="form-group"><label>Address</label><input type="text" id="cm-address" placeholder="123 Main St, Miami FL"></div>
+    <div class="form-group"><label>Notes</label><textarea id="cm-notes" rows="3" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 11px;font-size:13px;color:#17191c;resize:vertical" placeholder="Any notes about this client..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeClientModal()">Cancel</button>
+      <button class="btn-save" id="client-modal-save" onclick="saveClient()">Add Client</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── Admin: All Accounts modal ── -->
 <div class="modal-overlay" id="admin-modal">
@@ -817,6 +919,219 @@ function closeOverlay(e) {
   if (e && e.target !== document.getElementById('stat-overlay')) return;
   document.getElementById('stat-overlay').classList.remove('visible');
   document.querySelectorAll('.stat').forEach(s => s.classList.remove('active'));
+}
+
+// ── Main Tab Navigation ───────────────────────────────────────────────────────
+function switchMainTab(tab) {
+  document.getElementById('jobs-view').style.display = tab === 'jobs' ? 'block' : 'none';
+  document.getElementById('clients-view').style.display = tab === 'clients' ? 'block' : 'none';
+  document.getElementById('mtab-jobs').classList.toggle('active', tab === 'jobs');
+  document.getElementById('mtab-clients').classList.toggle('active', tab === 'clients');
+  if (tab === 'clients' && !allClientsData.length) loadClients();
+}
+
+// ── CRM ───────────────────────────────────────────────────────────────────────
+let allClientsData = [];
+let selectedClientId = null;
+let editingClientId = null;
+
+const statusColors = {
+  quoted: '#e8f0fd', scheduled: '#e8f0fd', in_progress: '#fefce8',
+  active: '#fefce8', complete: '#f0fdf4', invoiced: '#ede9fe', on_hold: '#f5f5f5'
+};
+const statusTextColors = {
+  quoted: '#0265dc', scheduled: '#0265dc', in_progress: '#d97706',
+  active: '#d97706', complete: '#16a34a', invoiced: '#7c3aed', on_hold: '#737475'
+};
+
+async function loadClients() {
+  const res = await authFetch('/api/clients');
+  allClientsData = await res.json();
+  renderClientList(allClientsData);
+}
+
+function renderClientList(clients) {
+  const el = document.getElementById('clients-list');
+  if (!clients.length) {
+    el.innerHTML = '<div class="empty"><div class="e-icon">👤</div>No clients yet. Add one above.</div>';
+    return;
+  }
+  el.innerHTML = clients.map(c => {
+    const pending = (c.client_follow_ups || []).filter(f => !f.completed).length;
+    return `
+    <div class="client-row ${selectedClientId === c.id ? 'active' : ''}" id="crow-${c.id}" onclick="openClientDetail('${c.id}')">
+      <div class="cr-name">${c.name}</div>
+      <div class="cr-sub">${[c.phone, c.email].filter(Boolean).join(' · ') || 'No contact info'}</div>
+      ${pending > 0 ? `<div class="cr-badges"><span class="cr-badge cr-badge-yellow">⏰ ${pending} follow-up${pending>1?'s':''}</span></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function filterClients(query) {
+  const q = query.toLowerCase();
+  const filtered = allClientsData.filter(c =>
+    c.name.toLowerCase().includes(q) ||
+    (c.email || '').toLowerCase().includes(q) ||
+    (c.phone || '').includes(q) ||
+    (c.address || '').toLowerCase().includes(q)
+  );
+  renderClientList(filtered);
+}
+
+async function openClientDetail(clientId) {
+  selectedClientId = clientId;
+  document.querySelectorAll('.client-row').forEach(r => r.classList.remove('active'));
+  document.getElementById(`crow-${clientId}`)?.classList.add('active');
+
+  const panel = document.getElementById('crm-detail-panel');
+  panel.innerHTML = '<div class="empty" style="margin-top:60px"><div class="e-icon">⏳</div>Loading...</div>';
+
+  const res = await authFetch(`/api/clients/${clientId}`);
+  const { client, followUps, jobs } = await res.json();
+  if (!client) return;
+
+  const today = new Date().toISOString().split('T')[0];
+
+  panel.innerHTML = `
+    <div class="cd-header">
+      <div>
+        <div class="cd-name">${client.name}</div>
+        <div class="cd-contact">${[client.phone, client.email, client.address].filter(Boolean).join(' · ') || 'No contact info'}</div>
+      </div>
+      <button class="btn-edit-client" onclick="openEditClient('${client.id}')">✏️ Edit</button>
+    </div>
+
+    <!-- Notes -->
+    <div class="cd-section">
+      <div class="cd-section-title">Notes</div>
+      ${client.notes
+        ? `<div class="cd-notes">${client.notes}</div>`
+        : `<div class="cd-notes-empty">No notes yet — edit the client to add some.</div>`}
+    </div>
+
+    <!-- Follow-ups -->
+    <div class="cd-section">
+      <div class="cd-section-title">Follow-ups</div>
+      <div id="followups-list">
+        ${followUps.length ? followUps.map(f => {
+          const overdue = f.due_date && f.due_date < today && !f.completed;
+          return `
+          <div class="followup-item" id="fu-${f.id}">
+            <div class="followup-check ${f.completed ? 'done' : ''}" onclick="toggleFollowup('${client.id}','${f.id}',${!f.completed})">
+              ${f.completed ? '✓' : ''}
+            </div>
+            <div style="flex:1">
+              <div class="followup-text ${f.completed ? 'done' : ''}">${f.note}</div>
+              ${f.due_date ? `<div class="followup-due ${overdue ? 'overdue' : ''}">${overdue ? '⚠ ' : ''}Due ${f.due_date}</div>` : ''}
+            </div>
+            <button class="btn-del-followup" onclick="deleteFollowup('${client.id}','${f.id}')">✕</button>
+          </div>`;
+        }).join('') : '<div style="font-size:13px;color:#949596;font-style:italic;padding:4px 0">No follow-ups yet.</div>'}
+      </div>
+      <div class="add-followup-row">
+        <input class="add-followup-input" type="text" id="fu-note-${client.id}" placeholder="Add a follow-up note..." onkeydown="if(event.key==='Enter')addFollowup('${client.id}')">
+        <input class="add-followup-date" type="date" id="fu-date-${client.id}">
+        <button class="btn-add-followup" onclick="addFollowup('${client.id}')">+ Add</button>
+      </div>
+    </div>
+
+    <!-- Job History -->
+    <div class="cd-section">
+      <div class="cd-section-title">Job History (${jobs.length})</div>
+      ${jobs.length ? jobs.map(j => `
+        <div class="job-history-item">
+          <div style="flex:1">
+            <div class="jh-name">${j.name}</div>
+            <div class="jh-address">${j.address || 'No address'}</div>
+          </div>
+          <span class="jh-status" style="background:${statusColors[j.status]||'#f5f5f5'};color:${statusTextColors[j.status]||'#737475'}">${j.status.replace('_',' ')}</span>
+        </div>
+      `).join('') : '<div style="font-size:13px;color:#949596;font-style:italic">No jobs linked to this client yet.</div>'}
+    </div>
+  `;
+}
+
+async function addFollowup(clientId) {
+  const noteEl = document.getElementById(`fu-note-${clientId}`);
+  const dateEl = document.getElementById(`fu-date-${clientId}`);
+  const note = noteEl.value.trim();
+  if (!note) return;
+  await authFetch(`/api/clients/${clientId}/followups`, {
+    method: 'POST',
+    body: JSON.stringify({ note, due_date: dateEl.value || null })
+  });
+  noteEl.value = ''; dateEl.value = '';
+  await openClientDetail(clientId);
+  await loadClients();
+}
+
+async function toggleFollowup(clientId, fid, completed) {
+  await authFetch(`/api/clients/${clientId}/followups/${fid}`, {
+    method: 'PATCH', body: JSON.stringify({ completed })
+  });
+  await openClientDetail(clientId);
+  await loadClients();
+}
+
+async function deleteFollowup(clientId, fid) {
+  if (!confirm('Delete this follow-up?')) return;
+  await authFetch(`/api/clients/${clientId}/followups/${fid}`, { method: 'DELETE' });
+  document.getElementById(`fu-${fid}`)?.remove();
+  await loadClients();
+}
+
+// ── Add / Edit Client Modal ───────────────────────────────────────────────────
+function openAddClient() {
+  editingClientId = null;
+  document.getElementById('client-modal-title').textContent = 'Add Client';
+  document.getElementById('client-modal-save').textContent = 'Add Client';
+  ['cm-name','cm-phone','cm-email','cm-address','cm-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('client-modal').classList.add('visible');
+  document.getElementById('cm-name').focus();
+}
+
+function openEditClient(clientId) {
+  const client = allClientsData.find(c => c.id === clientId);
+  if (!client) return;
+  editingClientId = clientId;
+  document.getElementById('client-modal-title').textContent = 'Edit Client';
+  document.getElementById('client-modal-save').textContent = 'Save Changes';
+  document.getElementById('cm-name').value = client.name || '';
+  document.getElementById('cm-phone').value = client.phone || '';
+  document.getElementById('cm-email').value = client.email || '';
+  document.getElementById('cm-address').value = client.address || '';
+  document.getElementById('cm-notes').value = client.notes || '';
+  document.getElementById('client-modal').classList.add('visible');
+}
+
+function closeClientModal() {
+  document.getElementById('client-modal').classList.remove('visible');
+  editingClientId = null;
+}
+
+async function saveClient() {
+  const payload = {
+    name: document.getElementById('cm-name').value.trim(),
+    phone: document.getElementById('cm-phone').value.trim(),
+    email: document.getElementById('cm-email').value.trim(),
+    address: document.getElementById('cm-address').value.trim(),
+    notes: document.getElementById('cm-notes').value.trim(),
+  };
+  if (!payload.name) return alert('Name is required');
+
+  const btn = document.getElementById('client-modal-save');
+  btn.disabled = true;
+
+  if (editingClientId) {
+    await authFetch(`/api/clients/${editingClientId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  } else {
+    await authFetch('/api/clients', { method: 'POST', body: JSON.stringify(payload) });
+  }
+
+  closeClientModal();
+  await loadClients();
+  if (editingClientId) await openClientDetail(editingClientId);
+  btn.disabled = false;
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────

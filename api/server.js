@@ -249,6 +249,75 @@ app.delete('/api/employees/:id', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── CRM: Clients ─────────────────────────────────────────────────────────────
+
+app.get('/api/clients', auth, async (req, res) => {
+  const { data } = await scoped(
+    supabaseAdmin.from('clients').select('*, client_follow_ups(id, completed)').order('name'),
+    req.tenantId
+  );
+  res.json(data || []);
+});
+
+app.post('/api/clients', auth, async (req, res) => {
+  const { name, phone, email, address, notes } = req.body;
+  if (!name) return res.status(400).json({ error: 'Name is required' });
+  const { data, error } = await supabaseAdmin.from('clients')
+    .insert({ name: name.trim(), phone, email, address, notes, tenant_id: req.tenantId })
+    .select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+app.get('/api/clients/:id', auth, async (req, res) => {
+  const { id } = req.params;
+  const [{ data: client }, { data: followUps }, { data: jobs }] = await Promise.all([
+    supabaseAdmin.from('clients').select('*').eq('id', id).single(),
+    supabaseAdmin.from('client_follow_ups').select('*').eq('client_id', id).order('due_date').order('created_at'),
+    supabaseAdmin.from('jobs').select('id, name, address, status, created_at').eq('client_id', id).order('created_at', { ascending: false }),
+  ]);
+  res.json({ client, followUps: followUps || [], jobs: jobs || [] });
+});
+
+app.patch('/api/clients/:id', auth, async (req, res) => {
+  const { id } = req.params;
+  const { name, phone, email, address, notes } = req.body;
+  const updates = {};
+  if (name !== undefined) updates.name = name.trim();
+  if (phone !== undefined) updates.phone = phone;
+  if (email !== undefined) updates.email = email;
+  if (address !== undefined) updates.address = address;
+  if (notes !== undefined) updates.notes = notes;
+  const { data, error } = await supabaseAdmin.from('clients').update(updates).eq('id', id).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+app.post('/api/clients/:id/followups', auth, async (req, res) => {
+  const { id } = req.params;
+  const { note, due_date } = req.body;
+  if (!note) return res.status(400).json({ error: 'Note is required' });
+  const { data, error } = await supabaseAdmin.from('client_follow_ups')
+    .insert({ client_id: id, note, due_date: due_date || null, tenant_id: req.tenantId })
+    .select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+app.patch('/api/clients/:id/followups/:fid', auth, async (req, res) => {
+  const { fid } = req.params;
+  const { completed } = req.body;
+  const { data } = await supabaseAdmin.from('client_follow_ups')
+    .update({ completed }).eq('id', fid).select().single();
+  res.json(data);
+});
+
+app.delete('/api/clients/:id/followups/:fid', auth, async (req, res) => {
+  const { fid } = req.params;
+  await supabaseAdmin.from('client_follow_ups').delete().eq('id', fid);
+  res.json({ ok: true });
+});
+
 // ── Super-admin Routes ────────────────────────────────────────────────────────
 
 // List all tenants with stats (admin only)
