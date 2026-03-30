@@ -2,6 +2,8 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const { createClient } = require('@supabase/supabase-js');
 const cron = require('node-cron');
 const { sendDailyDigest, sendNote } = require('../email/digest');
@@ -507,8 +509,8 @@ app.get('/portal/api/photos', portalAuth, async (req, res) => {
   res.json(data || []);
 });
 
-// Portal: submit a new job request
-app.post('/portal/api/requests', portalAuth, async (req, res) => {
+// Portal: submit a new job request (with optional photo)
+app.post('/portal/api/requests', portalAuth, upload.single('photo'), async (req, res) => {
   const { description, address } = req.body;
   if (!description) return res.status(400).json({ error: 'Description is required' });
 
@@ -521,7 +523,25 @@ app.post('/portal/api/requests', portalAuth, async (req, res) => {
 
   if (error) return res.status(400).json({ error: error.message });
 
-  await supabaseAdmin.from('job_updates').insert({ job_id: job.id, message: description, type: 'note' });
+  let photoUrl = null;
+  if (req.file) {
+    const ext = req.file.mimetype.split('/')[1] || 'jpg';
+    const filePath = `requests/${job.id}/${Date.now()}.${ext}`;
+    const { data: uploaded, error: uploadErr } = await supabaseAdmin.storage
+      .from('portal-photos')
+      .upload(filePath, req.file.buffer, { contentType: req.file.mimetype });
+    if (!uploadErr && uploaded) {
+      const { data: { publicUrl } } = supabaseAdmin.storage.from('portal-photos').getPublicUrl(uploaded.path);
+      photoUrl = publicUrl;
+    }
+  }
+
+  await supabaseAdmin.from('job_updates').insert({
+    job_id: job.id,
+    message: description,
+    type: photoUrl ? 'photo' : 'note',
+    photo_url: photoUrl,
+  });
 
   res.json(job);
 });

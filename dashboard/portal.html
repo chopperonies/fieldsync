@@ -148,6 +148,8 @@
         <textarea class="form-textarea" id="req-description" rows="4" placeholder="Describe the work you'd like done..."></textarea>
         <label class="form-label">Property Address</label>
         <input class="form-input" type="text" id="req-address" placeholder="123 Main St, Miami FL">
+        <label class="form-label">Photo <span style="font-weight:400;color:#b0b0b0">(optional)</span></label>
+        <input type="file" id="req-photo" accept="image/*" capture="environment" style="margin-bottom:14px;font-size:13px;color:#737475">
         <button class="submit-btn" id="req-btn" onclick="submitRequest()">Submit Request</button>
         <div class="form-success" id="req-success">
           ✅ Your request has been submitted! We'll be in touch soon.
@@ -338,20 +340,28 @@
   async function submitRequest() {
     const description = document.getElementById('req-description').value.trim();
     const address = document.getElementById('req-address').value.trim();
+    const photoFile = document.getElementById('req-photo').files[0];
     if (!description) { document.getElementById('req-description').focus(); return; }
 
     const btn = document.getElementById('req-btn');
     btn.disabled = true;
     btn.textContent = 'Submitting...';
 
-    const res = await portalFetch('/portal/api/requests', {
+    const formData = new FormData();
+    formData.append('description', description);
+    formData.append('address', address);
+    if (photoFile) formData.append('photo', photoFile);
+
+    const res = await fetch('/portal/api/requests', {
       method: 'POST',
-      body: JSON.stringify({ description, address }),
+      headers: { 'Authorization': `Bearer ${portalToken}` },
+      body: formData,
     });
 
     if (res.ok) {
       document.getElementById('req-description').value = '';
       document.getElementById('req-address').value = '';
+      document.getElementById('req-photo').value = '';
       document.getElementById('req-success').classList.add('visible');
       setTimeout(() => document.getElementById('req-success').classList.remove('visible'), 5000);
     }
