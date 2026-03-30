@@ -442,13 +442,16 @@ async function portalAuth(req, res, next) {
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { data: clientUser } = await supabaseAdmin
+  const { data: clientUser, error: portalErr } = await supabaseAdmin
     .from('client_users')
     .select('client_id, tenant_id')
     .eq('portal_token', token)
     .single();
 
-  if (!clientUser) return res.status(401).json({ error: 'Invalid portal token' });
+  if (portalErr || !clientUser) {
+    console.error('[portalAuth] token lookup failed:', portalErr?.message, '| token prefix:', token?.slice(0, 8));
+    return res.status(401).json({ error: 'Invalid portal token' });
+  }
 
   req.clientId = clientUser.client_id;
   req.tenantId = clientUser.tenant_id;
