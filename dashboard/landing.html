@@ -24,10 +24,18 @@
 
     /* ── Hero ── */
     .hero {
-      background: linear-gradient(135deg, #17191c 0%, #0d2444 100%);
+      position: relative;
+      background: url('https://images.unsplash.com/photo-1653995927144-17b659ae872b?q=85&w=1920&auto=format&fit=crop') center center / cover no-repeat;
       padding: 100px 60px 80px;
       text-align: center;
     }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(13,18,22,0.88) 0%, rgba(2,36,80,0.82) 100%);
+    }
+    .hero > * { position: relative; z-index: 1; }
     .hero-eyebrow {
       display: inline-block; background: rgba(2,101,220,0.25); color: #60a5fa;
       font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
