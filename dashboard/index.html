@@ -7,98 +7,98 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0a0a0a; color: #ccc; min-height: 100vh; }
 
     /* ── Auth screens ── */
-    .auth-screen { display: none; position: fixed; inset: 0; background: #0f172a; z-index: 300; align-items: center; justify-content: center; }
+    .auth-screen { display: none; position: fixed; inset: 0; background: #0a0a0a; z-index: 300; align-items: center; justify-content: center; }
     .auth-screen.visible { display: flex; }
-    .auth-card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 40px; width: 380px; }
-    .auth-logo { font-size: 26px; font-weight: 800; color: #f8fafc; margin-bottom: 4px; }
-    .auth-logo span { color: #38bdf8; }
-    .auth-subtitle { font-size: 13px; color: #64748b; margin-bottom: 28px; }
-    .auth-tabs { display: flex; gap: 0; margin-bottom: 24px; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
-    .auth-tab { flex: 1; padding: 9px; text-align: center; font-size: 13px; font-weight: 600; color: #64748b; cursor: pointer; background: #0f172a; }
-    .auth-tab.active { color: #f8fafc; background: #334155; }
-    .auth-input { width: 100%; background: #0f172a; border: 1px solid #334155; color: #e2e8f0; padding: 11px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 10px; }
-    .auth-input:focus { outline: none; border-color: #38bdf8; }
-    .auth-btn { width: 100%; background: #38bdf8; color: #0f172a; border: none; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 4px; }
-    .auth-btn:hover { background: #7dd3fc; }
+    .auth-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 16px; padding: 40px; width: 380px; }
+    .auth-logo { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+    .auth-logo span { color: #f97316; }
+    .auth-subtitle { font-size: 13px; color: #555; margin-bottom: 28px; }
+    .auth-tabs { display: flex; gap: 0; margin-bottom: 24px; border: 1px solid #2a2a2a; border-radius: 8px; overflow: hidden; }
+    .auth-tab { flex: 1; padding: 9px; text-align: center; font-size: 13px; font-weight: 600; color: #555; cursor: pointer; background: #0a0a0a; }
+    .auth-tab.active { color: #fff; background: #2a2a2a; }
+    .auth-input { width: 100%; background: #0a0a0a; border: 1px solid #2a2a2a; color: #ccc; padding: 11px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 10px; }
+    .auth-input:focus { outline: none; border-color: #f97316; }
+    .auth-btn { width: 100%; background: #f97316; color: #0a0a0a; border: none; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 4px; }
+    .auth-btn:hover { background: #fb923c; }
     .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .auth-error { margin-top: 10px; font-size: 12px; color: #f87171; text-align: center; min-height: 18px; }
     .auth-success { margin-top: 10px; font-size: 12px; color: #4ade80; text-align: center; min-height: 18px; }
 
     /* ── Header ── */
-    .header { background: #1e293b; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #334155; }
-    .header-brand { font-size: 18px; font-weight: 700; color: #f8fafc; }
-    .header-brand span { color: #38bdf8; }
+    .header { background: #1a1a1a; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; }
+    .header-brand { font-size: 18px; font-weight: 700; color: #fff; }
+    .header-brand span { color: #f97316; }
     .header-right { display: flex; align-items: center; gap: 10px; }
     .live-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #4ade80; }
     .live-dot { width: 7px; height: 7px; background: #4ade80; border-radius: 50%; animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-    .hdr-btn { background: #334155; color: #e2e8f0; border: none; padding: 6px 13px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
-    .hdr-btn:hover { background: #475569; }
+    .hdr-btn { background: #2a2a2a; color: #ccc; border: none; padding: 6px 13px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .hdr-btn:hover { background: #444; }
     .hdr-btn.danger { background: #431414; color: #f87171; }
     .hdr-btn.danger:hover { background: #5c1a1a; }
-    .hdr-btn.accent { background: #38bdf8; color: #0f172a; }
-    .hdr-btn.accent:hover { background: #7dd3fc; }
+    .hdr-btn.accent { background: #f97316; color: #0a0a0a; }
+    .hdr-btn.accent:hover { background: #fb923c; }
 
     /* ── Admin tenant bar ── */
     .admin-bar { background: #1a0a3a; border-bottom: 1px solid #4c1d95; padding: 8px 24px; display: flex; align-items: center; gap: 12px; font-size: 12px; }
     .admin-badge { background: #6d28d9; color: #fff; padding: 2px 8px; border-radius: 10px; font-weight: 700; font-size: 10px; letter-spacing: 0.05em; }
-    .tenant-select { background: #0f172a; border: 1px solid #4c1d95; color: #e2e8f0; padding: 4px 10px; border-radius: 6px; font-size: 12px; }
-    .admin-stat { color: #94a3b8; }
-    .admin-stat strong { color: #e2e8f0; }
+    .tenant-select { background: #0a0a0a; border: 1px solid #4c1d95; color: #ccc; padding: 4px 10px; border-radius: 6px; font-size: 12px; }
+    .admin-stat { color: #666; }
+    .admin-stat strong { color: #ccc; }
 
     /* ── Stats bar ── */
-    .stats { display: flex; gap: 14px; padding: 14px 24px; background: #1e293b; border-bottom: 1px solid #334155; overflow-x: auto; }
-    .stat { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 11px 18px; min-width: 130px; cursor: pointer; transition: border-color 0.15s, transform 0.1s; }
-    .stat:hover { border-color: #38bdf8; transform: translateY(-1px); }
-    .stat.active { border-color: #38bdf8; background: #1e3a5f; }
-    .stat .num { font-size: 26px; font-weight: 700; color: #f8fafc; }
-    .stat .label { font-size: 10px; color: #94a3b8; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .stats { display: flex; gap: 14px; padding: 14px 24px; background: #1a1a1a; border-bottom: 1px solid #2a2a2a; overflow-x: auto; }
+    .stat { background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 11px 18px; min-width: 130px; cursor: pointer; transition: border-color 0.15s, transform 0.1s; }
+    .stat:hover { border-color: #f97316; transform: translateY(-1px); }
+    .stat.active { border-color: #f97316; background: #2a1a0a; }
+    .stat .num { font-size: 26px; font-weight: 700; color: #fff; }
+    .stat .label { font-size: 10px; color: #666; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
 
     /* ── Overlays ── */
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 50; align-items: flex-start; justify-content: center; padding-top: 80px; }
     .overlay.visible { display: flex; }
-    .overlay-box { background: #1e293b; border: 1px solid #334155; border-radius: 12px; width: 520px; max-height: 70vh; overflow-y: auto; }
-    .overlay-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid #334155; position: sticky; top: 0; background: #1e293b; }
-    .overlay-header h3 { font-size: 14px; font-weight: 600; color: #f8fafc; }
-    .overlay-close { background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer; }
-    .overlay-close:hover { color: #f8fafc; }
+    .overlay-box { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; width: 520px; max-height: 70vh; overflow-y: auto; }
+    .overlay-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid #2a2a2a; position: sticky; top: 0; background: #1a1a1a; }
+    .overlay-header h3 { font-size: 14px; font-weight: 600; color: #fff; }
+    .overlay-close { background: none; border: none; color: #666; font-size: 18px; cursor: pointer; }
+    .overlay-close:hover { color: #fff; }
     .overlay-body { padding: 14px 18px; }
-    .overlay-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #1e293b; }
+    .overlay-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #1a1a1a; }
     .overlay-row:last-child { border-bottom: none; }
-    .overlay-avatar { width: 34px; height: 34px; border-radius: 50%; background: #334155; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #94a3b8; flex-shrink: 0; }
-    .overlay-info .oi-name { font-size: 13px; font-weight: 500; color: #f8fafc; }
-    .overlay-info .oi-sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+    .overlay-avatar { width: 34px; height: 34px; border-radius: 50%; background: #2a2a2a; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #666; flex-shrink: 0; }
+    .overlay-info .oi-name { font-size: 13px; font-weight: 500; color: #fff; }
+    .overlay-info .oi-sub { font-size: 11px; color: #555; margin-top: 2px; }
 
     /* ── Main layout ── */
     .main { display: grid; grid-template-columns: 1fr 360px; height: calc(100vh - 112px); }
     .jobs-panel { padding: 18px; overflow-y: auto; }
-    .side-panel { background: #1e293b; border-left: 1px solid #334155; padding: 18px; overflow-y: auto; }
+    .side-panel { background: #1a1a1a; border-left: 1px solid #2a2a2a; padding: 18px; overflow-y: auto; }
 
     /* ── Job cards ── */
-    .panel-title { font-size: 12px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
-    .job-card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 14px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s; }
-    .job-card:hover { border-color: #38bdf8; }
-    .job-card.selected { border-color: #38bdf8; background: #1e3a5f; }
-    .job-card .job-name { font-size: 14px; font-weight: 600; color: #f8fafc; margin-bottom: 3px; }
-    .job-card .job-address { font-size: 11px; color: #94a3b8; margin-bottom: 8px; }
+    .panel-title { font-size: 12px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+    .job-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 14px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s; }
+    .job-card:hover { border-color: #f97316; }
+    .job-card.selected { border-color: #f97316; background: #2a1a0a; }
+    .job-card .job-name { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 3px; }
+    .job-card .job-address { font-size: 11px; color: #666; margin-bottom: 8px; }
     .job-meta { display: flex; gap: 6px; flex-wrap: wrap; }
     .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 500; }
-    .chip-blue { background: #1e3a5f; color: #38bdf8; }
+    .chip-blue { background: #2a1a0a; color: #f97316; }
     .chip-green { background: #14432a; color: #4ade80; }
     .chip-red { background: #431414; color: #f87171; }
     .chip-yellow { background: #43350e; color: #fbbf24; }
 
     /* ── Supply items ── */
-    .supply-item { background: #0f172a; border: 1px solid #334155; border-left: 3px solid #f87171; border-radius: 6px; padding: 10px; margin-bottom: 8px; }
-    .supply-item .si-job { font-size: 11px; color: #94a3b8; margin-bottom: 3px; }
-    .supply-item .si-items { font-size: 12px; color: #f8fafc; margin-bottom: 5px; }
+    .supply-item { background: #0a0a0a; border: 1px solid #2a2a2a; border-left: 3px solid #f87171; border-radius: 6px; padding: 10px; margin-bottom: 8px; }
+    .supply-item .si-job { font-size: 11px; color: #666; margin-bottom: 3px; }
+    .supply-item .si-items { font-size: 12px; color: #fff; margin-bottom: 5px; }
     .supply-item .si-meta { display: flex; align-items: center; justify-content: space-between; }
-    .supply-item .si-by { font-size: 10px; color: #64748b; }
+    .supply-item .si-by { font-size: 10px; color: #555; }
     .status-btn { padding: 3px 9px; border-radius: 4px; font-size: 10px; font-weight: 600; border: none; cursor: pointer; }
-    .btn-prepare { background: #1e3a5f; color: #38bdf8; }
+    .btn-prepare { background: #2a1a0a; color: #f97316; }
     .btn-delivered { background: #14432a; color: #4ade80; }
 
     /* ── Job detail ── */
@@ -107,74 +107,74 @@
     .update-item { display: flex; gap: 8px; margin-bottom: 8px; }
     .update-icon { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
     .ui-checkin { background: #14432a; }
-    .ui-checkout { background: #1e3a5f; }
+    .ui-checkout { background: #2a1a0a; }
     .ui-bottleneck { background: #43350e; }
     .ui-supply_request { background: #431414; }
     .ui-photo { background: #2d1b69; }
-    .ui-update { background: #1e293b; }
-    .update-body .ub-name { font-size: 10px; color: #94a3b8; }
-    .update-body .ub-msg { font-size: 12px; color: #e2e8f0; margin-top: 1px; }
-    .update-body .ub-time { font-size: 10px; color: #475569; margin-top: 1px; }
-    .emp-item { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #1e293b; }
-    .emp-avatar { width: 30px; height: 30px; border-radius: 50%; background: #334155; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #94a3b8; }
+    .ui-update { background: #1a1a1a; }
+    .update-body .ub-name { font-size: 10px; color: #666; }
+    .update-body .ub-msg { font-size: 12px; color: #ccc; margin-top: 1px; }
+    .update-body .ub-time { font-size: 10px; color: #444; margin-top: 1px; }
+    .emp-item { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #1a1a1a; }
+    .emp-avatar { width: 30px; height: 30px; border-radius: 50%; background: #2a2a2a; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #666; }
 
     /* ── Modals ── */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; }
     .modal-overlay.visible { display: flex; }
-    .modal { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 22px; width: 440px; max-height: 82vh; overflow-y: auto; }
-    .modal h3 { margin-bottom: 14px; color: #f8fafc; font-size: 15px; }
+    .modal { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 22px; width: 440px; max-height: 82vh; overflow-y: auto; }
+    .modal h3 { margin-bottom: 14px; color: #fff; font-size: 15px; }
     .form-group { margin-bottom: 12px; }
-    .form-group label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 5px; }
-    .form-group input, .form-group select { width: 100%; background: #0f172a; border: 1px solid #334155; color: #e2e8f0; padding: 8px 11px; border-radius: 6px; font-size: 13px; }
-    .form-group input:focus, .form-group select:focus { outline: none; border-color: #38bdf8; }
-    .form-group select option { background: #1e293b; }
+    .form-group label { display: block; font-size: 11px; color: #666; margin-bottom: 5px; }
+    .form-group input, .form-group select { width: 100%; background: #0a0a0a; border: 1px solid #2a2a2a; color: #ccc; padding: 8px 11px; border-radius: 6px; font-size: 13px; }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: #f97316; }
+    .form-group select option { background: #1a1a1a; }
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
-    .btn-cancel { background: #334155; color: #e2e8f0; border: none; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; }
-    .btn-save { background: #38bdf8; color: #0f172a; border: none; padding: 7px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px; }
-    .add-job-btn { background: #38bdf8; color: #0f172a; border: none; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .btn-cancel { background: #2a2a2a; color: #ccc; border: none; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .btn-save { background: #f97316; color: #0a0a0a; border: none; padding: 7px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px; }
+    .add-job-btn { background: #f97316; color: #0a0a0a; border: none; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
 
     /* ── Team modal ── */
     .team-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #1a2744; }
     .team-row:last-child { border-bottom: none; }
-    .team-avatar { width: 34px; height: 34px; border-radius: 50%; background: #334155; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #94a3b8; flex-shrink: 0; }
+    .team-avatar { width: 34px; height: 34px; border-radius: 50%; background: #2a2a2a; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #666; flex-shrink: 0; }
     .team-info { flex: 1; }
-    .team-info .ti-name { font-size: 13px; font-weight: 500; color: #f8fafc; }
-    .team-info .ti-sub { font-size: 11px; color: #64748b; margin-top: 1px; }
+    .team-info .ti-name { font-size: 13px; font-weight: 500; color: #fff; }
+    .team-info .ti-sub { font-size: 11px; color: #555; margin-top: 1px; }
     .role-badge { padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
     .role-owner { background: #2d1b69; color: #a78bfa; }
-    .role-manager { background: #1e3a5f; color: #38bdf8; }
+    .role-manager { background: #2a1a0a; color: #f97316; }
     .role-crew { background: #14432a; color: #4ade80; }
-    .btn-delete { background: none; border: none; color: #475569; cursor: pointer; font-size: 15px; padding: 4px; border-radius: 4px; }
+    .btn-delete { background: none; border: none; color: #444; cursor: pointer; font-size: 15px; padding: 4px; border-radius: 4px; }
     .btn-delete:hover { color: #f87171; background: #431414; }
-    .section-divider { border: none; border-top: 1px solid #334155; margin: 18px 0; }
+    .section-divider { border: none; border-top: 1px solid #2a2a2a; margin: 18px 0; }
 
     /* ── Photos ── */
     .photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
-    .photo-card { background: #0f172a; border: 1px solid #334155; border-radius: 8px; overflow: hidden; cursor: pointer; }
-    .photo-card:hover { border-color: #38bdf8; }
+    .photo-card { background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 8px; overflow: hidden; cursor: pointer; }
+    .photo-card:hover { border-color: #f97316; }
     .photo-card img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
     .photo-meta { padding: 5px 7px; }
-    .photo-meta .pm-job { font-size: 10px; color: #38bdf8; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .photo-meta .pm-info { font-size: 9px; color: #64748b; margin-top: 1px; }
+    .photo-meta .pm-job { font-size: 10px; color: #f97316; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .photo-meta .pm-info { font-size: 9px; color: #555; margin-top: 1px; }
 
     /* ── Side tabs ── */
-    .side-tabs { display: flex; border-bottom: 1px solid #334155; margin-bottom: 12px; }
-    .side-tab { flex: 1; padding: 7px; text-align: center; font-size: 11px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; }
-    .side-tab.active { color: #38bdf8; border-bottom-color: #38bdf8; }
+    .side-tabs { display: flex; border-bottom: 1px solid #2a2a2a; margin-bottom: 12px; }
+    .side-tab { flex: 1; padding: 7px; text-align: center; font-size: 11px; font-weight: 600; color: #555; cursor: pointer; border-bottom: 2px solid transparent; }
+    .side-tab.active { color: #f97316; border-bottom-color: #f97316; }
 
     /* ── Admin tenants list ── */
-    .tenant-card { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
-    .tenant-card .tc-name { font-size: 14px; font-weight: 600; color: #f8fafc; }
-    .tenant-card .tc-meta { font-size: 11px; color: #64748b; margin-top: 2px; }
+    .tenant-card { background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+    .tenant-card .tc-name { font-size: 14px; font-weight: 600; color: #fff; }
+    .tenant-card .tc-meta { font-size: 11px; color: #555; margin-top: 2px; }
     .tenant-stats { display: flex; gap: 12px; }
     .tenant-stat { text-align: right; }
-    .tenant-stat .ts-num { font-size: 16px; font-weight: 700; color: #38bdf8; }
-    .tenant-stat .ts-lbl { font-size: 10px; color: #64748b; }
-    .btn-view-tenant { background: #334155; color: #e2e8f0; border: none; padding: 5px 12px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; }
-    .btn-view-tenant:hover { background: #38bdf8; color: #0f172a; }
+    .tenant-stat .ts-num { font-size: 16px; font-weight: 700; color: #f97316; }
+    .tenant-stat .ts-lbl { font-size: 10px; color: #555; }
+    .btn-view-tenant { background: #2a2a2a; color: #ccc; border: none; padding: 5px 12px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; }
+    .btn-view-tenant:hover { background: #f97316; color: #0a0a0a; }
 
     /* ── Empty state ── */
-    .empty { text-align: center; padding: 36px; color: #475569; }
+    .empty { text-align: center; padding: 36px; color: #444; }
     .empty .e-icon { font-size: 36px; margin-bottom: 8px; }
   </style>
 </head>
@@ -225,7 +225,7 @@
 <!-- Admin bar (shown only for super-admin) -->
 <div class="admin-bar" id="admin-bar" style="display:none">
   <span class="admin-badge">ADMIN</span>
-  <span style="color:#94a3b8;font-size:12px">Viewing:</span>
+  <span style="color:#666;font-size:12px">Viewing:</span>
   <select class="tenant-select" id="tenant-switcher" onchange="switchTenant(this.value)">
     <option value="">— All Tenants —</option>
   </select>
@@ -271,7 +271,7 @@
     </div>
     <div id="detail-view" class="detail-panel">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-        <button onclick="closeDetail()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:17px;">←</button>
+        <button onclick="closeDetail()" style="background:none;border:none;color:#666;cursor:pointer;font-size:17px;">←</button>
         <div class="panel-title" style="margin:0" id="detail-title">Job Detail</div>
       </div>
       <div id="detail-employees" style="margin-bottom:16px;"></div>
@@ -317,7 +317,7 @@
     </div>
     <div id="team-list"><div class="empty">Loading...</div></div>
     <hr class="section-divider">
-    <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Add New Employee</div>
+    <div style="font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Add New Employee</div>
     <div class="form-group"><label>Full Name</label><input type="text" id="emp-name" placeholder="e.g. Marcus Johnson"></div>
     <div class="form-group"><label>Phone Number (WhatsApp)</label><input type="tel" id="emp-phone" placeholder="+1 (555) 000-0000"></div>
     <div class="form-group">
@@ -593,7 +593,7 @@ async function loadPhotos() {
       <div class="photo-meta">
         <div class="pm-job">${p.jobs?.name||'—'}</div>
         <div class="pm-info">👷 ${p.employees?.name||'?'} · ${new Date(p.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div>
-        ${p.message&&p.message!=='Site photo'?`<div class="pm-info" style="color:#94a3b8">${p.message}</div>`:''}
+        ${p.message&&p.message!=='Site photo'?`<div class="pm-info" style="color:#666">${p.message}</div>`:''}
       </div>
     </div>
   `).join('')}</div>`;
@@ -623,8 +623,8 @@ async function openDetail(jobId, jobName) {
       <div class="emp-item">
         <div class="emp-avatar">${(a.employees?.name||'?')[0].toUpperCase()}</div>
         <div>
-          <div style="font-size:13px;color:#e2e8f0">${a.employees?.name||'Unknown'}</div>
-          <div style="font-size:11px;color:${a.checked_out_at?'#94a3b8':'#4ade80'};margin-top:1px">${a.checked_out_at?'● Off site':'● On site'}</div>
+          <div style="font-size:13px;color:#ccc">${a.employees?.name||'Unknown'}</div>
+          <div style="font-size:11px;color:${a.checked_out_at?'#666':'#4ade80'};margin-top:1px">${a.checked_out_at?'● Off site':'● On site'}</div>
         </div>
       </div>
     `).join('')}
@@ -777,7 +777,7 @@ function showOverlay(type) {
         <div class="overlay-info"><div class="oi-name">${j.name}</div><div class="oi-sub">📍 ${j.address||'No address'}</div></div>
         <span class="chip chip-green" style="margin-left:auto">● ${j.status}</span>
       </div>
-    `).join('') || '<div style="color:#64748b;text-align:center;padding:20px">No active jobs</div>';
+    `).join('') || '<div style="color:#555;text-align:center;padding:20px">No active jobs</div>';
   } else if (type === 'crew') {
     title.textContent = '👷 Crew On Site';
     const onSite = allAssignmentsData.filter(a => a.checked_in_at && !a.checked_out_at);
@@ -787,7 +787,7 @@ function showOverlay(type) {
         <div class="overlay-info"><div class="oi-name">${a.employees?.name||'Unknown'}</div><div class="oi-sub">📍 ${a.jobs?.name||'—'} • In since ${new Date(a.checked_in_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</div></div>
         <span class="chip chip-green" style="margin-left:auto">● on site</span>
       </div>
-    `).join('') || '<div style="color:#64748b;text-align:center;padding:20px">No crew on site</div>';
+    `).join('') || '<div style="color:#555;text-align:center;padding:20px">No crew on site</div>';
   } else if (type === 'supplies') {
     title.textContent = '📦 Pending Supply Requests';
     const pending = allSuppliesData.filter(s => s.status === 'pending');
@@ -800,7 +800,7 @@ function showOverlay(type) {
           <button class="status-btn btn-delivered" onclick="updateSupply('${s.id}','delivered');closeOverlay()">✓ Done</button>
         </div>
       </div>
-    `).join('') || '<div style="color:#64748b;text-align:center;padding:20px">✅ No pending requests</div>';
+    `).join('') || '<div style="color:#555;text-align:center;padding:20px">✅ No pending requests</div>';
   } else if (type === 'bottlenecks') {
     title.textContent = '⚠️ Bottlenecks Today';
     const today = new Date(); today.setHours(0,0,0,0);
@@ -810,7 +810,7 @@ function showOverlay(type) {
         <div class="overlay-avatar">⚠️</div>
         <div class="overlay-info"><div class="oi-name">${b.message}</div><div class="oi-sub">${b.jobs?.name} • 👷 ${b.employees?.name} • ${new Date(b.created_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</div></div>
       </div>
-    `).join('') || '<div style="color:#64748b;text-align:center;padding:20px">✅ No bottlenecks today</div>';
+    `).join('') || '<div style="color:#555;text-align:center;padding:20px">✅ No bottlenecks today</div>';
   }
 }
 function closeOverlay(e) {
