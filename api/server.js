@@ -318,6 +318,73 @@ app.delete('/api/clients/:id/followups/:fid', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Reports ───────────────────────────────────────────────────────────────────
+
+app.get('/api/reports', auth, async (req, res) => {
+  const days = parseInt(req.query.period || '30');
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  const sinceISO = since.toISOString();
+
+  const [{ data: allJobs }, { data: assignments }, { data: supplies }, { data: bottlenecks }] = await Promise.all([
+    scoped(supabaseAdmin.from('jobs').select('id, name, status, created_at'), req.tenantId),
+    scoped(
+      supabaseAdmin.from('job_assignments')
+        .select('employee_id, checked_in_at, checked_out_at, employees(name)')
+        .not('checked_in_at', 'is', null)
+        .not('checked_out_at', 'is', null)
+        .gte('checked_in_at', sinceISO),
+      req.tenantId
+    ),
+    scoped(supabaseAdmin.from('supply_requests').select('status').gte('created_at', sinceISO), req.tenantId),
+    scoped(supabaseAdmin.from('job_updates').select('id').eq('type', 'bottleneck').gte('created_at', sinceISO), req.tenantId),
+  ]);
+
+  // Jobs by status
+  const jobsByStatus = {};
+  (allJobs || []).forEach(j => { jobsByStatus[j.status] = (jobsByStatus[j.status] || 0) + 1; });
+
+  // Completed jobs trend — last 6 months
+  const trend = {};
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
+    trend[d.toLocaleString('default', { month: 'short', year: '2-digit' })] = 0;
+  }
+  (allJobs || []).filter(j => j.status === 'complete').forEach(j => {
+    const key = new Date(j.created_at).toLocaleString('default', { month: 'short', year: '2-digit' });
+    if (trend[key] !== undefined) trend[key]++;
+  });
+
+  // Crew hours
+  const crewHours = {};
+  (assignments || []).forEach(a => {
+    const hrs = (new Date(a.checked_out_at) - new Date(a.checked_in_at)) / 3600000;
+    const name = a.employees?.name || 'Unknown';
+    crewHours[name] = (crewHours[name] || 0) + hrs;
+  });
+  const crewHoursSorted = Object.entries(crewHours)
+    .map(([name, h]) => ({ name, hours: Math.round(h * 10) / 10 }))
+    .sort((a, b) => b.hours - a.hours).slice(0, 8);
+
+  // Supply stats
+  const supplyStats = { pending: 0, ordered: 0, delivered: 0 };
+  (supplies || []).forEach(s => { if (s.status in supplyStats) supplyStats[s.status]++; });
+
+  const totalCrewHours = Math.round(Object.values(crewHours).reduce((a, b) => a + b, 0) * 10) / 10;
+
+  res.json({
+    jobsByStatus,
+    trend,
+    crewHours: crewHoursSorted,
+    supplyStats,
+    bottlenecksCount: (bottlenecks || []).length,
+    totalJobs: (allJobs || []).length,
+    completedJobs: (allJobs || []).filter(j => j.status === 'complete').length,
+    activeJobs: (allJobs || []).filter(j => ['active','in_progress','scheduled'].includes(j.status)).length,
+    totalCrewHours,
+  });
+});
+
 // ── Super-admin Routes ────────────────────────────────────────────────────────
 
 // List all tenants with stats (admin only)
