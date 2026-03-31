@@ -635,21 +635,26 @@ app.post('/portal/api/checkout', portalAuth, async (req, res) => {
   if (!job.invoice_amount) return res.status(400).json({ error: 'No invoice amount set' });
 
   const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    line_items: [{
-      price_data: {
-        currency: 'usd',
-        product_data: { name: job.name },
-        unit_amount: Math.round(job.invoice_amount * 100),
-      },
-      quantity: 1,
-    }],
-    mode: 'payment',
-    success_url: `${req.protocol}://${req.get('host')}/portal?payment=success`,
-    cancel_url: `${req.protocol}://${req.get('host')}/portal?payment=cancelled`,
-    metadata: { job_id: job.id },
-  });
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: { name: job.name },
+          unit_amount: Math.round(job.invoice_amount * 100),
+        },
+        quantity: 1,
+      }],
+      mode: 'payment',
+      success_url: `${req.protocol}://${req.get('host')}/portal?payment=success`,
+      cancel_url: `${req.protocol}://${req.get('host')}/portal?payment=cancelled`,
+      metadata: { job_id: job.id },
+    });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
 
   res.json({ url: session.url });
 });
