@@ -660,6 +660,53 @@ app.post('/portal/api/checkout', portalAuth, async (req, res) => {
   res.json({ url: session.url });
 });
 
+// ── Settings ──────────────────────────────────────────────────────────────────
+
+// Admin users have no tenantId, so fall back to finding their tenant by owner_email
+async function getEffectiveTenantId(req) {
+  if (req.tenantId) return req.tenantId;
+  const { data } = await supabaseAdmin.from('tenants')
+    .select('id').eq('owner_email', req.userEmail).single();
+  return data?.id || null;
+}
+
+app.get('/api/settings', auth, async (req, res) => {
+  const tenantId = await getEffectiveTenantId(req);
+  if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
+  const { data } = await supabaseAdmin.from('tenants')
+    .select('company_name, owner_email, logo_url, phone, address')
+    .eq('id', tenantId).single();
+  res.json(data || {});
+});
+
+app.patch('/api/settings', auth, async (req, res) => {
+  const tenantId = await getEffectiveTenantId(req);
+  if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
+  const { company_name, phone, address } = req.body;
+  const updates = {};
+  if (company_name !== undefined) updates.company_name = company_name;
+  if (phone !== undefined) updates.phone = phone;
+  if (address !== undefined) updates.address = address;
+  const { data, error } = await supabaseAdmin.from('tenants')
+    .update(updates).eq('id', tenantId).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+app.post('/api/settings/logo', auth, upload.single('logo'), async (req, res) => {
+  const tenantId = await getEffectiveTenantId(req);
+  if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const ext = req.file.originalname.split('.').pop().toLowerCase() || 'png';
+  const filePath = `${tenantId}/logo.${ext}`;
+  const { error: uploadError } = await supabaseAdmin.storage.from('logos')
+    .upload(filePath, req.file.buffer, { contentType: req.file.mimetype, upsert: true });
+  if (uploadError) return res.status(400).json({ error: uploadError.message });
+  const { data: { publicUrl } } = supabaseAdmin.storage.from('logos').getPublicUrl(filePath);
+  await supabaseAdmin.from('tenants').update({ logo_url: publicUrl }).eq('id', tenantId);
+  res.json({ logo_url: publicUrl });
+});
+
 // ── Invoice Data ──────────────────────────────────────────────────────────────
 
 // Dashboard: fetch invoice data for a job

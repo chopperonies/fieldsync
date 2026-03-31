@@ -384,6 +384,7 @@
   <div class="main-tab" id="mtab-clients" onclick="switchMainTab('clients')">👤 Clients</div>
   <div class="main-tab" id="mtab-reports" onclick="switchMainTab('reports')">📊 Reports</div>
   <div class="main-tab" id="mtab-agreements" onclick="switchMainTab('agreements')">📄 Agreements</div>
+  <div class="main-tab" id="mtab-settings" onclick="switchMainTab('settings')">⚙️ Settings</div>
 </div>
 
 <!-- Jobs view -->
@@ -533,6 +534,60 @@
       <button class="btn-cancel" onclick="closeAgreementModal()">Cancel</button>
       <button class="btn-save" id="ag-modal-save" onclick="saveAgreement()">Add Agreement</button>
     </div>
+  </div>
+</div>
+
+<!-- Settings view -->
+<div id="settings-view" style="display:none">
+  <div style="max-width:640px;margin:0 auto;padding:32px 24px">
+
+    <!-- Logo -->
+    <div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:28px;margin-bottom:20px">
+      <div style="font-size:15px;font-weight:700;color:#17191c;margin-bottom:20px">Company Logo</div>
+      <div style="display:flex;align-items:center;gap:20px">
+        <div id="logo-preview"
+          onclick="document.getElementById('logo-file').click()"
+          style="width:80px;height:80px;border-radius:10px;border:2px dashed #e8e8e8;background:#f5f5f5;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;flex-shrink:0">
+          <span style="font-size:11px;color:#737475;text-align:center;line-height:1.4">Click to<br>upload</span>
+        </div>
+        <div>
+          <button onclick="document.getElementById('logo-file').click()"
+            style="background:#0265dc;color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">
+            Upload Logo
+          </button>
+          <div style="font-size:12px;color:#737475;margin-top:8px">PNG, JPG, or SVG. Displayed on all client invoices.</div>
+          <div id="logo-upload-status" style="font-size:12px;margin-top:4px"></div>
+        </div>
+      </div>
+      <input type="file" id="logo-file" accept="image/*" style="display:none" onchange="uploadLogo(this)">
+    </div>
+
+    <!-- Company info -->
+    <div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:28px">
+      <div style="font-size:15px;font-weight:700;color:#17191c;margin-bottom:20px">Company Info</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#737475;margin-bottom:6px">Company Name</div>
+          <input type="text" id="set-company-name" placeholder="Your Company Name" class="auth-input" style="margin-bottom:0">
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#737475;margin-bottom:6px">Phone</div>
+          <input type="text" id="set-phone" placeholder="(555) 555-5555" class="auth-input" style="margin-bottom:0">
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#737475;margin-bottom:6px">Business Address</div>
+          <input type="text" id="set-address" placeholder="123 Main St, City, State ZIP" class="auth-input" style="margin-bottom:0">
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
+          <button onclick="saveSettings()"
+            style="background:#0265dc;color:#fff;border:none;border-radius:7px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer">
+            Save Changes
+          </button>
+          <span id="settings-save-status" style="font-size:12px;color:#4ade80"></span>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1181,13 +1236,76 @@ function closeOverlay(e) {
 
 // ── Main Tab Navigation ───────────────────────────────────────────────────────
 function switchMainTab(tab) {
-  ['jobs','clients','reports','agreements'].forEach(t => {
+  ['jobs','clients','reports','agreements','settings'].forEach(t => {
     document.getElementById(`${t}-view`).style.display = t === tab ? 'block' : 'none';
     document.getElementById(`mtab-${t}`).classList.toggle('active', t === tab);
   });
   if (tab === 'clients' && !allClientsData.length) loadClients();
   if (tab === 'reports') loadReports(30);
   if (tab === 'agreements') loadAgreements();
+  if (tab === 'settings') loadSettings();
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+let settingsLoaded = false;
+
+async function loadSettings() {
+  if (settingsLoaded) return;
+  const res = await authFetch('/api/settings');
+  const data = await res.json();
+  document.getElementById('set-company-name').value = data.company_name || '';
+  document.getElementById('set-phone').value = data.phone || '';
+  document.getElementById('set-address').value = data.address || '';
+  if (data.logo_url) {
+    document.getElementById('logo-preview').innerHTML =
+      `<img src="${data.logo_url}" style="width:100%;height:100%;object-fit:contain;padding:8px">`;
+  }
+  settingsLoaded = true;
+}
+
+async function saveSettings() {
+  const company_name = document.getElementById('set-company-name').value.trim();
+  const phone = document.getElementById('set-phone').value.trim();
+  const address = document.getElementById('set-address').value.trim();
+  const res = await authFetch('/api/settings', {
+    method: 'PATCH',
+    body: JSON.stringify({ company_name, phone, address })
+  });
+  const statusEl = document.getElementById('settings-save-status');
+  if (res.ok) {
+    statusEl.textContent = '✓ Saved';
+    setTimeout(() => statusEl.textContent = '', 3000);
+    settingsLoaded = false;
+  } else {
+    const j = await res.json();
+    alert('Error: ' + j.error);
+  }
+}
+
+async function uploadLogo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('logo-upload-status');
+  statusEl.style.color = '#737475';
+  statusEl.textContent = 'Uploading…';
+  const formData = new FormData();
+  formData.append('logo', file);
+  const res = await fetch('/api/settings/logo', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${currentToken}` },
+    body: formData
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    statusEl.style.color = '#f87171';
+    statusEl.textContent = 'Error: ' + json.error;
+    return;
+  }
+  document.getElementById('logo-preview').innerHTML =
+    `<img src="${json.logo_url}" style="width:100%;height:100%;object-fit:contain;padding:8px">`;
+  statusEl.style.color = '#4ade80';
+  statusEl.textContent = '✓ Logo updated';
+  setTimeout(() => statusEl.textContent = '', 3000);
 }
 
 // ── CRM ───────────────────────────────────────────────────────────────────────
