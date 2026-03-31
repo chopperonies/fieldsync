@@ -51,6 +51,7 @@ app.use(express.static(path.join(__dirname, '../dashboard'), { index: false }));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/landing.html')));
 app.get('/app', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/index.html')));
 app.get('/portal', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/portal.html')));
+app.get('/invoice', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/invoice.html')));
 
 // Super-admin emails (comma-separated in env, e.g. "you@example.com")
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
@@ -657,6 +658,38 @@ app.post('/portal/api/checkout', portalAuth, async (req, res) => {
   }
 
   res.json({ url: session.url });
+});
+
+// ── Invoice Data ──────────────────────────────────────────────────────────────
+
+// Dashboard: fetch invoice data for a job
+app.get('/api/invoice/:jobId', auth, async (req, res) => {
+  const { data: job, error } = await supabaseAdmin.from('jobs')
+    .select('*, clients(name, email, phone, address)')
+    .eq('id', req.params.jobId)
+    .eq('tenant_id', req.tenantId)
+    .single();
+  if (!job || error) return res.status(404).json({ error: 'Not found' });
+  const { data: tenant } = await supabaseAdmin.from('tenants')
+    .select('company_name, owner_email')
+    .eq('id', req.tenantId)
+    .single();
+  res.json({ job, tenant });
+});
+
+// Portal: fetch invoice data for a job (client-scoped)
+app.get('/portal/api/invoice/:jobId', portalAuth, async (req, res) => {
+  const { data: job, error } = await supabaseAdmin.from('jobs')
+    .select('*, clients(name, email, phone, address)')
+    .eq('id', req.params.jobId)
+    .eq('client_id', req.clientId)
+    .single();
+  if (!job || error) return res.status(404).json({ error: 'Not found' });
+  const { data: tenant } = await supabaseAdmin.from('tenants')
+    .select('company_name, owner_email')
+    .eq('id', job.tenant_id)
+    .single();
+  res.json({ job, tenant });
 });
 
 // ── Super-admin Routes ────────────────────────────────────────────────────────

@@ -345,13 +345,18 @@
   // ── Jobs ──────────────────────────────────────────────────────────────────
 
   async function payInvoice(jobId) {
-    const res = await portalFetch('/portal/api/checkout', {
-      method: 'POST',
-      body: JSON.stringify({ job_id: jobId }),
-    });
-    const { url, error } = await res.json();
-    if (error) return alert(error);
-    window.location.href = url;
+    try {
+      const res = await portalFetch('/portal/api/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ job_id: jobId }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) return alert('Error: ' + (json.error || 'Unknown error'));
+      if (!json.url) return alert('No checkout URL returned. Check Stripe keys.');
+      window.location.href = json.url;
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
   }
 
   async function loadJobs() {
@@ -378,6 +383,7 @@
             <div class="job-date">Added ${date}</div>
             ${isPaid ? `<div style="font-size:12px;color:#166534;font-weight:600;margin-top:4px">✅ Paid — $${parseFloat(j.invoice_amount).toFixed(2)}</div>` : ''}
             ${canPay ? `<button onclick="payInvoice('${j.id}')" style="margin-top:8px;background:#0265dc;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:13px;font-weight:700;cursor:pointer">Pay Invoice — $${parseFloat(j.invoice_amount).toFixed(2)}</button>` : ''}
+            ${j.invoice_amount > 0 ? `<a href="/invoice?job_id=${j.id}&portal=1" target="_blank" style="display:inline-block;margin-top:6px;font-size:12px;color:#0265dc;text-decoration:none;font-weight:600">View Invoice →</a>` : ''}
           </div>
           <span class="status-badge" style="background:${sc.bg};color:${sc.text}">${label}</span>
         </div>
