@@ -25,19 +25,33 @@ setInterval(() => {
   }
 }, 3600000);
 
-const LINKCREW_SYSTEM = `You are an AI assistant for LinkCrew, a field service management platform built for contractors and field crews.
+const LINKCREW_SYSTEM = `You are an AI assistant for LinkCrew, a field service management platform built for contractors and field service crews.
 
 LinkCrew helps contractors manage jobs, track crew in real time, handle client invoices, and give clients their own portal.
 
-Key facts:
-- Plans: Solo $49/mo (1 user), Team $97/mo (up to 5), Pro $165/mo (up to 10), Business $299/mo (up to 20)
-- Voice Bot add-on: $30/mo on any plan
-- 14-day free trial, no credit card required
-- Website: linkcrew.io
-- Features: live job tracking, client CRM, crew check-ins, site photos, supply requests, client portal, Stripe invoicing, service agreements, reporting
+PRICING PLANS:
+- Solo plan: $49 per month, 1 user
+- Team plan: $97 per month, up to 5 users
+- Pro plan: $165 per month, up to 10 users
+- Business plan: $299 per month, up to 20 users
+- Voice Bot add-on: $30 per month, available on any plan
+- All plans include a 14-day free trial with no credit card required
 
-For support or billing issues tell them to visit linkcrew.io or email support@linkcrew.io.
-Keep answers SHORT and friendly (2-3 sentences). Never make up information you don't know.`;
+FEATURES included on all plans:
+- Live job tracking and pipeline management
+- Client CRM with a client-facing portal
+- Crew check-ins and real-time site photos
+- Supply request management
+- Stripe-powered invoicing and payments
+- Service agreements and reporting
+
+CONTACT & SUPPORT:
+- Website: linkcrew.io
+- Email: support@linkcrew.io
+- Sign up free at linkcrew.io
+
+If asked anything outside of LinkCrew, politely redirect to what you know.
+Never make up information. If unsure, direct them to linkcrew.io.`;
 
 const app = express();
 
@@ -924,7 +938,9 @@ app.post('/api/voice/incoming', (req, res) => {
   const gather = twiml.gather({
     input: 'speech',
     action: '/api/voice/respond',
-    speechTimeout: 'auto',
+    speechTimeout: '3',
+    timeout: 10,
+    enhanced: 'true',
     language: 'en-US',
   });
   gather.say({ voice: 'Polly.Joanna' },
@@ -973,7 +989,9 @@ app.post('/api/voice/respond', async (req, res) => {
     const gather = twiml.gather({
       input: 'speech',
       action: '/api/voice/respond',
-      speechTimeout: 'auto',
+      speechTimeout: '3',
+      timeout: 10,
+      enhanced: 'true',
       language: 'en-US',
     });
     gather.say({ voice: 'Polly.Joanna' }, reply);
