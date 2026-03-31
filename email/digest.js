@@ -328,4 +328,40 @@ async function sendPaymentReceivedToOwner({ ownerEmail, clientName, jobName, amo
   });
 }
 
-module.exports = { sendDailyDigest, sendSupplyAlert, sendBottleneckAlert, sendPhotoAlert, sendNote, sendInvoiceToClient, sendPaymentReceivedToOwner };
+async function sendCallTranscriptToOwner({ ownerEmail, companyName, callerNumber, transcript, duration }) {
+  const rows = transcript.map(m => `
+    <tr>
+      <td style="padding:6px 12px;font-size:12px;color:#6b7280;width:80px;vertical-align:top">${m.role === 'user' ? 'Caller' : 'Choppy'}</td>
+      <td style="padding:6px 12px;font-size:13px;color:#111827">${m.content}</td>
+    </tr>
+  `).join('');
+
+  const html = `
+<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px">
+<div style="background:white;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb">
+  <div style="background:#0a0a0a;padding:24px">
+    <h2 style="margin:0;color:white;font-size:20px">📞 Missed Call — ${companyName}</h2>
+    <p style="margin:6px 0 0;color:#888;font-size:14px">From ${callerNumber} · ${duration || 'Short call'}</p>
+  </div>
+  <div style="padding:24px">
+    <p style="font-size:14px;color:#374151;margin:0 0 16px">Choppy handled a call on your behalf. Here's the full transcript:</p>
+    ${transcript.length > 0 ? `
+    <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+      ${rows}
+    </table>` : '<p style="font-size:13px;color:#9ca3af">No conversation recorded — caller hung up before speaking.</p>'}
+  </div>
+  <div style="padding:16px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center">
+    LinkCrew Voice Bot · <a href="https://linkcrew.io/app" style="color:#6b7280">View Dashboard</a>
+  </div>
+</div>
+</body></html>`;
+
+  await resend.emails.send({
+    from: 'LinkCrew Alerts <alerts@linkcrew.io>',
+    to: ownerEmail,
+    subject: `📞 Missed call from ${callerNumber} — ${companyName}`,
+    html,
+  });
+}
+
+module.exports = { sendDailyDigest, sendSupplyAlert, sendBottleneckAlert, sendPhotoAlert, sendNote, sendInvoiceToClient, sendPaymentReceivedToOwner, sendCallTranscriptToOwner };

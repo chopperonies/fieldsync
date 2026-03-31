@@ -7,7 +7,7 @@ const bcrypt = require('bcryptjs');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const { createClient } = require('@supabase/supabase-js');
 const cron = require('node-cron');
-const { sendDailyDigest, sendNote, sendInvoiceToClient, sendPaymentReceivedToOwner } = require('../email/digest');
+const { sendDailyDigest, sendNote, sendInvoiceToClient, sendPaymentReceivedToOwner, sendCallTranscriptToOwner } = require('../email/digest');
 const { handleMessage } = require('../bot/whatsapp');
 const Anthropic = require('@anthropic-ai/sdk');
 const twilio = require('twilio');
@@ -912,7 +912,7 @@ app.get('/api/settings', auth, async (req, res) => {
   const tenantId = await getEffectiveTenantId(req);
   if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
   const { data } = await supabaseAdmin.from('tenants')
-    .select('company_name, owner_email, logo_url, phone, address')
+    .select('company_name, owner_email, logo_url, phone, address, voicebot_enabled, twilio_phone, twilio_account_sid')
     .eq('id', tenantId).single();
   res.json(data || {});
 });
@@ -943,6 +943,186 @@ app.post('/api/settings/logo', auth, upload.single('logo'), async (req, res) => 
   const { data: { publicUrl } } = supabaseAdmin.storage.from('logos').getPublicUrl(filePath);
   await supabaseAdmin.from('tenants').update({ logo_url: publicUrl }).eq('id', tenantId);
   res.json({ logo_url: publicUrl });
+});
+
+// Save Twilio credentials + auto-configure webhook on the phone number
+app.post('/api/settings/voicebot', auth, async (req, res) => {
+  const { twilio_account_sid, twilio_auth_token, twilio_phone } = req.body;
+  if (!twilio_account_sid || !twilio_auth_token || !twilio_phone)
+    return res.status(400).json({ error: 'Account SID, Auth Token, and phone number are required' });
+
+  const tenantId = await getEffectiveTenantId(req);
+  if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
+
+  let twilioClient;
+  try {
+    twilioClient = twilio(twilio_account_sid, twilio_auth_token);
+    const numbers = await twilioClient.incomingPhoneNumbers.list({ phoneNumber: twilio_phone });
+    if (!numbers.length) return res.status(400).json({ error: 'Phone number not found in your Twilio account. Make sure the number is in E.164 format (e.g. +15551234567).' });
+
+    const webhookUrl = `${req.protocol}://${req.get('host')}/api/voice/contractor/${tenantId}`;
+    await twilioClient.incomingPhoneNumbers(numbers[0].sid).update({
+      voiceUrl: webhookUrl,
+      voiceMethod: 'POST',
+    });
+  } catch (err) {
+    return res.status(400).json({ error: `Twilio error: ${err.message}` });
+  }
+
+  await supabaseAdmin.from('tenants').update({
+    twilio_account_sid,
+    twilio_auth_token,
+    twilio_phone,
+    voicebot_enabled: true,
+  }).eq('id', tenantId);
+
+  res.json({ success: true });
+});
+
+// Disable voicebot + clear credentials
+app.delete('/api/settings/voicebot', auth, async (req, res) => {
+  const tenantId = await getEffectiveTenantId(req);
+  if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
+  await supabaseAdmin.from('tenants').update({
+    twilio_account_sid: null,
+    twilio_auth_token: null,
+    twilio_phone: null,
+    voicebot_enabled: false,
+  }).eq('id', tenantId);
+  res.json({ success: true });
+});
+
+// ── Contractor Voice Bot ──────────────────────────────────────────────────────
+
+app.post('/api/voice/contractor/:tenantId', async (req, res) => {
+  const { tenantId } = req.params;
+  const callSid = req.body.CallSid;
+  const callerNumber = req.body.From || 'Unknown';
+
+  const { data: tenant } = await supabaseAdmin.from('tenants')
+    .select('company_name, owner_email, voicebot_enabled')
+    .eq('id', tenantId).single();
+
+  if (!tenant || !tenant.voicebot_enabled)
+    return res.status(404).send('<Response><Say>This number is not configured.</Say></Response>');
+
+  voiceConversations.set(callSid, {
+    ts: Date.now(),
+    history: [],
+    tenantId,
+    companyName: tenant.company_name,
+    ownerEmail: tenant.owner_email,
+    callerNumber,
+    startTime: Date.now(),
+  });
+
+  const twiml = new VoiceResponse();
+  const gather = twiml.gather({
+    input: 'speech',
+    action: `/api/voice/contractor/${tenantId}/respond`,
+    speechTimeout: '3',
+    timeout: 10,
+    enhanced: 'true',
+    language: 'en-US',
+  });
+  gather.say({ voice: 'Polly.Joanna' },
+    `Hi! Thanks for calling ${tenant.company_name}. I'm Choppy, the AI assistant. How can I help you today?`);
+  // If no speech detected, send transcript and hang up
+  twiml.redirect(`/api/voice/contractor/${tenantId}/end?sid=${callSid}`);
+
+  res.type('text/xml');
+  res.send(twiml.toString());
+});
+
+app.post('/api/voice/contractor/:tenantId/respond', async (req, res) => {
+  const { tenantId } = req.params;
+  const callSid = req.body.CallSid;
+  const speech = (req.body.SpeechResult || '').trim();
+
+  if (!voiceConversations.has(callSid)) {
+    const { data: tenant } = await supabaseAdmin.from('tenants')
+      .select('company_name, owner_email').eq('id', tenantId).single();
+    voiceConversations.set(callSid, {
+      ts: Date.now(), history: [], tenantId,
+      companyName: tenant?.company_name || 'the company',
+      ownerEmail: tenant?.owner_email,
+      callerNumber: req.body.From || 'Unknown',
+      startTime: Date.now(),
+    });
+  }
+
+  const conv = voiceConversations.get(callSid);
+  conv.ts = Date.now();
+  if (speech) conv.history.push({ role: 'user', content: speech });
+
+  let reply = 'I\'m sorry, I didn\'t catch that. Could you say it again?';
+  try {
+    const result = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 150,
+      system: `You are Choppy, an AI phone assistant for ${conv.companyName}. You answer calls on their behalf.
+Take messages, answer basic questions about the business, and let callers know the team will follow up.
+You are on a phone call — keep responses to 1-3 short sentences. Be friendly and professional.
+If the caller wants to leave a message, acknowledge it and tell them someone will be in touch shortly.`,
+      messages: conv.history.slice(-10),
+    });
+    reply = result.content[0].text;
+    conv.history.push({ role: 'assistant', content: reply });
+  } catch (err) {
+    console.error('[contractor voice] Claude error:', err.message);
+  }
+
+  const twiml = new VoiceResponse();
+  const endWords = ['goodbye', 'bye', 'hang up', 'that\'s all', 'no thanks', 'thank you'];
+  const ending = endWords.some(w => speech.toLowerCase().includes(w));
+
+  if (ending) {
+    twiml.say({ voice: 'Polly.Joanna' }, reply + ' Have a great day!');
+    twiml.redirect(`/api/voice/contractor/${tenantId}/end?sid=${callSid}`);
+  } else {
+    const gather = twiml.gather({
+      input: 'speech',
+      action: `/api/voice/contractor/${tenantId}/respond`,
+      speechTimeout: '3',
+      timeout: 10,
+      enhanced: 'true',
+      language: 'en-US',
+    });
+    gather.say({ voice: 'Polly.Joanna' }, reply);
+    twiml.redirect(`/api/voice/contractor/${tenantId}/end?sid=${callSid}`);
+  }
+
+  res.type('text/xml');
+  res.send(twiml.toString());
+});
+
+app.post('/api/voice/contractor/:tenantId/end', async (req, res) => {
+  const callSid = req.query.sid || req.body.CallSid;
+  const conv = voiceConversations.get(callSid);
+
+  if (conv?.ownerEmail) {
+    const duration = conv.startTime
+      ? Math.round((Date.now() - conv.startTime) / 1000) + 's'
+      : null;
+    try {
+      await sendCallTranscriptToOwner({
+        ownerEmail: conv.ownerEmail,
+        companyName: conv.companyName,
+        callerNumber: conv.callerNumber,
+        transcript: conv.history,
+        duration,
+      });
+    } catch (err) {
+      console.error('[contractor voice] transcript email error:', err.message);
+    }
+  }
+
+  if (callSid) voiceConversations.delete(callSid);
+
+  const twiml = new VoiceResponse();
+  twiml.hangup();
+  res.type('text/xml');
+  res.send(twiml.toString());
 });
 
 // ── Invoice Data ──────────────────────────────────────────────────────────────

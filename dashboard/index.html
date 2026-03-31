@@ -670,6 +670,44 @@
       </div>
     </div>
 
+    <!-- Voice Bot -->
+    <div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:28px;margin-top:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:15px;font-weight:700;color:#17191c">Voice Bot Add-on</div>
+        <span id="voicebot-status-badge" style="display:none;font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:#f0fdf4;color:#16a34a">● Active</span>
+      </div>
+      <div style="font-size:13px;color:#737475;margin-bottom:20px">Connect your own Twilio number. Choppy will answer calls as your company and email you a transcript after every call.</div>
+
+      <div id="voicebot-form">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div>
+            <div style="font-size:12px;font-weight:600;color:#737475;margin-bottom:6px">Twilio Account SID</div>
+            <input type="text" id="vb-sid" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" class="auth-input" style="margin-bottom:0;font-family:monospace;font-size:13px">
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:#737475;margin-bottom:6px">Twilio Auth Token</div>
+            <input type="password" id="vb-token" placeholder="Your auth token" class="auth-input" style="margin-bottom:0;font-family:monospace;font-size:13px">
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:#737475;margin-bottom:6px">Phone Number (E.164 format)</div>
+            <input type="text" id="vb-phone" placeholder="+15551234567" class="auth-input" style="margin-bottom:0;font-family:monospace;font-size:13px">
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
+            <button onclick="saveVoicebot()" style="background:#0265dc;color:#fff;border:none;border-radius:7px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer">
+              Activate Voice Bot
+            </button>
+            <button id="vb-disable-btn" onclick="disableVoicebot()" style="display:none;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:7px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer">
+              Disable
+            </button>
+            <span id="vb-status" style="font-size:12px"></span>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding:12px 16px;background:#f5f5f5;border-radius:8px;font-size:12px;color:#737475;line-height:1.6">
+          Find your Account SID and Auth Token in the <strong>Twilio Console → Account → API keys</strong>. Your Twilio number must already be purchased in your account.
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1494,7 +1532,45 @@ async function loadSettings() {
     document.getElementById('logo-preview').innerHTML =
       `<img src="${data.logo_url}" style="width:100%;height:100%;object-fit:contain;padding:8px">`;
   }
+  // Voicebot state
+  if (data.voicebot_enabled) {
+    document.getElementById('voicebot-status-badge').style.display = 'inline';
+    document.getElementById('vb-disable-btn').style.display = 'inline-block';
+    document.getElementById('vb-phone').value = data.twilio_phone || '';
+    document.getElementById('vb-sid').value = data.twilio_account_sid || '';
+  }
   settingsLoaded = true;
+}
+
+async function saveVoicebot() {
+  const sid = document.getElementById('vb-sid').value.trim();
+  const token = document.getElementById('vb-token').value.trim();
+  const phone = document.getElementById('vb-phone').value.trim();
+  const statusEl = document.getElementById('vb-status');
+  if (!sid || !token || !phone) { statusEl.style.color='#f87171'; statusEl.textContent='All fields required'; return; }
+  statusEl.style.color='#737475'; statusEl.textContent='Connecting…';
+  const res = await authFetch('/api/settings/voicebot', { method: 'POST', body: JSON.stringify({ twilio_account_sid: sid, twilio_auth_token: token, twilio_phone: phone }) });
+  const json = await res.json();
+  if (!res.ok) { statusEl.style.color='#f87171'; statusEl.textContent='Error: ' + json.error; return; }
+  statusEl.style.color='#4ade80'; statusEl.textContent='✓ Voice bot activated';
+  document.getElementById('voicebot-status-badge').style.display = 'inline';
+  document.getElementById('vb-disable-btn').style.display = 'inline-block';
+  document.getElementById('vb-token').value = '';
+  settingsLoaded = false;
+}
+
+async function disableVoicebot() {
+  if (!confirm('Disable the voice bot? Choppy will stop answering calls on this number.')) return;
+  const res = await authFetch('/api/settings/voicebot', { method: 'DELETE' });
+  if (res.ok) {
+    document.getElementById('voicebot-status-badge').style.display = 'none';
+    document.getElementById('vb-disable-btn').style.display = 'none';
+    document.getElementById('vb-sid').value = '';
+    document.getElementById('vb-phone').value = '';
+    document.getElementById('vb-status').style.color = '#737475';
+    document.getElementById('vb-status').textContent = 'Voice bot disabled';
+    settingsLoaded = false;
+  }
 }
 
 async function saveSettings() {
