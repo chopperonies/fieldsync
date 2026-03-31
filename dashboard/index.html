@@ -680,6 +680,22 @@
 
       <div id="voicebot-form">
         <div style="display:flex;flex-direction:column;gap:12px">
+
+          <!-- Knowledge base -->
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px 16px">
+            <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:4px">⚠️ Important — Fill this in before activating</div>
+            <div style="font-size:12px;color:#78350f;line-height:1.6">The more you tell Choppy about your business, the better it can answer caller questions. Include your services, pricing, hours, service area, and anything else callers might ask.</div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:#737475;margin-bottom:6px">Business Knowledge</div>
+            <textarea id="vb-knowledge" rows="6" placeholder="Example: We are a roofing company in Kingston, NY. We offer roof repairs ($200–500), full replacements ($5,000–15,000), and gutter cleaning ($150). Available Mon–Fri 8am–6pm. Free estimates. We do not do commercial work. Website: kingstonroofing.com. For urgent repairs call back directly." style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:8px;padding:11px 14px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit;line-height:1.6"></textarea>
+            <div style="font-size:11px;color:#b0b0b0;margin-top:4px">This is saved separately — click "Save Knowledge" below, then fill in your Twilio credentials to activate.</div>
+            <button onclick="saveKnowledge()" style="margin-top:8px;background:#f5f5f5;border:1px solid #e8e8e8;color:#17191c;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer">Save Knowledge</button>
+            <span id="vb-knowledge-status" style="font-size:12px;margin-left:8px"></span>
+          </div>
+
+          <hr style="border:none;border-top:1px solid #e8e8e8;margin:4px 0">
+
           <div>
             <div style="font-size:12px;font-weight:600;color:#737475;margin-bottom:6px">Twilio Account SID</div>
             <input type="text" id="vb-sid" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" class="auth-input" style="margin-bottom:0;font-family:monospace;font-size:13px">
@@ -1533,6 +1549,7 @@ async function loadSettings() {
       `<img src="${data.logo_url}" style="width:100%;height:100%;object-fit:contain;padding:8px">`;
   }
   // Voicebot state
+  if (data.voicebot_knowledge) document.getElementById('vb-knowledge').value = data.voicebot_knowledge;
   if (data.voicebot_enabled) {
     document.getElementById('voicebot-status-badge').style.display = 'inline';
     document.getElementById('vb-disable-btn').style.display = 'inline-block';
@@ -1540,6 +1557,20 @@ async function loadSettings() {
     document.getElementById('vb-sid').value = data.twilio_account_sid || '';
   }
   settingsLoaded = true;
+}
+
+async function saveKnowledge() {
+  const voicebot_knowledge = document.getElementById('vb-knowledge').value.trim();
+  const statusEl = document.getElementById('vb-knowledge-status');
+  statusEl.style.color = '#737475'; statusEl.textContent = 'Saving…';
+  const res = await authFetch('/api/settings', { method: 'PATCH', body: JSON.stringify({ voicebot_knowledge }) });
+  if (res.ok) {
+    statusEl.style.color = '#4ade80'; statusEl.textContent = '✓ Saved';
+    setTimeout(() => statusEl.textContent = '', 3000);
+    settingsLoaded = false;
+  } else {
+    statusEl.style.color = '#f87171'; statusEl.textContent = 'Error saving';
+  }
 }
 
 async function saveVoicebot() {

@@ -912,7 +912,7 @@ app.get('/api/settings', auth, async (req, res) => {
   const tenantId = await getEffectiveTenantId(req);
   if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
   const { data } = await supabaseAdmin.from('tenants')
-    .select('company_name, owner_email, logo_url, phone, address, voicebot_enabled, twilio_phone, twilio_account_sid')
+    .select('company_name, owner_email, logo_url, phone, address, voicebot_enabled, twilio_phone, twilio_account_sid, voicebot_knowledge')
     .eq('id', tenantId).single();
   res.json(data || {});
 });
@@ -920,11 +920,12 @@ app.get('/api/settings', auth, async (req, res) => {
 app.patch('/api/settings', auth, async (req, res) => {
   const tenantId = await getEffectiveTenantId(req);
   if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
-  const { company_name, phone, address } = req.body;
+  const { company_name, phone, address, voicebot_knowledge } = req.body;
   const updates = {};
   if (company_name !== undefined) updates.company_name = company_name;
   if (phone !== undefined) updates.phone = phone;
   if (address !== undefined) updates.address = address;
+  if (voicebot_knowledge !== undefined) updates.voicebot_knowledge = voicebot_knowledge;
   const { data, error } = await supabaseAdmin.from('tenants')
     .update(updates).eq('id', tenantId).select().single();
   if (error) return res.status(400).json({ error: error.message });
@@ -1000,7 +1001,7 @@ app.post('/api/voice/contractor/:tenantId', async (req, res) => {
   const callerNumber = req.body.From || 'Unknown';
 
   const { data: tenant } = await supabaseAdmin.from('tenants')
-    .select('company_name, owner_email, voicebot_enabled')
+    .select('company_name, owner_email, voicebot_enabled, voicebot_knowledge')
     .eq('id', tenantId).single();
 
   if (!tenant || !tenant.voicebot_enabled)
@@ -1012,6 +1013,7 @@ app.post('/api/voice/contractor/:tenantId', async (req, res) => {
     tenantId,
     companyName: tenant.company_name,
     ownerEmail: tenant.owner_email,
+    knowledge: tenant.voicebot_knowledge || '',
     callerNumber,
     startTime: Date.now(),
   });
@@ -1061,9 +1063,10 @@ app.post('/api/voice/contractor/:tenantId/respond', async (req, res) => {
       model: 'claude-sonnet-4-6',
       max_tokens: 150,
       system: `You are Choppy, an AI phone assistant for ${conv.companyName}. You answer calls on their behalf.
-Take messages, answer basic questions about the business, and let callers know the team will follow up.
-You are on a phone call — keep responses to 1-3 short sentences. Be friendly and professional.
-If the caller wants to leave a message, acknowledge it and tell them someone will be in touch shortly.`,
+Be friendly and professional. Keep responses to 1-3 short sentences — you are on a phone call.
+If the caller wants to leave a message, acknowledge it and tell them someone will be in touch shortly.
+If asked something you don't know, say you'll pass the message along and someone will follow up.
+${conv.knowledge ? `\nBUSINESS INFORMATION — use this to answer caller questions:\n${conv.knowledge}` : ''}`,
       messages: conv.history.slice(-10),
     });
     reply = result.content[0].text;
