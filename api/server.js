@@ -664,16 +664,15 @@ app.post('/portal/api/checkout', portalAuth, async (req, res) => {
 
 // Dashboard: fetch invoice data for a job
 app.get('/api/invoice/:jobId', auth, async (req, res) => {
-  const { data: job, error } = await supabaseAdmin.from('jobs')
+  let query = supabaseAdmin.from('jobs')
     .select('*, clients(name, email, phone, address)')
-    .eq('id', req.params.jobId)
-    .eq('tenant_id', req.tenantId)
-    .single();
-  console.log('[invoice]', { jobId: req.params.jobId, tenantId: req.tenantId, found: !!job, err: error?.message });
+    .eq('id', req.params.jobId);
+  if (req.tenantId) query = query.eq('tenant_id', req.tenantId);
+  const { data: job, error } = await query.single();
   if (!job || error) return res.status(404).json({ error: error?.message || 'Not found' });
   const { data: tenant } = await supabaseAdmin.from('tenants')
     .select('company_name, owner_email')
-    .eq('id', req.tenantId)
+    .eq('id', job.tenant_id)
     .single();
   res.json({ job, tenant });
 });
