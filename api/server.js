@@ -160,6 +160,38 @@ app.get('/app', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/in
 app.get('/portal', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/portal.html')));
 app.get('/invoice', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/invoice.html')));
 app.get('/pricing', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/pricing.html')));
+app.get('/kdg', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/kdg.html')));
+
+// KDG contact form
+app.post('/api/contact-kdg', async (req, res) => {
+  const { name, company, email, phone, service, message } = req.body;
+  if (!name || !email || !message) return res.status(400).json({ error: 'Missing required fields' });
+  try {
+    const { Resend } = require('resend');
+    const r = new Resend(process.env.RESEND_API_KEY);
+    await r.emails.send({
+      from: 'Kingston Data Group <hello@linkcrew.io>',
+      to: 'sales@kingstondatagroup.com',
+      subject: `New Project Inquiry from ${name}${company ? ' — ' + company : ''}`,
+      html: `<div style="font-family:sans-serif;max-width:600px">
+        <h2 style="color:#f97316">New Project Inquiry</h2>
+        <table style="width:100%;border-collapse:collapse">
+          <tr><td style="padding:8px 0;color:#888;width:100px">Name</td><td style="padding:8px 0"><strong>${name}</strong></td></tr>
+          <tr><td style="padding:8px 0;color:#888">Company</td><td style="padding:8px 0">${company || '—'}</td></tr>
+          <tr><td style="padding:8px 0;color:#888">Email</td><td style="padding:8px 0"><a href="mailto:${email}">${email}</a></td></tr>
+          <tr><td style="padding:8px 0;color:#888">Phone</td><td style="padding:8px 0">${phone || '—'}</td></tr>
+          <tr><td style="padding:8px 0;color:#888">Service</td><td style="padding:8px 0">${service || '—'}</td></tr>
+        </table>
+        <div style="margin-top:20px;padding:16px;background:#f5f5f5;border-radius:8px">
+          <p style="margin:0;white-space:pre-wrap">${message}</p>
+        </div>
+      </div>`,
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to send' });
+  }
+});
 
 // Super-admin emails (comma-separated in env, e.g. "you@example.com")
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
