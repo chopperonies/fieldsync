@@ -22,6 +22,29 @@ const supabaseAdmin = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
+// ── Stripe webhook (must be before express.json to access raw body) ───────────
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  const sig = req.headers['stripe-signature'];
+  let event;
+  try {
+    if (process.env.STRIPE_WEBHOOK_SECRET) {
+      event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    } else {
+      event = JSON.parse(req.body.toString());
+    }
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+  if (event.type === 'checkout.session.completed') {
+    const jobId = event.data.object.metadata?.job_id;
+    if (jobId) {
+      await supabaseAdmin.from('jobs').update({ payment_status: 'paid' }).eq('id', jobId);
+    }
+  }
+  res.json({ received: true });
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, '../dashboard'), { index: false }));
@@ -490,7 +513,7 @@ app.get('/portal/api/me', portalAuth, async (req, res) => {
 app.get('/portal/api/jobs', portalAuth, async (req, res) => {
   const { data } = await supabaseAdmin
     .from('jobs')
-    .select('id, name, address, status, created_at')
+    .select('id, name, address, status, created_at, invoice_amount, payment_status')
     .eq('client_id', req.clientId)
     .order('created_at', { ascending: false });
   res.json(data || []);
@@ -583,6 +606,50 @@ app.post('/portal/api/requests', portalAuth, upload.single('photo'), async (req,
   });
 
   res.json(job);
+});
+
+// ── Invoicing ─────────────────────────────────────────────────────────────────
+
+app.post('/api/jobs/:id/invoice', auth, async (req, res) => {
+  const { amount } = req.body;
+  if (!amount || isNaN(amount) || parseFloat(amount) <= 0)
+    return res.status(400).json({ error: 'Valid amount required' });
+  const { data, error } = await supabaseAdmin.from('jobs')
+    .update({ invoice_amount: parseFloat(amount), status: 'invoiced', payment_status: 'unpaid' })
+    .eq('id', req.params.id).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+// Portal: create Stripe Checkout session
+app.post('/portal/api/checkout', portalAuth, async (req, res) => {
+  const { job_id } = req.body;
+  const { data: job } = await supabaseAdmin.from('jobs')
+    .select('id, name, invoice_amount, payment_status, client_id')
+    .eq('id', job_id).eq('client_id', req.clientId).single();
+
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  if (job.payment_status === 'paid') return res.status(400).json({ error: 'Already paid' });
+  if (!job.invoice_amount) return res.status(400).json({ error: 'No invoice amount set' });
+
+  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    line_items: [{
+      price_data: {
+        currency: 'usd',
+        product_data: { name: job.name },
+        unit_amount: Math.round(job.invoice_amount * 100),
+      },
+      quantity: 1,
+    }],
+    mode: 'payment',
+    success_url: `${req.protocol}://${req.get('host')}/portal?payment=success`,
+    cancel_url: `${req.protocol}://${req.get('host')}/portal?payment=cancelled`,
+    metadata: { job_id: job.id },
+  });
+
+  res.json({ url: session.url });
 });
 
 // ── Super-admin Routes ────────────────────────────────────────────────────────

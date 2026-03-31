@@ -281,6 +281,12 @@
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').classList.add('visible');
     if (!client.has_password) document.getElementById('set-pw-banner').style.display = 'flex';
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('payment') === 'success') {
+      history.replaceState({}, '', '/portal');
+      alert('✅ Payment received! Thank you.');
+    }
     loadJobs();
   }
 
@@ -338,6 +344,16 @@
 
   // ── Jobs ──────────────────────────────────────────────────────────────────
 
+  async function payInvoice(jobId) {
+    const res = await portalFetch('/portal/api/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ job_id: jobId }),
+    });
+    const { url, error } = await res.json();
+    if (error) return alert(error);
+    window.location.href = url;
+  }
+
   async function loadJobs() {
     const res = await portalFetch('/portal/api/jobs');
     const jobs = await res.json();
@@ -352,12 +368,16 @@
       const sc = STATUS_COLORS[j.status] || { bg: '#f5f5f5', text: '#737475' };
       const label = j.status.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
       const date = new Date(j.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const isPaid = j.payment_status === 'paid';
+      const canPay = j.invoice_amount > 0 && !isPaid;
       return `
         <div class="job-card">
           <div class="job-info">
             <div class="job-name">${j.name}</div>
             ${j.address ? `<div class="job-address">${j.address}</div>` : ''}
             <div class="job-date">Added ${date}</div>
+            ${isPaid ? `<div style="font-size:12px;color:#166534;font-weight:600;margin-top:4px">✅ Paid — $${parseFloat(j.invoice_amount).toFixed(2)}</div>` : ''}
+            ${canPay ? `<button onclick="payInvoice('${j.id}')" style="margin-top:8px;background:#0265dc;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:13px;font-weight:700;cursor:pointer">Pay Invoice — $${parseFloat(j.invoice_amount).toFixed(2)}</button>` : ''}
           </div>
           <span class="status-badge" style="background:${sc.bg};color:${sc.text}">${label}</span>
         </div>
