@@ -389,6 +389,21 @@
 
 <!-- Jobs view -->
 <div id="jobs-view">
+
+<!-- Onboarding banner -->
+<div id="onboarding-banner" style="display:none;background:#fff;border-bottom:1px solid #e8e8e8;padding:24px 28px">
+  <div style="max-width:900px;margin:0 auto">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:#17191c;margin-bottom:4px">👋 Welcome to LinkCrew!</div>
+        <div style="font-size:13px;color:#737475">Complete these steps to get your account set up.</div>
+      </div>
+      <button onclick="dismissOnboarding()" style="background:none;border:none;font-size:12px;color:#737475;cursor:pointer;padding:4px 8px;border-radius:6px;white-space:nowrap">Dismiss</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px" id="onboarding-steps"></div>
+  </div>
+</div>
+
 <div class="main">
   <div class="jobs-panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -830,8 +845,72 @@ const updateIcons = {
 async function init() {
   const { supabaseUrl, supabaseKey } = await (await fetch('/api/config')).json();
   if (!supabaseClient) supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-  await Promise.all([loadDashboard(), loadSupplies(), loadPhotos()]);
+  await Promise.all([loadDashboard(), loadSupplies(), loadPhotos(), loadOnboardingBanner()]);
   subscribeRealtime();
+}
+
+// ── Onboarding ────────────────────────────────────────────────────────────────
+async function loadOnboardingBanner() {
+  if (localStorage.getItem('lc_onboarding_dismissed')) return;
+  const res = await authFetch('/api/onboarding');
+  if (!res.ok) return;
+  const d = await res.json();
+
+  const steps = [
+    {
+      done: d.jobs > 0,
+      icon: '📋',
+      title: 'Add your first job',
+      desc: 'Create a job site to track crew and progress.',
+      action: "openAddJob()",
+      label: 'Add Job',
+    },
+    {
+      done: d.employees > 0,
+      icon: '👷',
+      title: 'Add a crew member',
+      desc: 'Invite your first field worker to the team.',
+      action: "openTeam()",
+      label: 'Add Crew',
+    },
+    {
+      done: d.clients > 0,
+      icon: '👤',
+      title: 'Add a client',
+      desc: 'Add a client so you can send invoices and portal links.',
+      action: "switchMainTab('clients')",
+      label: 'Add Client',
+    },
+    {
+      done: d.invites > 0,
+      icon: '🔗',
+      title: 'Send a portal invite',
+      desc: 'Let a client view their jobs and pay invoices online.',
+      action: "switchMainTab('clients')",
+      label: 'Go to Clients',
+    },
+  ];
+
+  const allDone = steps.every(s => s.done);
+  if (allDone) return; // everything complete, no need to show
+
+  document.getElementById('onboarding-steps').innerHTML = steps.map(s => `
+    <div style="background:${s.done ? '#f0fdf4' : '#f5f5f5'};border:1px solid ${s.done ? '#bbf7d0' : '#e8e8e8'};border-radius:10px;padding:16px">
+      <div style="font-size:20px;margin-bottom:8px">${s.done ? '✅' : s.icon}</div>
+      <div style="font-size:13px;font-weight:700;color:${s.done ? '#166534' : '#17191c'};margin-bottom:4px">${s.title}</div>
+      <div style="font-size:12px;color:#737475;margin-bottom:12px;line-height:1.5">${s.desc}</div>
+      ${s.done
+        ? `<div style="font-size:12px;font-weight:600;color:#16a34a">Done ✓</div>`
+        : `<button onclick="${s.action}" style="background:#0265dc;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">${s.label}</button>`}
+    </div>
+  `).join('');
+
+  document.getElementById('onboarding-banner').style.display = 'block';
+}
+
+function dismissOnboarding() {
+  localStorage.setItem('lc_onboarding_dismissed', '1');
+  document.getElementById('onboarding-banner').style.display = 'none';
 }
 
 async function switchTenant(tenantId) {
@@ -858,7 +937,7 @@ async function loadDashboard() {
 
   const list = document.getElementById('jobs-list');
   if (!jobs.length) {
-    list.innerHTML = '<div class="empty"><div class="e-icon">📋</div>No jobs yet. Add one above.</div>';
+    list.innerHTML = '<div class="empty"><div class="e-icon">📋</div>No jobs yet.<br><span style="font-size:13px;color:#0265dc;cursor:pointer;font-weight:600" onclick="openAddJob()">+ Add your first job</span></div>';
     document.getElementById('stat-crew').textContent = 0;
     document.getElementById('stat-supplies').textContent = 0;
     document.getElementById('stat-bottlenecks').textContent = 0;

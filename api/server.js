@@ -660,6 +660,25 @@ app.post('/portal/api/checkout', portalAuth, async (req, res) => {
   res.json({ url: session.url });
 });
 
+// ── Onboarding ────────────────────────────────────────────────────────────────
+
+app.get('/api/onboarding', auth, async (req, res) => {
+  const tenantId = await getEffectiveTenantId(req);
+  if (!tenantId) return res.json({ jobs: 0, employees: 0, clients: 0, invites: 0 });
+  const [
+    { count: jobs },
+    { count: employees },
+    { count: clients },
+    { count: invites },
+  ] = await Promise.all([
+    supabaseAdmin.from('jobs').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+    supabaseAdmin.from('employees').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+    supabaseAdmin.from('clients').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+    supabaseAdmin.from('client_users').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+  ]);
+  res.json({ jobs: jobs || 0, employees: employees || 0, clients: clients || 0, invites: invites || 0 });
+});
+
 // ── Settings ──────────────────────────────────────────────────────────────────
 
 // Admin users have no tenantId, so fall back to finding their tenant by owner_email
