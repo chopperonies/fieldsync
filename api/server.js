@@ -230,9 +230,11 @@ app.post('/api/jobs', auth, async (req, res) => {
 
 app.patch('/api/jobs/:id', auth, async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
-  const { data } = await supabaseAdmin.from('jobs')
-    .update({ status, updated_at: new Date().toISOString() }).eq('id', id).select().single();
+  const allowed = ['status', 'client_id'];
+  const updates = {};
+  allowed.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f] || null; });
+  updates.updated_at = new Date().toISOString();
+  const { data } = await supabaseAdmin.from('jobs').update(updates).eq('id', id).select().single();
   res.json(data);
 });
 
