@@ -845,7 +845,7 @@ const updateIcons = {
 async function init() {
   const { supabaseUrl, supabaseKey } = await (await fetch('/api/config')).json();
   if (!supabaseClient) supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-  await Promise.all([loadDashboard(), loadSupplies(), loadPhotos(), loadOnboardingBanner()]);
+  await Promise.all([loadDashboard(), loadSupplies(), loadPhotos(), loadOnboardingBanner(), loadClients()]);
   subscribeRealtime();
 }
 
