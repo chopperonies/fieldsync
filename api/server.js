@@ -44,6 +44,8 @@ FEATURES included on all plans:
 - Supply request management
 - Stripe-powered invoicing and payments
 - Service agreements and reporting
+- Android mobile app for crew and owners (available now)
+- Web dashboard at linkcrew.io for full management
 
 CONTACT & SUPPORT:
 - Website: linkcrew.io
