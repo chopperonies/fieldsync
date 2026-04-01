@@ -1553,12 +1553,27 @@ ${conv.knowledge ? `\nLinkCrew product info:\n${conv.knowledge}` : ''}`;
   }
 
   if (conv.mode === 'demo_running') {
+    // If Twilio fires with empty speech (echo/silence), just re-prompt
+    if (!speech) {
+      const twimlSilence = new VoiceResponse();
+      const gatherSilence = twimlSilence.gather({
+        input: 'speech', action: `/api/voice/contractor/${tenantId}/respond`,
+        speechTimeout: '3', timeout: 10, enhanced: 'true', language: 'en-US',
+      });
+      gatherSilence.say({ voice: 'Polly.Joanna' }, "Go ahead — what would you like to know?");
+      twimlSilence.redirect(`/api/voice/contractor/${tenantId}/end?sid=${callSid}`);
+      res.type('text/xml');
+      return res.send(twimlSilence.toString());
+    }
+
     const { trade, company, city } = conv.demoData;
     conv.demoTurns++;
-    const turnsLeft = 3 - conv.demoTurns;
-    systemPrompt = `You are an AI phone assistant for ${company}, a ${trade} company in ${city}. Answer exactly as if you work for this company — be helpful and realistic.
-Keep every response to 1-2 sentences. Make up reasonable details (hours, services, pricing range) if needed — this is a demo.
-${turnsLeft <= 0 ? `This is the last exchange. After your answer, output the exact marker ##END## and add: "That was the LinkCrew voice bot. To get your own, visit linkcrew dot io or call us back and say support."` : ''}`;
+    const maxTurns = 5;
+    const isLastTurn = conv.demoTurns >= maxTurns;
+    systemPrompt = `You are an AI phone assistant for ${company}, a ${trade} company in ${city}. Answer calls on their behalf — be helpful, friendly, and realistic.
+Keep every response to 1-2 short sentences. Make up reasonable details (hours, services, pricing ranges) if needed — this is a live demo.
+Do NOT mention LinkCrew, Choppy, or any other software platform. Stay in character as ${company}.
+${isLastTurn ? `After your answer to this question, wrap up naturally and output the exact marker ##END## followed by this exact text: "...That was the LinkCrew AI voice bot in action. Imagine that answering every call for your business, 24 hours a day. To get your own, visit linkcrew dot io or press 0 to speak with someone now."` : ''}`;
   }
 
   let rawReply = "I'm sorry, I didn't catch that. Could you say that again?";
