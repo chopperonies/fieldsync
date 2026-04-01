@@ -664,7 +664,7 @@
     const catEl = document.getElementById('noteModalCat');
     catEl.textContent = note.category || 'general';
     catEl.className = `note-cat ${note.category || 'general'}`;
-    document.getElementById('noteModalDate').textContent = new Date(note.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    document.getElementById('noteModalDate').textContent = new Date(note.updated_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
     document.getElementById('noteModalBody').innerHTML = renderMarkdown(note.content || '');
     document.getElementById('noteModal').classList.add('open');
   }
@@ -691,7 +691,7 @@
           <div class="note-cat ${n.category || 'general'}">${n.category || 'general'}</div>
         </div>
         <div class="note-preview">${n.content || ''}</div>
-        <div class="note-date">${new Date(n.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+        <div class="note-date">${new Date(n.updated_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
       </div>
     `).join('');
   }
