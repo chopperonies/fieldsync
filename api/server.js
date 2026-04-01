@@ -238,6 +238,16 @@ app.delete('/api/mc/notes/:id', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// Choppy can post notes directly using CHOPPY_SECRET
+app.post('/api/mc/choppy-note', async (req, res) => {
+  const { secret, title, content, category } = req.body;
+  if (!secret || secret !== process.env.CHOPPY_SECRET) return res.status(401).json({ error: 'Unauthorized' });
+  const { data, error } = await supabaseAdmin.from('mc_notes')
+    .insert({ title, content, category: category || 'choppy' }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
 app.get('/api/mc/events', auth, async (req, res) => {
   const { data, error } = await supabaseAdmin.from('mc_events')
     .select('*').order('event_date', { ascending: true }).order('event_time', { ascending: true, nullsFirst: true });
