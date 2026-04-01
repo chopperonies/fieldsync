@@ -421,6 +421,7 @@
     <div class="note-modal-body" id="noteModalBody"></div>
     <div class="note-modal-footer">
       <button class="btn-primary" onclick="editFromModal()">Edit</button>
+      <button class="btn-ghost" style="color:var(--red);border-color:var(--red)" onclick="deleteFromModal()">Delete</button>
       <button class="btn-ghost" onclick="document.getElementById('noteModal').classList.remove('open')">Close</button>
     </div>
   </div>
@@ -676,6 +677,16 @@
   function editFromModal() {
     document.getElementById('noteModal').classList.remove('open');
     editNote(viewingNoteId);
+    document.getElementById('noteEditor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function deleteFromModal() {
+    if (!viewingNoteId) return;
+    if (!confirm('Delete this note?')) return;
+    await fetch(`/api/mc/notes/${viewingNoteId}`, { method: 'DELETE', headers });
+    allNotes = allNotes.filter(n => n.id !== viewingNoteId);
+    document.getElementById('noteModal').classList.remove('open');
+    renderNotes();
   }
 
   function renderNotes() {
