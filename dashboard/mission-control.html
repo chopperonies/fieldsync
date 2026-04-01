@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mission Control — KDG</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #08090a; --surface: #111214; --surface2: #16181b;
+      --border: #1e2024; --accent: #f97316; --accent2: #0265dc;
+      --text: #f0f0f0; --muted: #6b7280; --subtle: #9ca3af;
+      --green: #4ade80; --red: #f87171; --yellow: #fbbf24;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* Nav */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 32px; background: rgba(8,9,10,0.92);
+      backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+    .nav-brand-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), #dc2626); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .nav-brand-name { font-size: 15px; font-weight: 800; color: var(--text); }
+    .nav-brand-name span { color: var(--accent); }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .nav-date { font-size: 12px; color: var(--muted); }
+    .nav-logout { font-size: 13px; color: var(--muted); text-decoration: none; }
+    .nav-logout:hover { color: var(--text); }
+
+    /* Layout */
+    .mc-layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 57px); }
+
+    /* Sidebar */
+    .sidebar {
+      border-right: 1px solid var(--border); padding: 24px 0;
+      position: sticky; top: 57px; height: calc(100vh - 57px); overflow-y: auto;
+    }
+    .sidebar-section { padding: 0 16px 8px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-top: 20px; }
+    .sidebar-section:first-child { margin-top: 0; }
+    .sidebar-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 16px; font-size: 13px; font-weight: 500; color: var(--subtle);
+      text-decoration: none; cursor: pointer; border: none; background: none; width: 100%;
+      text-align: left; transition: color 0.15s, background 0.15s; border-radius: 0;
+    }
+    .sidebar-link:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--accent); background: rgba(249,115,22,0.08); }
+    .sidebar-link .icon { width: 16px; text-align: center; }
+
+    /* Main */
+    .main { padding: 32px; overflow-y: auto; }
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* Page header */
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 { font-size: 24px; font-weight: 800; color: var(--text); }
+    .page-header p { font-size: 14px; color: var(--muted); margin-top: 4px; }
+
+    /* Stats bar */
+    .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 32px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .stat-value { font-size: 32px; font-weight: 900; color: var(--accent); line-height: 1; margin-bottom: 6px; }
+    .stat-label { font-size: 12px; color: var(--muted); }
+
+    /* Projects */
+    .projects-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .project-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
+    .project-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .project-name { font-size: 18px; font-weight: 800; }
+    .project-name .accent { color: var(--accent2); }
+    .badge { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 20px; }
+    .badge.live { background: rgba(74,222,128,0.15); color: var(--green); border: 1px solid rgba(74,222,128,0.3); }
+    .badge.building { background: rgba(251,191,36,0.15); color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
+    .project-url { font-size: 12px; color: var(--accent2); margin-bottom: 16px; text-decoration: none; }
+    .project-url:hover { text-decoration: underline; }
+    .task-list { display: flex; flex-direction: column; gap: 8px; }
+    .task-item { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--subtle); }
+    .task-item.done { color: var(--muted); text-decoration: line-through; }
+    .task-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .task-dot.pending { background: var(--yellow); }
+    .task-dot.done { background: var(--green); }
+    .task-dot.blocked { background: var(--red); }
+
+    /* Leads table */
+    .leads-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .leads-filter { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 7px 12px; border-radius: 8px; font-size: 13px; font-family: inherit; cursor: pointer; }
+    .leads-filter:focus { outline: none; border-color: var(--accent); }
+    .leads-count { font-size: 13px; color: var(--muted); margin-left: auto; }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface2); }
+    td { padding: 12px 16px; font-size: 13px; color: var(--subtle); border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    td.name { color: var(--text); font-weight: 600; }
+    .source-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; letter-spacing: 0.06em; }
+    .source-badge.form { background: rgba(2,101,220,0.15); color: #60a5fa; border: 1px solid rgba(2,101,220,0.3); }
+    .source-badge.voice { background: rgba(249,115,22,0.15); color: var(--accent); border: 1px solid rgba(249,115,22,0.3); }
+    .source-badge.chat { background: rgba(74,222,128,0.15); color: var(--green); border: 1px solid rgba(74,222,128,0.3); }
+    .status-select { background: var(--surface2); border: 1px solid var(--border); color: var(--subtle); padding: 3px 8px; border-radius: 6px; font-size: 11px; font-family: inherit; cursor: pointer; }
+    .status-select:focus { outline: none; }
+    .transcript-btn { font-size: 11px; color: var(--accent2); cursor: pointer; background: none; border: none; text-decoration: underline; padding: 0; }
+    .empty-row td { text-align: center; padding: 40px; color: var(--muted); }
+
+    /* Notes */
+    .notes-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+    .notes-list { display: flex; flex-direction: column; gap: 12px; }
+    .note-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; cursor: pointer; transition: border-color 0.15s; }
+    .note-card:hover { border-color: var(--accent); }
+    .note-card.selected { border-color: var(--accent); }
+    .note-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .note-title { font-size: 14px; font-weight: 700; color: var(--text); }
+    .note-cat { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .note-preview { font-size: 13px; color: var(--muted); line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .note-date { font-size: 11px; color: var(--muted); margin-top: 8px; }
+    .note-editor { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; position: sticky; top: 89px; }
+    .note-editor h3 { font-size: 14px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
+    .form-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-field label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .form-field input, .form-field select, .form-field textarea {
+      background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      padding: 9px 12px; border-radius: 8px; font-size: 13px; font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .form-field input:focus, .form-field select:focus, .form-field textarea:focus { outline: none; border-color: var(--accent); }
+    .form-field textarea { height: 140px; resize: vertical; }
+    .btn-row { display: flex; gap: 8px; }
+    .btn-primary { background: var(--accent); color: #fff; border: none; padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+    .btn-primary:hover { background: #ea6c00; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-ghost:hover { border-color: var(--red); color: var(--red); }
+    .btn-new { background: var(--surface2); color: var(--text); border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 16px; transition: border-color 0.2s; }
+    .btn-new:hover { border-color: var(--accent); }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+    .modal h3 { font-size: 16px; font-weight: 800; margin-bottom: 16px; }
+    .transcript-line { font-size: 13px; line-height: 1.6; padding: 6px 0; border-bottom: 1px solid var(--border); }
+    .transcript-line:last-child { border-bottom: none; }
+    .transcript-line .role { font-weight: 700; color: var(--accent); margin-right: 8px; }
+    .transcript-line.bot .role { color: var(--accent2); }
+    .modal-close { float: right; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; margin-top: -4px; }
+
+    /* Loading */
+    .loading { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
+
+    @media (max-width: 900px) {
+      .mc-layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .projects-grid { grid-template-columns: 1fr; }
+      .notes-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-brand-icon">🚀</div>
+    <div class="nav-brand-name">Mission <span>Control</span></div>
+  </div>
+  <div class="nav-right">
+    <span class="nav-date" id="navDate"></span>
+    <a class="nav-logout" href="/app">← LinkCrew</a>
+  </div>
+</nav>
+
+<div class="mc-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-section">Overview</div>
+    <button class="sidebar-link active" onclick="showSection('overview')"><span class="icon">📊</span> Dashboard</button>
+    <div class="sidebar-section">Work</div>
+    <button class="sidebar-link" onclick="showSection('projects')"><span class="icon">🏗️</span> Projects</button>
+    <button class="sidebar-link" onclick="showSection('leads')"><span class="icon">🎯</span> KDG Leads</button>
+    <button class="sidebar-link" onclick="showSection('notes')"><span class="icon">📝</span> Notes</button>
+    <div class="sidebar-section">Links</div>
+    <a class="sidebar-link" href="https://kingstondatagroup.com" target="_blank"><span class="icon">🌐</span> KDG Site</a>
+    <a class="sidebar-link" href="https://linkcrew.io" target="_blank"><span class="icon">🔗</span> LinkCrew</a>
+    <a class="sidebar-link" href="https://dashboard.render.com" target="_blank"><span class="icon">⚙️</span> Render</a>
+    <a class="sidebar-link" href="https://dashboard.stripe.com" target="_blank"><span class="icon">💳</span> Stripe</a>
+    <a class="sidebar-link" href="https://app.supabase.com" target="_blank"><span class="icon">🗄️</span> Supabase</a>
+    <a class="sidebar-link" href="https://console.twilio.com" target="_blank"><span class="icon">📞</span> Twilio</a>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- Overview -->
+    <div class="section active" id="section-overview">
+      <div class="page-header">
+        <h1>Dashboard</h1>
+        <p>Everything in one place.</p>
+      </div>
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="stat-value" id="stat-leads">—</div><div class="stat-label">Total KDG Leads</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-new">—</div><div class="stat-label">New Leads</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-calls">—</div><div class="stat-label">Calls Today</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-forms">—</div><div class="stat-label">Forms Today</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-notes">—</div><div class="stat-label">Notes</div></div>
+      </div>
+      <div class="projects-grid" id="overviewProjects"></div>
+    </div>
+
+    <!-- Projects -->
+    <div class="section" id="section-projects">
+      <div class="page-header">
+        <h1>Projects</h1>
+        <p>Active products and their current status.</p>
+      </div>
+      <div class="projects-grid" id="projectsGrid"></div>
+    </div>
+
+    <!-- Leads -->
+    <div class="section" id="section-leads">
+      <div class="page-header">
+        <h1>KDG Leads</h1>
+        <p>All contacts from the website form, voice bot, and chat widget.</p>
+      </div>
+      <div class="leads-toolbar">
+        <select class="leads-filter" id="sourceFilter" onchange="filterLeads()">
+          <option value="">All Sources</option>
+          <option value="form">Form</option>
+          <option value="voice">Voice</option>
+          <option value="chat">Chat</option>
+        </select>
+        <select class="leads-filter" id="statusFilter" onchange="filterLeads()">
+          <option value="">All Statuses</option>
+          <option value="new">New</option>
+          <option value="contacted">Contacted</option>
+          <option value="qualified">Qualified</option>
+          <option value="closed">Closed</option>
+        </select>
+        <span class="leads-count" id="leadsCount"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Source</th>
+              <th>Name / Phone</th>
+              <th>Email</th>
+              <th>Service</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="leadsTable"><tr><td colspan="7" class="loading">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="section" id="section-notes">
+      <div class="page-header">
+        <h1>Notes</h1>
+        <p>Quick notes, reminders, and memory.</p>
+      </div>
+      <div class="notes-layout">
+        <div>
+          <button class="btn-new" onclick="newNote()">+ New Note</button>
+          <div class="notes-list" id="notesList"><div class="loading">Loading...</div></div>
+        </div>
+        <div class="note-editor" id="noteEditor">
+          <h3 id="editorTitle">New Note</h3>
+          <div class="form-field">
+            <label>Title</label>
+            <input type="text" id="noteTitle" placeholder="Note title..." />
+          </div>
+          <div class="form-field">
+            <label>Category</label>
+            <select id="noteCategory">
+              <option value="general">General</option>
+              <option value="project">Project</option>
+              <option value="idea">Idea</option>
+              <option value="todo">To Do</option>
+              <option value="memory">Memory</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Content</label>
+            <textarea id="noteContent" placeholder="Write your note..."></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn-primary" onclick="saveNote()">Save</button>
+            <button class="btn-ghost" id="deleteNoteBtn" onclick="deleteNote()" style="display:none">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Transcript Modal -->
+<div class="modal-overlay" id="transcriptModal" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('transcriptModal').classList.remove('open')">✕</button>
+    <h3 id="modalTitle">Call Transcript</h3>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+  // Auth token
+  const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  if (!token) { window.location.href = '/app'; }
+  const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+
+  // Date
+  document.getElementById('navDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+  // Section nav
+  function showSection(name) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+    document.getElementById(`section-${name}`).classList.add('active');
+    event.currentTarget.classList.add('active');
+    if (name === 'leads') loadLeads();
+    if (name === 'notes') loadNotes();
+  }
+
+  // ── Projects data ─────────────────────────────────────────────────────────
+  const PROJECTS = [
+    {
+      name: 'Link<span style="color:var(--accent2)">Crew</span>',
+      status: 'live',
+      url: 'https://linkcrew.io',
+      tasks: [
+        { text: 'Stripe webhook verified', done: true },
+        { text: 'Android app live (build #3)', done: true },
+        { text: 'Voice bot (Choppy) live', done: true },
+        { text: 'Verify Stripe webhook events', done: false },
+        { text: 'iOS app build — waiting on Apple Developer approval', done: false, blocked: true },
+        { text: 'End-to-end test (signup → invoice → payment)', done: false },
+      ]
+    },
+    {
+      name: 'Kingston <span style="color:var(--accent)">Data</span> Group',
+      status: 'live',
+      url: 'https://kingstondatagroup.com',
+      tasks: [
+        { text: 'Homepage live on Render', done: true },
+        { text: 'Custom domain + SSL active', done: true },
+        { text: 'AI chat widget live', done: true },
+        { text: 'Voice bot on (260) 544-6900', done: true },
+        { text: 'Email migrated to Google Workspace', done: true },
+        { text: 'Add Google Calendar booking link to chatbot', done: false },
+        { text: '3D avatar (Simli) integration', done: false },
+      ]
+    }
+  ];
+
+  function renderProjects(containerId) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = PROJECTS.map(p => `
+      <div class="project-card">
+        <div class="project-header">
+          <div class="project-name">${p.name}</div>
+          <span class="badge ${p.status}">${p.status.toUpperCase()}</span>
+        </div>
+        <a class="project-url" href="${p.url}" target="_blank">${p.url}</a>
+        <div class="task-list">
+          ${p.tasks.map(t => `
+            <div class="task-item ${t.done ? 'done' : ''}">
+              <div class="task-dot ${t.done ? 'done' : t.blocked ? 'blocked' : 'pending'}"></div>
+              ${t.text}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── Stats ─────────────────────────────────────────────────────────────────
+  async function loadStats() {
+    try {
+      const res = await fetch('/api/mc/stats', { headers });
+      const data = await res.json();
+      document.getElementById('stat-leads').textContent = data.total_leads ?? 0;
+      document.getElementById('stat-new').textContent = data.new_leads ?? 0;
+      document.getElementById('stat-calls').textContent = data.calls_today ?? 0;
+      document.getElementById('stat-forms').textContent = data.forms_today ?? 0;
+      document.getElementById('stat-notes').textContent = data.notes ?? 0;
+    } catch(e) { console.error('stats error', e); }
+  }
+
+  // ── Leads ─────────────────────────────────────────────────────────────────
+  let allLeads = [];
+  async function loadLeads() {
+    const tbody = document.getElementById('leadsTable');
+    tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading...</td></tr>';
+    try {
+      const res = await fetch('/api/mc/leads', { headers });
+      allLeads = await res.json();
+      renderLeads(allLeads);
+    } catch(e) {
+      tbody.innerHTML = '<tr><td colspan="7" class="loading">Failed to load leads.</td></tr>';
+    }
+  }
+
+  function filterLeads() {
+    const src = document.getElementById('sourceFilter').value;
+    const st = document.getElementById('statusFilter').value;
+    let filtered = allLeads;
+    if (src) filtered = filtered.filter(l => l.source === src);
+    if (st) filtered = filtered.filter(l => l.status === st);
+    renderLeads(filtered);
+  }
+
+  function renderLeads(leads) {
+    const tbody = document.getElementById('leadsTable');
+    document.getElementById('leadsCount').textContent = `${leads.length} lead${leads.length !== 1 ? 's' : ''}`;
+    if (!leads.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No leads yet — they\'ll show up here when someone calls or fills out the form.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = leads.map(l => `
+      <tr>
+        <td>${new Date(l.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+        <td><span class="source-badge ${l.source}">${l.source}</span></td>
+        <td class="name">${l.name || l.phone || '—'}</td>
+        <td>${l.email ? `<a href="mailto:${l.email}" style="color:var(--accent2)">${l.email}</a>` : '—'}</td>
+        <td>${l.service || '—'}</td>
+        <td>
+          <select class="status-select" onchange="updateLeadStatus('${l.id}', this.value)">
+            <option ${l.status==='new'?'selected':''}>new</option>
+            <option ${l.status==='contacted'?'selected':''}>contacted</option>
+            <option ${l.status==='qualified'?'selected':''}>qualified</option>
+            <option ${l.status==='closed'?'selected':''}>closed</option>
+          </select>
+        </td>
+        <td>${l.transcript ? `<button class="transcript-btn" onclick="showTranscript('${l.id}')">View call</button>` : l.message ? `<button class="transcript-btn" onclick="showMessage('${l.id}')">View msg</button>` : ''}</td>
+      </tr>
+    `).join('');
+  }
+
+  async function updateLeadStatus(id, status) {
+    await fetch(`/api/mc/leads/${id}`, { method: 'PATCH', headers, body: JSON.stringify({ status }) });
+    const lead = allLeads.find(l => l.id === id);
+    if (lead) lead.status = status;
+  }
+
+  function showTranscript(id) {
+    const lead = allLeads.find(l => l.id === id);
+    if (!lead?.transcript) return;
+    document.getElementById('modalTitle').textContent = `Call from ${lead.phone || 'Unknown'} — ${new Date(lead.created_at).toLocaleString()}`;
+    document.getElementById('modalBody').innerHTML = lead.transcript.map(m => `
+      <div class="transcript-line ${m.role}">
+        <span class="role">${m.role === 'user' ? 'Caller' : 'Bot'}:</span>${m.content}
+      </div>
+    `).join('');
+    document.getElementById('transcriptModal').classList.add('open');
+  }
+
+  function showMessage(id) {
+    const lead = allLeads.find(l => l.id === id);
+    if (!lead?.message) return;
+    document.getElementById('modalTitle').textContent = `Message from ${lead.name || 'Unknown'}`;
+    document.getElementById('modalBody').innerHTML = `<p style="font-size:14px;line-height:1.7;color:var(--subtle);white-space:pre-wrap">${lead.message}</p>`;
+    document.getElementById('transcriptModal').classList.add('open');
+  }
+
+  function closeModal(e) {
+    if (e.target === document.getElementById('transcriptModal')) {
+      document.getElementById('transcriptModal').classList.remove('open');
+    }
+  }
+
+  // ── Notes ─────────────────────────────────────────────────────────────────
+  let allNotes = [];
+  let editingNoteId = null;
+
+  async function loadNotes() {
+    const list = document.getElementById('notesList');
+    list.innerHTML = '<div class="loading">Loading...</div>';
+    try {
+      const res = await fetch('/api/mc/notes', { headers });
+      allNotes = await res.json();
+      renderNotes();
+    } catch(e) {
+      list.innerHTML = '<div class="loading">Failed to load notes.</div>';
+    }
+  }
+
+  function renderNotes() {
+    const list = document.getElementById('notesList');
+    if (!allNotes.length) {
+      list.innerHTML = '<div class="loading">No notes yet. Add your first note →</div>';
+      return;
+    }
+    list.innerHTML = allNotes.map(n => `
+      <div class="note-card ${editingNoteId === n.id ? 'selected' : ''}" onclick="editNote('${n.id}')">
+        <div class="note-card-header">
+          <div class="note-title">${n.title || 'Untitled'}</div>
+          <div class="note-cat">${n.category || 'general'}</div>
+        </div>
+        <div class="note-preview">${n.content || ''}</div>
+        <div class="note-date">${new Date(n.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+      </div>
+    `).join('');
+  }
+
+  function newNote() {
+    editingNoteId = null;
+    document.getElementById('editorTitle').textContent = 'New Note';
+    document.getElementById('noteTitle').value = '';
+    document.getElementById('noteCategory').value = 'general';
+    document.getElementById('noteContent').value = '';
+    document.getElementById('deleteNoteBtn').style.display = 'none';
+    renderNotes();
+  }
+
+  function editNote(id) {
+    const note = allNotes.find(n => n.id === id);
+    if (!note) return;
+    editingNoteId = id;
+    document.getElementById('editorTitle').textContent = 'Edit Note';
+    document.getElementById('noteTitle').value = note.title || '';
+    document.getElementById('noteCategory').value = note.category || 'general';
+    document.getElementById('noteContent').value = note.content || '';
+    document.getElementById('deleteNoteBtn').style.display = 'inline-block';
+    renderNotes();
+  }
+
+  async function saveNote() {
+    const title = document.getElementById('noteTitle').value.trim();
+    const content = document.getElementById('noteContent').value.trim();
+    const category = document.getElementById('noteCategory').value;
+    if (!content) return;
+    if (editingNoteId) {
+      const res = await fetch(`/api/mc/notes/${editingNoteId}`, { method: 'PATCH', headers, body: JSON.stringify({ title, content, category }) });
+      const updated = await res.json();
+      const idx = allNotes.findIndex(n => n.id === editingNoteId);
+      if (idx !== -1) allNotes[idx] = updated;
+    } else {
+      const res = await fetch('/api/mc/notes', { method: 'POST', headers, body: JSON.stringify({ title, content, category }) });
+      const created = await res.json();
+      allNotes.unshift(created);
+      editingNoteId = created.id;
+      document.getElementById('deleteNoteBtn').style.display = 'inline-block';
+    }
+    renderNotes();
+  }
+
+  async function deleteNote() {
+    if (!editingNoteId) return;
+    if (!confirm('Delete this note?')) return;
+    await fetch(`/api/mc/notes/${editingNoteId}`, { method: 'DELETE', headers });
+    allNotes = allNotes.filter(n => n.id !== editingNoteId);
+    newNote();
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  loadStats();
+  renderProjects('overviewProjects');
+  renderProjects('projectsGrid');
+</script>
+
+</body>
+</html>

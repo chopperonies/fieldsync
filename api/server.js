@@ -173,11 +173,77 @@ app.get('/invoice', (req, res) => res.sendFile(path.join(__dirname, '../dashboar
 app.get('/pricing', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/pricing.html')));
 app.get('/kdg', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/kdg.html')));
 app.get('/kdg-logos', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/kdg-logos.html')));
+app.get('/mission-control', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/mission-control.html')));
+
+// ── Mission Control API ───────────────────────────────────────────────────────
+
+app.get('/api/mc/stats', auth, async (req, res) => {
+  const [leadsRes, notesRes] = await Promise.all([
+    supabaseAdmin.from('kdg_leads').select('id, source, created_at, status'),
+    supabaseAdmin.from('mc_notes').select('id'),
+  ]);
+  const leads = leadsRes.data || [];
+  const today = new Date(); today.setHours(0,0,0,0);
+  res.json({
+    total_leads: leads.length,
+    new_leads: leads.filter(l => l.status === 'new').length,
+    calls_today: leads.filter(l => l.source === 'voice' && new Date(l.created_at) >= today).length,
+    forms_today: leads.filter(l => l.source === 'form' && new Date(l.created_at) >= today).length,
+    notes: notesRes.data?.length || 0,
+  });
+});
+
+app.get('/api/mc/leads', auth, async (req, res) => {
+  const { data, error } = await supabaseAdmin.from('kdg_leads')
+    .select('*').order('created_at', { ascending: false }).limit(100);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.patch('/api/mc/leads/:id', auth, async (req, res) => {
+  const { status } = req.body;
+  const { data, error } = await supabaseAdmin.from('kdg_leads')
+    .update({ status }).eq('id', req.params.id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.get('/api/mc/notes', auth, async (req, res) => {
+  const { data, error } = await supabaseAdmin.from('mc_notes')
+    .select('*').order('updated_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.post('/api/mc/notes', auth, async (req, res) => {
+  const { title, content, category } = req.body;
+  const { data, error } = await supabaseAdmin.from('mc_notes')
+    .insert({ title, content, category }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.patch('/api/mc/notes/:id', auth, async (req, res) => {
+  const { title, content, category } = req.body;
+  const { data, error } = await supabaseAdmin.from('mc_notes')
+    .update({ title, content, category, updated_at: new Date().toISOString() })
+    .eq('id', req.params.id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.delete('/api/mc/notes/:id', auth, async (req, res) => {
+  const { error } = await supabaseAdmin.from('mc_notes').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
 
 // KDG contact form
 app.post('/api/contact-kdg', async (req, res) => {
   const { name, company, email, phone, service, message } = req.body;
   if (!name || !email || !message) return res.status(400).json({ error: 'Missing required fields' });
+  // Save to Supabase
+  supabaseAdmin.from('kdg_leads').insert({ source: 'form', name, company, email, phone, service, message }).then();
   try {
     const { Resend } = require('resend');
     const r = new Resend(process.env.RESEND_API_KEY);
@@ -1286,6 +1352,13 @@ app.post('/api/voice/kdg/end', async (req, res) => {
     } catch (err) {
       console.error('[kdg voice] transcript email error:', err.message);
     }
+    // Save to Supabase
+    supabaseAdmin.from('kdg_leads').insert({
+      source: 'voice',
+      phone: conv.callerNumber,
+      transcript: conv.history,
+      message: conv.history.map(m => `${m.role === 'user' ? 'Caller' : 'Bot'}: ${m.content}`).join('\n'),
+    }).then();
   }
 
   if (callSid) kdgVoiceConversations.delete(callSid);
