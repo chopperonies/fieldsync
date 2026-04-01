@@ -147,6 +147,18 @@
     .transcript-line .role { font-weight: 700; color: var(--accent); margin-right: 8px; }
     .transcript-line.bot .role { color: var(--accent2); }
     .modal-close { float: right; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; margin-top: -4px; }
+    /* Note viewer modal */
+    .note-modal { max-width: 720px; }
+    .note-modal-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 12px; }
+    .note-modal-title { font-size: 20px; font-weight: 800; color: var(--text); line-height: 1.3; }
+    .note-modal-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .note-modal-body { font-size: 14px; line-height: 1.8; color: var(--subtle); }
+    .note-modal-body h2 { font-size: 15px; font-weight: 700; color: var(--text); margin: 20px 0 8px; }
+    .note-modal-body h3 { font-size: 13px; font-weight: 700; color: var(--subtle); margin: 16px 0 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .note-modal-body ul { padding-left: 18px; margin: 4px 0 12px; }
+    .note-modal-body li { margin-bottom: 4px; }
+    .note-modal-body p { margin-bottom: 10px; }
+    .note-modal-footer { display: flex; gap: 10px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
 
     /* Calendar */
     .cal-layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
@@ -395,6 +407,25 @@
   </div>
 </div>
 
+<!-- Note Viewer Modal -->
+<div class="modal-overlay" id="noteModal" onclick="closeNoteModal(event)">
+  <div class="modal note-modal">
+    <div class="note-modal-header">
+      <div class="note-modal-title" id="noteModalTitle"></div>
+      <button class="modal-close" onclick="document.getElementById('noteModal').classList.remove('open')">✕</button>
+    </div>
+    <div class="note-modal-meta">
+      <div class="note-cat" id="noteModalCat"></div>
+      <div style="font-size:11px;color:var(--muted)" id="noteModalDate"></div>
+    </div>
+    <div class="note-modal-body" id="noteModalBody"></div>
+    <div class="note-modal-footer">
+      <button class="btn-primary" onclick="editFromModal()">Edit</button>
+      <button class="btn-ghost" onclick="document.getElementById('noteModal').classList.remove('open')">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
   // Auth token
   const token = localStorage.getItem('fs_token');
@@ -578,6 +609,41 @@
     }
   }
 
+  function renderMarkdown(text) {
+    return text
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/^(?!<[hul])(.+)$/gm, (m) => m.trim() ? `<p>${m}</p>` : '')
+      .replace(/<p><\/p>/g, '');
+  }
+
+  let viewingNoteId = null;
+
+  function viewNote(id) {
+    const note = allNotes.find(n => n.id === id);
+    if (!note) return;
+    viewingNoteId = id;
+    document.getElementById('noteModalTitle').textContent = note.title || 'Untitled';
+    const catEl = document.getElementById('noteModalCat');
+    catEl.textContent = note.category || 'general';
+    catEl.className = `note-cat ${note.category || 'general'}`;
+    document.getElementById('noteModalDate').textContent = new Date(note.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    document.getElementById('noteModalBody').innerHTML = renderMarkdown(note.content || '');
+    document.getElementById('noteModal').classList.add('open');
+  }
+
+  function closeNoteModal(e) {
+    if (e.target === document.getElementById('noteModal')) document.getElementById('noteModal').classList.remove('open');
+  }
+
+  function editFromModal() {
+    document.getElementById('noteModal').classList.remove('open');
+    editNote(viewingNoteId);
+  }
+
   function renderNotes() {
     const list = document.getElementById('notesList');
     if (!allNotes.length) {
@@ -585,7 +651,7 @@
       return;
     }
     list.innerHTML = allNotes.map(n => `
-      <div class="note-card ${editingNoteId === n.id ? 'selected' : ''}" onclick="editNote('${n.id}')">
+      <div class="note-card ${editingNoteId === n.id ? 'selected' : ''}" onclick="viewNote('${n.id}')">
         <div class="note-card-header">
           <div class="note-title">${n.title || 'Untitled'}</div>
           <div class="note-cat ${n.category || 'general'}">${n.category || 'general'}</div>
