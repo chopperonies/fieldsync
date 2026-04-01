@@ -1610,8 +1610,10 @@ ${isLastTurn ? `After your answer to this question, wrap up naturally and output
     spokenReply = "Perfect! Let's set up your demo. First — what trade or industry are you in? For example, roofing, HVAC, plumbing, or landscaping.";
 
   } else if (conv.mode === 'demo_running' && rawReply.includes('##END##')) {
-    spokenReply = rawReply.replace('##END##', '').trim();
-    ending = true;
+    spokenReply = rawReply.replace(/##END##.*$/s, '').trim()
+      + " That was the LinkCrew AI voice bot. I can answer any questions you have about LinkCrew — pricing, features, how to get started. What would you like to know?";
+    conv.mode = 'support';
+    conv.history = [];
   }
 
   // Also end on goodbye words
