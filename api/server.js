@@ -1551,13 +1551,16 @@ ${turnsLeft <= 0 ? `This is the last exchange. After your answer, output the exa
     spokenReply = "Perfect! Let's set up your demo. First — what trade or industry are you in? For example, roofing, HVAC, plumbing, or landscaping.";
 
   } else if (conv.mode === 'demo_collecting') {
-    const readyMatch = rawReply.match(/##READY:(.+?)\|(.+?)\|(.+?)##/);
+    // Flexible match — allow spaces around pipes and markers
+    const readyMatch = rawReply.match(/##\s*READY\s*:\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*##/i);
     if (readyMatch) {
       conv.demoData = { trade: readyMatch[1].trim(), company: readyMatch[2].trim(), city: readyMatch[3].trim() };
       conv.mode = 'demo_running';
       conv.history = [];
-      // Skip Claude's transition text — open the demo immediately as their company
-      spokenReply = `Hello, thank you for calling ${conv.demoData.company}! I'm Choppy, your AI assistant. How can I help you today?`;
+      const greeting = `Hello, thank you for calling ${conv.demoData.company}! I'm Choppy, your AI assistant. How can I help you today?`;
+      // Add greeting to history so Claude has context on next turn
+      conv.history.push({ role: 'assistant', content: greeting });
+      spokenReply = greeting;
     }
 
   } else if (conv.mode === 'demo_running' && rawReply.includes('##END##')) {
