@@ -1454,6 +1454,7 @@ app.post('/api/voice/contractor/:tenantId', async (req, res) => {
     startTime: Date.now(),
     mode: 'support',       // support | demo_collecting | demo_running
     demoData: {},          // { trade, company, city }
+    demoStep: 0,           // 0=need trade, 1=need company, 2=need city, 3=ready
     demoTurns: 0,
   });
 
@@ -1489,7 +1490,7 @@ app.post('/api/voice/contractor/:tenantId/respond', async (req, res) => {
       knowledge: tenant?.voicebot_knowledge || '',
       callerNumber: req.body.From || 'Unknown',
       startTime: Date.now(),
-      mode: 'support', demoData: {}, demoTurns: 0,
+      mode: 'support', demoData: {}, demoStep: 0, demoTurns: 0,
     });
   }
 
@@ -1508,17 +1509,50 @@ If asked something you don't know, say you'll have someone follow up.
 ${conv.knowledge ? `\nLinkCrew product info:\n${conv.knowledge}` : ''}`;
 
   } else if (conv.mode === 'demo_collecting') {
-    const got = conv.demoData;
-    systemPrompt = `You are Choppy, setting up a personalized voice bot demo for a contractor.
-You need to collect three things conversationally, one at a time:
-1. Their trade or industry (e.g. roofing, HVAC, plumbing, landscaping)
-2. Their company name
-3. Their city or service area
+    // Step-based — no marker parsing needed, answers saved directly from speech
+    const DEMO_QUESTIONS = [
+      "What trade or industry are you in? For example, roofing, HVAC, plumbing, or landscaping.",
+      "Got it! What's your company name?",
+      "Almost there — what city or area do you serve?",
+    ];
 
-So far you have: trade="${got.trade||'not yet'}", company="${got.company||'not yet'}", city="${got.city||'not yet'}".
-Ask for the next missing piece naturally. Once you have all three, confirm them briefly and output the exact marker ##READY:${'{trade}'}|${'{company}'}|${'{city}'}## replacing the placeholders with what they told you. Keep it short — 1-2 sentences.`;
+    if (speech) {
+      if (conv.demoStep === 0) conv.demoData.trade = speech;
+      else if (conv.demoStep === 1) conv.demoData.company = speech;
+      else if (conv.demoStep === 2) conv.demoData.city = speech;
+    }
 
-  } else if (conv.mode === 'demo_running') {
+    conv.demoStep++;
+
+    if (conv.demoStep < 3) {
+      // Still collecting — ask next question directly, no Claude needed
+      spokenReply = DEMO_QUESTIONS[conv.demoStep];
+    } else {
+      // All collected — transition to demo_running
+      conv.mode = 'demo_running';
+      conv.history = [];
+      const greeting = `Hello, thank you for calling ${conv.demoData.company}! I'm Choppy, your AI assistant. How can I help you today?`;
+      conv.history.push({ role: 'assistant', content: greeting });
+      spokenReply = greeting;
+    }
+
+    // Skip Claude call entirely for demo_collecting
+    const twiml2 = new VoiceResponse();
+    const gather2 = twiml2.gather({
+      input: 'speech',
+      action: `/api/voice/contractor/${tenantId}/respond`,
+      speechTimeout: '3',
+      timeout: 10,
+      enhanced: 'true',
+      language: 'en-US',
+    });
+    gather2.say({ voice: 'Polly.Joanna' }, spokenReply);
+    twiml2.redirect(`/api/voice/contractor/${tenantId}/end?sid=${callSid}`);
+    res.type('text/xml');
+    return res.send(twiml2.toString());
+  }
+
+  if (conv.mode === 'demo_running') {
     const { trade, company, city } = conv.demoData;
     conv.demoTurns++;
     const turnsLeft = 3 - conv.demoTurns;
@@ -1549,19 +1583,6 @@ ${turnsLeft <= 0 ? `This is the last exchange. After your answer, output the exa
     conv.mode = 'demo_collecting';
     // Drop Claude's transition text entirely — go straight to the first question
     spokenReply = "Perfect! Let's set up your demo. First — what trade or industry are you in? For example, roofing, HVAC, plumbing, or landscaping.";
-
-  } else if (conv.mode === 'demo_collecting') {
-    // Flexible match — allow spaces around pipes and markers
-    const readyMatch = rawReply.match(/##\s*READY\s*:\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*##/i);
-    if (readyMatch) {
-      conv.demoData = { trade: readyMatch[1].trim(), company: readyMatch[2].trim(), city: readyMatch[3].trim() };
-      conv.mode = 'demo_running';
-      conv.history = [];
-      const greeting = `Hello, thank you for calling ${conv.demoData.company}! I'm Choppy, your AI assistant. How can I help you today?`;
-      // Add greeting to history so Claude has context on next turn
-      conv.history.push({ role: 'assistant', content: greeting });
-      spokenReply = greeting;
-    }
 
   } else if (conv.mode === 'demo_running' && rawReply.includes('##END##')) {
     spokenReply = rawReply.replace('##END##', '').trim();
