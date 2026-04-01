@@ -557,7 +557,7 @@
       appendMsg('user', msg);
       showTyping();
       try {
-        const res = await fetch('https://www.linkcrew.io/api/chat-kdg', {
+        const res = await fetch('https://linkcrew.io/api/chat-kdg', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: msg, sessionId: chatSessionId }),
@@ -593,7 +593,7 @@
 
       // Send to email via mailto fallback (replace with your API endpoint if needed)
       try {
-        const res = await fetch('https://www.linkcrew.io/api/contact-kdg', {
+        const res = await fetch('https://linkcrew.io/api/contact-kdg', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
