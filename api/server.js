@@ -263,6 +263,17 @@ app.post('/api/mc/choppy-note', async (req, res) => {
   res.json(data);
 });
 
+// Choppy can update an existing note using CHOPPY_SECRET
+app.patch('/api/mc/choppy-note/:id', async (req, res) => {
+  const { secret, title, content } = req.body;
+  if (!secret || secret !== process.env.CHOPPY_SECRET) return res.status(401).json({ error: 'Unauthorized' });
+  const { data, error } = await supabaseAdmin.from('mc_notes')
+    .update({ title, content, updated_at: new Date().toISOString() })
+    .eq('id', req.params.id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
 app.get('/api/mc/events', auth, async (req, res) => {
   const { data, error } = await supabaseAdmin.from('mc_events')
     .select('*').order('event_date', { ascending: true }).order('event_time', { ascending: true, nullsFirst: true });
