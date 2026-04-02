@@ -854,7 +854,7 @@
 
   function renderEvents() {
     const list = document.getElementById('calList');
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateStr();
     const days = getWeekDates(currentWeekOffset);
 
     // Update week range label
