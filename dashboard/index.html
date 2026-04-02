@@ -1469,7 +1469,7 @@ async function loadTeam() {
           <div class="ti-sub">📱 ${e.phone}</div>
         </div>
         <span class="role-badge ${roleCls[e.role]||'role-crew'}">${e.role.toUpperCase()}</span>
-        <button class="btn-delete" onclick="deleteEmployee('${e.id}')" title="Remove">🗑</button>
+        <button onclick="deleteEmployee('${e.id}')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:12px;font-weight:600;padding:4px 8px;border-radius:4px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove</button>
       </div>
     `).join('');
   } catch (err) {
