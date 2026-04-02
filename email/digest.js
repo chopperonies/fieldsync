@@ -409,4 +409,30 @@ async function sendWorkOrderToClient({ clientName, clientEmail, jobName, descrip
   });
 }
 
-module.exports = { sendDailyDigest, sendSupplyAlert, sendBottleneckAlert, sendPhotoAlert, sendNote, sendInvoiceToClient, sendPaymentReceivedToOwner, sendCallTranscriptToOwner, sendWorkOrderToClient };
+async function sendIncomingSmsNotification({ toEmail, fromNumber, message, companyName }) {
+  const html = `
+<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px">
+<div style="background:white;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb">
+  <div style="background:#0a0a0a;padding:20px 24px">
+    <h2 style="margin:0;color:white;font-size:18px">📱 New text message — ${companyName || 'LinkCrew'}</h2>
+    <p style="margin:6px 0 0;color:#888;font-size:13px">From: ${fromNumber}</p>
+  </div>
+  <div style="padding:28px">
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;font-size:15px;color:#111827;line-height:1.6;white-space:pre-wrap">${message}</div>
+    <p style="margin:20px 0 0;font-size:13px;color:#6b7280">Reply by texting back to your Twilio number or calling ${fromNumber} directly.</p>
+  </div>
+  <div style="padding:14px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center">
+    LinkCrew — SMS Inbox
+  </div>
+</div>
+</body></html>`;
+
+  await resend.emails.send({
+    from: 'LinkCrew Alerts <alerts@linkcrew.io>',
+    to: toEmail,
+    subject: `📱 Text from ${fromNumber} — ${companyName || 'LinkCrew'}`,
+    html,
+  });
+}
+
+module.exports = { sendDailyDigest, sendSupplyAlert, sendBottleneckAlert, sendPhotoAlert, sendNote, sendInvoiceToClient, sendPaymentReceivedToOwner, sendCallTranscriptToOwner, sendWorkOrderToClient, sendIncomingSmsNotification };

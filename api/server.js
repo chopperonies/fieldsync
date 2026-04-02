@@ -7,7 +7,7 @@ const bcrypt = require('bcryptjs');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const { createClient } = require('@supabase/supabase-js');
 const cron = require('node-cron');
-const { sendDailyDigest, sendNote, sendInvoiceToClient, sendPaymentReceivedToOwner, sendCallTranscriptToOwner, sendWorkOrderToClient } = require('../email/digest');
+const { sendDailyDigest, sendNote, sendInvoiceToClient, sendPaymentReceivedToOwner, sendCallTranscriptToOwner, sendWorkOrderToClient, sendIncomingSmsNotification } = require('../email/digest');
 const { handleMessage } = require('../bot/whatsapp');
 const Anthropic = require('@anthropic-ai/sdk');
 const twilio = require('twilio');
@@ -1190,10 +1190,14 @@ app.post('/api/settings/voicebot', auth, async (req, res) => {
     const numbers = await twilioClient.incomingPhoneNumbers.list({ phoneNumber: twilio_phone });
     if (!numbers.length) return res.status(400).json({ error: 'Phone number not found in your Twilio account. Make sure the number is in E.164 format (e.g. +15551234567).' });
 
-    const webhookUrl = `${req.protocol}://${req.get('host')}/api/voice/contractor/${tenantId}`;
+    const host = `${req.protocol}://${req.get('host')}`;
+    const webhookUrl = `${host}/api/voice/contractor/${tenantId}`;
+    const smsWebhookUrl = `${host}/api/sms/contractor/${tenantId}`;
     await twilioClient.incomingPhoneNumbers(numbers[0].sid).update({
       voiceUrl: webhookUrl,
       voiceMethod: 'POST',
+      smsUrl: smsWebhookUrl,
+      smsMethod: 'POST',
     });
   } catch (err) {
     return res.status(400).json({ error: `Twilio error: ${err.message}` });
@@ -1332,6 +1336,45 @@ setInterval(() => {
     if (data.ts < cutoff) kdgVoiceConversations.delete(sid);
   }
 }, 3600000);
+
+// ── Incoming SMS ─────────────────────────────────────────────────────────────
+
+app.post('/api/sms/kdg', async (req, res) => {
+  const from = req.body.From || 'Unknown';
+  const message = req.body.Body || '';
+  try {
+    await sendIncomingSmsNotification({
+      toEmail: 'sales@kingstondatagroup.com',
+      fromNumber: from,
+      message,
+      companyName: 'Kingston Data Group',
+    });
+  } catch (err) {
+    console.error('[sms/kdg] email error:', err.message);
+  }
+  res.type('text/xml').send('<Response></Response>');
+});
+
+app.post('/api/sms/contractor/:tenantId', async (req, res) => {
+  const { tenantId } = req.params;
+  const from = req.body.From || 'Unknown';
+  const message = req.body.Body || '';
+  try {
+    const { data: tenant } = await supabaseAdmin.from('tenants')
+      .select('company_name, owner_email').eq('id', tenantId).single();
+    if (tenant?.owner_email) {
+      await sendIncomingSmsNotification({
+        toEmail: tenant.owner_email,
+        fromNumber: from,
+        message,
+        companyName: tenant.company_name,
+      });
+    }
+  } catch (err) {
+    console.error('[sms/contractor] email error:', err.message);
+  }
+  res.type('text/xml').send('<Response></Response>');
+});
 
 app.post('/api/voice/kdg', async (req, res) => {
   const callSid = req.body.CallSid;
