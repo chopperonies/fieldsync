@@ -1469,7 +1469,7 @@ app.post('/api/voice/contractor/:tenantId', async (req, res) => {
   });
   gather.say({ voice: 'Polly.Joanna' },
     `Hi! Thanks for calling ${tenant.company_name}. I'm your AI assistant. I can answer questions about LinkCrew, or say "demo" to hear a live personalized demo of the voice bot working for your own business. How can I help?`);
-  twiml.redirect(`/api/voice/contractor/${tenantId}/end?sid=${callSid}`);
+  twiml.redirect(`/api/voice/contractor/${tenantId}/silence?sid=${callSid}`);
 
   res.type('text/xml');
   res.send(twiml.toString());
@@ -1557,7 +1557,7 @@ ${conv.knowledge ? `\nLinkCrew product info:\n${conv.knowledge}` : ''}`;
       language: 'en-US',
     });
     gather2.say({ voice: 'Polly.Joanna' }, spokenReply);
-    twiml2.redirect(`/api/voice/contractor/${tenantId}/end?sid=${callSid}`);
+    twiml2.redirect(`/api/voice/contractor/${tenantId}/silence?sid=${callSid}`);
     res.type('text/xml');
     return res.send(twiml2.toString());
   }
@@ -1635,7 +1635,7 @@ ${isLastTurn ? `After answering this question, wrap up warmly as ${company} — 
       language: 'en-US',
     });
     gather.say({ voice: 'Polly.Joanna' }, spokenReply);
-    twiml.redirect(`/api/voice/contractor/${tenantId}/end?sid=${callSid}`);
+    twiml.redirect(`/api/voice/contractor/${tenantId}/silence?sid=${callSid}`);
   }
 
   res.type('text/xml');
@@ -1644,6 +1644,25 @@ ${isLastTurn ? `After answering this question, wrap up warmly as ${company} — 
     console.error('[contractor voice/respond] CRASH:', err.message, err.stack);
     safeFallback("I'm sorry, something went wrong. Please try again.");
   }
+});
+
+app.post('/api/voice/contractor/:tenantId/silence', (req, res) => {
+  const { tenantId } = req.params;
+  const callSid = req.query.sid || req.body.CallSid;
+  const twiml = new VoiceResponse();
+  const gather = twiml.gather({
+    input: 'speech',
+    action: `/api/voice/contractor/${tenantId}/respond`,
+    speechTimeout: '3',
+    timeout: 10,
+    enhanced: 'true',
+    language: 'en-US',
+  });
+  gather.say({ voice: 'Polly.Joanna' }, "Sorry, I couldn't hear you — you may have dropped off. Go ahead if you're still there.");
+  twiml.say({ voice: 'Polly.Joanna' }, "Alright, goodbye! Have a great day.");
+  twiml.redirect(`/api/voice/contractor/${tenantId}/end?sid=${callSid}`);
+  res.type('text/xml');
+  res.send(twiml.toString());
 });
 
 app.post('/api/voice/contractor/:tenantId/end', async (req, res) => {
