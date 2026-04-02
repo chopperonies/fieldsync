@@ -1589,8 +1589,8 @@ ${isLastTurn ? `After answering this question, wrap up warmly as ${company} — 
   let rawReply = "I'm sorry, I didn't catch that. Could you say that again?";
   try {
     const result = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 180,
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 80,
       system: systemPrompt,
       messages: conv.history.slice(-10),
     });
