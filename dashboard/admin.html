@@ -71,6 +71,22 @@
   .action-btn.delete:hover { background: #7f1d1d33; }
   .action-btn.active-pause { background: #78350f22; color: #fb923c; border-color: #fb923c66; }
   .action-btn.active-block { background: #7f1d1d22; color: #f87171; border-color: #f8717166; }
+  .expand-btn { background: none; border: none; color: #555; cursor: pointer; font-size: 13px; padding: 4px 6px; }
+  .expand-btn:hover { color: #fff; }
+  .detail-row td { padding: 0 !important; }
+  .detail-panel { background: #0d0d0d; border-top: 1px solid #1a1a1a; padding: 16px 20px; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
+  .detail-section { display: flex; flex-direction: column; gap: 6px; }
+  .detail-label { font-size: 11px; color: #555; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .detail-input { background: #111; border: 1px solid #2a2a2a; border-radius: 7px; padding: 8px 10px; color: #fff; font-size: 12px; outline: none; width: 100%; }
+  .detail-input:focus { border-color: #0265dc; }
+  .detail-btn { background: #1a1a1a; border: 1px solid #2a2a2a; color: #ccc; border-radius: 7px; padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 2px; }
+  .detail-btn:hover { background: #222; color: #fff; }
+  .detail-btn.primary { background: #0265dc; border-color: #0265dc; color: #fff; }
+  .detail-btn.primary:hover { background: #0256c0; }
+  .temp-pw { font-family: monospace; background: #0a2a0a; border: 1px solid #4ade8044; border-radius: 6px; padding: 6px 10px; color: #4ade80; font-size: 13px; letter-spacing: 1px; margin-top: 4px; }
+  .notes-area { background: #111; border: 1px solid #2a2a2a; border-radius: 7px; padding: 8px 10px; color: #fff; font-size: 12px; outline: none; width: 100%; resize: vertical; min-height: 64px; font-family: inherit; }
+  .notes-area:focus { border-color: #0265dc; }
+  .stat-card.mrr .num { color: #4ade80; }
   .last-seen { color: #555; font-size: 12px; }
   .company { font-weight: 600; color: #fff; }
   .email { color: #555; font-size: 12px; margin-top: 2px; }
@@ -147,6 +163,7 @@
         <table>
           <thead>
             <tr>
+              <th></th>
               <th>Company</th>
               <th>Plan</th>
               <th>Trial</th>
@@ -288,16 +305,21 @@ async function loadTenants() {
   renderTable();
 }
 
+const PLAN_PRICE = { solo: 49, team: 97, pro: 165, business: 299 };
+
 function renderStats() {
   const active = tenants.filter(t => t.subscription_status === 'active').length;
   const trialing = tenants.filter(t => t.subscription_status === 'trialing').length;
   const sevenDays = new Date(Date.now() - 7 * 86400000);
   const recentlyActive = tenants.filter(t => t.last_seen_at && new Date(t.last_seen_at) > sevenDays).length;
+  const mrr = tenants.filter(t => t.subscription_status === 'active')
+    .reduce((sum, t) => sum + (PLAN_PRICE[t.plan] || 0), 0);
   document.getElementById('stats-row').innerHTML = `
     <div class="stat-card"><div class="num">${tenants.length}</div><div class="lbl">Total Accounts</div></div>
     <div class="stat-card"><div class="num" style="color:#4ade80">${active}</div><div class="lbl">Paying</div></div>
     <div class="stat-card"><div class="num" style="color:#60a5fa">${trialing}</div><div class="lbl">On Trial</div></div>
     <div class="stat-card"><div class="num" style="color:#a78bfa">${recentlyActive}</div><div class="lbl">Active (7d)</div></div>
+    <div class="stat-card mrr"><div class="num">$${mrr.toLocaleString()}</div><div class="lbl">MRR</div></div>
   `;
 }
 
@@ -330,15 +352,18 @@ function renderTable() {
   );
   const tbody = document.getElementById('tenant-tbody');
   if (!filtered.length) { tbody.innerHTML = `<tr><td colspan="8" class="empty">No customers found</td></tr>`; return; }
-  tbody.innerHTML = filtered.map(t => `
-    <tr>
+  tbody.innerHTML = filtered.map(t => {
+    const safeId = t.id;
+    const safeName = (t.company_name||'').replace(/'/g,'').replace(/"/g,'');
+    const safeNotes = (t.admin_notes||'').replace(/`/g,'').replace(/\\/g,'');
+    return `
+    <tr id="row-${safeId}">
+      <td><button class="expand-btn" onclick="toggleDetail('${safeId}')">▶</button></td>
       <td>
         <div class="company">${t.company_name || '—'}</div>
         <div class="email">${t.owner_email || ''}</div>
       </td>
-      <td>
-        <span class="badge badge-${t.subscription_status || 'free'}">${t.plan || 'free'}</span>
-      </td>
+      <td><span class="badge badge-${t.subscription_status || 'free'}">${t.plan || 'free'}</span></td>
       <td>${trialLabel(t)}</td>
       <td class="metric">${t.employee_count ?? 0} / ${t.max_users ?? 1}</td>
       <td class="metric">${t.job_count ?? 0}</td>
@@ -346,14 +371,122 @@ function renderTable() {
       <td class="last-seen">${timeSince(t.last_seen_at)}</td>
       <td>
         <div style="display:flex;gap:5px;flex-wrap:wrap">
-          <button class="login-btn" onclick="loginAs('${t.id}')">Login as</button>
-          <button class="action-btn pause ${t.paused ? 'active-pause' : ''}" onclick="togglePause('${t.id}', this)">${t.paused ? 'Unpause' : 'Pause'}</button>
-          <button class="action-btn block ${t.blocked ? 'active-block' : ''}" onclick="toggleBlock('${t.id}', this)">${t.blocked ? 'Unblock' : 'Block'}</button>
-          <button class="action-btn delete" onclick="deleteTenant('${t.id}', '${(t.company_name||'').replace(/'/g,'')}')">Delete</button>
+          <button class="login-btn" onclick="loginAs('${safeId}')">Login as</button>
+          <button class="action-btn pause ${t.paused ? 'active-pause' : ''}" onclick="togglePause('${safeId}', this)">${t.paused ? 'Unpause' : 'Pause'}</button>
+          <button class="action-btn block ${t.blocked ? 'active-block' : ''}" onclick="toggleBlock('${safeId}', this)">${t.blocked ? 'Unblock' : 'Block'}</button>
+          <button class="action-btn delete" onclick="deleteTenant('${safeId}', '${safeName}')">Delete</button>
         </div>
       </td>
     </tr>
-  `).join('');
+    <tr id="detail-${safeId}" style="display:none">
+      <td colspan="9">
+        <div class="detail-panel">
+          <div class="detail-section">
+            <div class="detail-label">Reset Password</div>
+            <div style="font-size:12px;color:#555;margin-bottom:4px">Generates a temp password to relay to the user.</div>
+            <button class="detail-btn primary" onclick="resetPassword('${safeId}', '${safeName}')">Generate Temp Password</button>
+            <div id="pw-result-${safeId}"></div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-label">Extend Trial</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input class="detail-input" id="trial-days-${safeId}" type="number" placeholder="Days" min="1" style="width:80px" />
+              <button class="detail-btn primary" onclick="extendTrial('${safeId}')">Add Days</button>
+            </div>
+            <div id="trial-result-${safeId}" style="font-size:12px;color:#555;margin-top:4px"></div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-label">Plan Override</div>
+            <select class="detail-input" id="plan-select-${safeId}" style="cursor:pointer">
+              <option value="free" ${t.plan==='free'?'selected':''}>Free</option>
+              <option value="solo" ${t.plan==='solo'?'selected':''}>Solo — $49</option>
+              <option value="team" ${t.plan==='team'?'selected':''}>Team — $97</option>
+              <option value="pro" ${t.plan==='pro'?'selected':''}>Pro — $165</option>
+              <option value="business" ${t.plan==='business'?'selected':''}>Business — $299</option>
+            </select>
+            <button class="detail-btn primary" onclick="overridePlan('${safeId}')">Set Plan</button>
+            <div id="plan-result-${safeId}" style="font-size:12px;color:#555;margin-top:4px"></div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-label">Admin Notes</div>
+            <textarea class="notes-area" id="notes-${safeId}" placeholder="Internal notes…">${safeNotes}</textarea>
+            <button class="detail-btn" onclick="saveNotes('${safeId}')">Save Notes</button>
+          </div>
+        </div>
+      </td>
+    </tr>
+  `}).join('');
+}
+
+function toggleDetail(tenantId) {
+  const row = document.getElementById(`detail-${tenantId}`);
+  const btn = document.querySelector(`#row-${tenantId} .expand-btn`);
+  const isOpen = row.style.display !== 'none';
+  row.style.display = isOpen ? 'none' : 'table-row';
+  btn.textContent = isOpen ? '▶' : '▼';
+}
+
+async function resetPassword(tenantId, name) {
+  if (!confirm(`Reset password for "${name}"? A temp password will be shown once.`)) return;
+  const res = await fetch(`/api/admin/tenants/${tenantId}/reset-password`, {
+    method: 'POST', headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  const el = document.getElementById(`pw-result-${tenantId}`);
+  if (res.ok) {
+    el.innerHTML = `<div class="temp-pw">${data.temp_password}</div><div style="font-size:11px;color:#555;margin-top:4px">Copy and send to user — shown once</div>`;
+  } else {
+    el.innerHTML = `<div style="color:#f87171;font-size:12px">${data.error}</div>`;
+  }
+}
+
+async function extendTrial(tenantId) {
+  const days = parseInt(document.getElementById(`trial-days-${tenantId}`).value);
+  if (!days || days < 1) return;
+  const res = await fetch(`/api/admin/tenants/${tenantId}/extend-trial`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ days }),
+  });
+  const data = await res.json();
+  const el = document.getElementById(`trial-result-${tenantId}`);
+  if (res.ok) {
+    const ends = new Date(data.trial_ends_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+    el.style.color = '#4ade80';
+    el.textContent = `✓ Trial now ends ${ends}`;
+    loadTenants();
+  } else {
+    el.style.color = '#f87171';
+    el.textContent = data.error;
+  }
+}
+
+async function overridePlan(tenantId) {
+  const plan = document.getElementById(`plan-select-${tenantId}`).value;
+  const res = await fetch(`/api/admin/tenants/${tenantId}/plan`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ plan }),
+  });
+  const el = document.getElementById(`plan-result-${tenantId}`);
+  if (res.ok) {
+    el.style.color = '#4ade80';
+    el.textContent = `✓ Plan set to ${plan}`;
+    loadTenants();
+  } else {
+    el.style.color = '#f87171';
+    el.textContent = 'Failed';
+  }
+}
+
+async function saveNotes(tenantId) {
+  const notes = document.getElementById(`notes-${tenantId}`).value;
+  const res = await fetch(`/api/admin/tenants/${tenantId}/notes`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ notes }),
+  });
+  if (!res.ok) alert('Failed to save notes');
 }
 
 async function togglePause(tenantId, btn) {

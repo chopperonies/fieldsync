@@ -2156,6 +2156,59 @@ app.delete('/api/admin/tenants/:id', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// Reset a tenant owner's password — returns a generated temp password
+app.post('/api/admin/tenants/:id/reset-password', auth, async (req, res) => {
+  if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
+  const { data: tenantUser } = await supabaseAdmin.from('tenant_users')
+    .select('user_id').eq('tenant_id', req.params.id).single();
+  if (!tenantUser) return res.status(404).json({ error: 'User not found' });
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const temp = 'Lc-' + Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(tenantUser.user_id, { password: temp });
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ temp_password: temp });
+});
+
+// Extend a tenant's trial
+app.post('/api/admin/tenants/:id/extend-trial', auth, async (req, res) => {
+  if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
+  const { days } = req.body;
+  if (!days || days < 1) return res.status(400).json({ error: 'days required' });
+  const { data: tenant } = await supabaseAdmin.from('tenants')
+    .select('trial_ends_at, subscription_status').eq('id', req.params.id).single();
+  if (!tenant) return res.status(404).json({ error: 'Not found' });
+  const base = tenant.trial_ends_at && new Date(tenant.trial_ends_at) > new Date()
+    ? new Date(tenant.trial_ends_at) : new Date();
+  const newEndsAt = new Date(base.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
+  await supabaseAdmin.from('tenants').update({
+    trial_ends_at: newEndsAt,
+    subscription_status: 'trialing',
+  }).eq('id', req.params.id);
+  res.json({ trial_ends_at: newEndsAt });
+});
+
+// Manually override a tenant's plan
+app.patch('/api/admin/tenants/:id/plan', auth, async (req, res) => {
+  if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
+  const { plan } = req.body;
+  const planMaxUsers = { free: 1, solo: 1, team: 5, pro: 10, business: 20 };
+  if (!planMaxUsers[plan]) return res.status(400).json({ error: 'Invalid plan' });
+  await supabaseAdmin.from('tenants').update({
+    plan,
+    max_users: planMaxUsers[plan],
+    subscription_status: plan === 'free' ? 'trialing' : 'active',
+  }).eq('id', req.params.id);
+  res.json({ ok: true });
+});
+
+// Save admin notes for a tenant
+app.patch('/api/admin/tenants/:id/notes', auth, async (req, res) => {
+  if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
+  const { notes } = req.body;
+  await supabaseAdmin.from('tenants').update({ admin_notes: notes }).eq('id', req.params.id);
+  res.json({ ok: true });
+});
+
 app.post('/api/admin/change-password', auth, async (req, res) => {
   if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
   const { password } = req.body;
