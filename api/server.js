@@ -7,7 +7,7 @@ const bcrypt = require('bcryptjs');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const { createClient } = require('@supabase/supabase-js');
 const cron = require('node-cron');
-const { sendDailyDigest, sendNote, sendInvoiceToClient, sendPaymentReceivedToOwner, sendCallTranscriptToOwner, sendWorkOrderToClient, sendIncomingSmsNotification } = require('../email/digest');
+const { sendDailyDigest, sendNote, sendInvoiceToClient, sendPaymentReceivedToOwner, sendCallTranscriptToOwner, sendWorkOrderToClient, sendIncomingSmsNotification, sendBusinessOnboardingEmail } = require('../email/digest');
 const { handleMessage } = require('../bot/whatsapp');
 const Anthropic = require('@anthropic-ai/sdk');
 const twilio = require('twilio');
@@ -131,6 +131,21 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
         stripe_subscription_id: session.subscription,
         max_users: planMaxUsers[plan] || 1,
       }).eq('id', session.metadata.tenant_id);
+      // Business plan — send onboarding email with Calendly link
+      if (plan === 'business') {
+        try {
+          const { data: tenant } = await supabaseAdmin.from('tenants')
+            .select('owner_email, company_name').eq('id', session.metadata.tenant_id).single();
+          if (tenant?.owner_email) {
+            await sendBusinessOnboardingEmail({
+              ownerEmail: tenant.owner_email,
+              companyName: tenant.company_name,
+            });
+          }
+        } catch (emailErr) {
+          console.error('[webhook] business onboarding email error:', emailErr.message);
+        }
+      }
     }
   }
 

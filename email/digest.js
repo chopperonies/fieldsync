@@ -435,4 +435,43 @@ async function sendIncomingSmsNotification({ toEmail, fromNumber, message, compa
   });
 }
 
-module.exports = { sendDailyDigest, sendSupplyAlert, sendBottleneckAlert, sendPhotoAlert, sendNote, sendInvoiceToClient, sendPaymentReceivedToOwner, sendCallTranscriptToOwner, sendWorkOrderToClient, sendIncomingSmsNotification };
+async function sendBusinessOnboardingEmail({ ownerEmail, companyName }) {
+  const html = `
+<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px">
+<div style="background:white;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb">
+  <div style="background:#0a0a0a;padding:24px">
+    <h2 style="margin:0;color:white;font-size:20px">Welcome to LinkCrew Business</h2>
+    <p style="margin:6px 0 0;color:#888;font-size:13px">${companyName || 'Your team'} is now on the Business plan</p>
+  </div>
+  <div style="padding:28px">
+    <p style="font-size:15px;color:#111827;line-height:1.6">Hi there,</p>
+    <p style="font-size:15px;color:#111827;line-height:1.6">
+      You're now on the <strong>Business plan</strong> — up to 20 crew members, priority support, and full access to every feature LinkCrew offers.
+    </p>
+    <p style="font-size:15px;color:#111827;line-height:1.6">
+      As a Business customer you get a free onboarding call with our team. We'll walk through your setup, import your crew, and make sure everything is configured the way you need it.
+    </p>
+    <div style="text-align:center;margin:32px 0">
+      <a href="https://calendly.com/linkcrew-sales/30min" style="background:#0265dc;color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:700;font-size:15px;display:inline-block">
+        Book Your Onboarding Call
+      </a>
+    </div>
+    <p style="font-size:13px;color:#6b7280;line-height:1.6">
+      Questions before the call? Reply to this email or reach us at <a href="mailto:hello@linkcrew.io" style="color:#0265dc">hello@linkcrew.io</a>.
+    </p>
+  </div>
+  <div style="padding:14px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center">
+    LinkCrew — Field Crew Management
+  </div>
+</div>
+</body></html>`;
+
+  await resend.emails.send({
+    from: 'LinkCrew <hello@linkcrew.io>',
+    to: ownerEmail,
+    subject: 'Welcome to Business — book your onboarding call',
+    html,
+  });
+}
+
+module.exports = { sendDailyDigest, sendSupplyAlert, sendBottleneckAlert, sendPhotoAlert, sendNote, sendInvoiceToClient, sendPaymentReceivedToOwner, sendCallTranscriptToOwner, sendWorkOrderToClient, sendIncomingSmsNotification, sendBusinessOnboardingEmail };
