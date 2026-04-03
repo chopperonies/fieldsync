@@ -404,8 +404,10 @@ function renderTable() {
               <option value="pro" ${t.plan==='pro'?'selected':''}>Pro — $165</option>
               <option value="business" ${t.plan==='business'?'selected':''}>Business — $299</option>
             </select>
-            <button class="detail-btn primary" onclick="overridePlan('${safeId}')">Set Plan</button>
+            <button class="detail-btn primary" onclick="overridePlan('${safeId}')">Set Plan (Comp)</button>
+            <button class="detail-btn" onclick="generatePaymentLink('${safeId}')" style="margin-top:4px">Generate Payment Link</button>
             <div id="plan-result-${safeId}" style="font-size:12px;color:#555;margin-top:4px"></div>
+            <div id="payment-link-${safeId}"></div>
           </div>
           <div class="detail-section">
             <div class="detail-label">Admin Notes</div>
@@ -477,6 +479,35 @@ async function overridePlan(tenantId) {
     el.style.color = '#f87171';
     el.textContent = 'Failed';
   }
+}
+
+async function generatePaymentLink(tenantId) {
+  const plan = document.getElementById(`plan-select-${tenantId}`).value;
+  if (plan === 'free') { alert('Select a paid plan first'); return; }
+  const res = await fetch(`/api/admin/tenants/${tenantId}/payment-link`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ plan }),
+  });
+  const data = await res.json();
+  const el = document.getElementById(`payment-link-${tenantId}`);
+  if (res.ok) {
+    el.innerHTML = `
+      <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
+        <input readonly value="${data.url}" style="flex:1;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px;padding:5px 8px;color:#60a5fa;font-size:11px;outline:none" />
+        <button class="detail-btn" onclick="copyPaymentLink('${tenantId}', this)">Copy</button>
+      </div>
+      <div style="font-size:11px;color:#555;margin-top:3px">Stripe link — expires in 24h</div>`;
+  } else {
+    el.innerHTML = `<div style="color:#f87171;font-size:12px;margin-top:4px">${data.error}</div>`;
+  }
+}
+
+function copyPaymentLink(tenantId, btn) {
+  const input = document.querySelector(`#payment-link-${tenantId} input`);
+  navigator.clipboard.writeText(input.value);
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = 'Copy', 1500);
 }
 
 async function saveNotes(tenantId) {

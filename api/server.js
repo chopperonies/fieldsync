@@ -2201,6 +2201,41 @@ app.patch('/api/admin/tenants/:id/plan', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// Generate a Stripe checkout link for a tenant (admin sends to customer)
+app.post('/api/admin/tenants/:id/payment-link', auth, async (req, res) => {
+  if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
+  const { plan } = req.body;
+  const priceMap = {
+    solo: process.env.STRIPE_PRICE_SOLO,
+    team: process.env.STRIPE_PRICE_TEAM,
+    pro: process.env.STRIPE_PRICE_PRO,
+    business: process.env.STRIPE_PRICE_BUSINESS,
+  };
+  const priceId = priceMap[plan];
+  if (!priceId) return res.status(400).json({ error: 'Invalid plan' });
+  const { data: tenant } = await supabaseAdmin.from('tenants')
+    .select('stripe_customer_id, owner_email').eq('id', req.params.id).single();
+  if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      ...(tenant.stripe_customer_id
+        ? { customer: tenant.stripe_customer_id }
+        : { customer_email: tenant.owner_email }),
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: 'https://linkcrew.io/app?billing=success',
+      cancel_url: 'https://linkcrew.io/pricing',
+      metadata: { tenant_id: req.params.id, plan },
+      subscription_data: { metadata: { tenant_id: req.params.id, plan } },
+    });
+    res.json({ url: session.url });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // Save admin notes for a tenant
 app.patch('/api/admin/tenants/:id/notes', auth, async (req, res) => {
   if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
