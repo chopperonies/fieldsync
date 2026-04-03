@@ -2109,6 +2109,15 @@ app.delete('/api/admin/invites/:id', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+app.post('/api/admin/change-password', auth, async (req, res) => {
+  if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
+  const { password } = req.body;
+  if (!password || password.length < 8) return res.status(400).json({ error: 'Min 8 characters' });
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(req.userId, { password });
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ ok: true });
+});
+
 // ── Scheduled Email Digest ────────────────────────────────────────────────────
 cron.schedule('0 18 * * *', async () => {
   console.log('📧 Sending daily digest...');

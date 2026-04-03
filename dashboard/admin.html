@@ -109,8 +109,19 @@
       <span class="hdr-logo">LinkCrew</span>
       <span class="hdr-badge">ADMIN</span>
     </div>
-    <button class="hdr-btn" onclick="logout()">Sign Out</button>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="hdr-btn" onclick="toggleChangePassword()">Change Password</button>
+      <button class="hdr-btn" onclick="logout()">Sign Out</button>
+    </div>
   </header>
+
+  <!-- Change password bar -->
+  <div id="pw-bar" style="display:none;background:#111;border-bottom:1px solid #1e1e1e;padding:12px 24px;display:none;align-items:center;gap:10px;flex-wrap:wrap">
+    <input id="pw-new" type="password" placeholder="New password" style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;outline:none;width:200px" />
+    <input id="pw-confirm" type="password" placeholder="Confirm password" style="background:#0a0a0a;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;outline:none;width:200px" />
+    <button onclick="changePassword()" style="background:#0265dc;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer">Update</button>
+    <span id="pw-msg" style="font-size:13px"></span>
+  </div>
 
   <div class="tabs">
     <button class="tab active" onclick="switchTab('customers')">Customers</button>
@@ -219,6 +230,33 @@ async function login() {
   document.getElementById('shell').classList.add('visible');
   loadTenants();
   loadInvites();
+}
+
+function toggleChangePassword() {
+  const bar = document.getElementById('pw-bar');
+  bar.style.display = bar.style.display === 'none' ? 'flex' : 'none';
+  document.getElementById('pw-msg').textContent = '';
+}
+
+async function changePassword() {
+  const pw = document.getElementById('pw-new').value;
+  const confirm = document.getElementById('pw-confirm').value;
+  const msg = document.getElementById('pw-msg');
+  if (!pw || pw.length < 8) { msg.style.color = '#f87171'; msg.textContent = 'Min 8 characters'; return; }
+  if (pw !== confirm) { msg.style.color = '#f87171'; msg.textContent = 'Passwords don\'t match'; return; }
+  msg.style.color = '#888'; msg.textContent = 'Saving…';
+  const res = await fetch('/api/admin/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ password: pw }),
+  });
+  if (res.ok) {
+    msg.style.color = '#4ade80'; msg.textContent = '✓ Password updated';
+    document.getElementById('pw-new').value = '';
+    document.getElementById('pw-confirm').value = '';
+  } else {
+    msg.style.color = '#f87171'; msg.textContent = 'Failed to update';
+  }
 }
 
 function logout() {
