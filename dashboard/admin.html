@@ -299,27 +299,36 @@ function switchTab(name) {
 }
 
 async function loadTenants() {
-  const res = await fetch('/api/admin/tenants', { headers: { Authorization: `Bearer ${token}` } });
-  tenants = await res.json();
-  renderStats();
+  const [tenantsRes, mrrRes] = await Promise.all([
+    fetch('/api/admin/tenants', { headers: { Authorization: `Bearer ${token}` } }),
+    fetch('/api/admin/mrr', { headers: { Authorization: `Bearer ${token}` } }),
+  ]);
+  tenants = await tenantsRes.json();
+  const mrrData = mrrRes.ok ? await mrrRes.json() : null;
+  renderStats(mrrData);
   renderTable();
 }
 
-const PLAN_PRICE = { solo: 49, team: 97, pro: 165, business: 299 };
-
-function renderStats() {
+function renderStats(mrrData) {
   const active = tenants.filter(t => t.subscription_status === 'active').length;
   const trialing = tenants.filter(t => t.subscription_status === 'trialing').length;
   const sevenDays = new Date(Date.now() - 7 * 86400000);
   const recentlyActive = tenants.filter(t => t.last_seen_at && new Date(t.last_seen_at) > sevenDays).length;
-  const mrr = tenants.filter(t => t.subscription_status === 'active')
-    .reduce((sum, t) => sum + (PLAN_PRICE[t.plan] || 0), 0);
+  const current = mrrData?.current ?? 0;
+  const lastMonth = mrrData?.last_month;
+  const projected = mrrData?.projected ?? 0;
+  const delta = lastMonth !== null ? current - lastMonth : null;
+  const deltaHtml = delta !== null
+    ? `<div style="font-size:11px;margin-top:3px;color:${delta >= 0 ? '#4ade80' : '#f87171'}">${delta >= 0 ? '▲' : '▼'} $${Math.abs(delta)} vs last month</div>`
+    : `<div style="font-size:11px;margin-top:3px;color:#555">No previous data yet</div>`;
   document.getElementById('stats-row').innerHTML = `
     <div class="stat-card"><div class="num">${tenants.length}</div><div class="lbl">Total Accounts</div></div>
     <div class="stat-card"><div class="num" style="color:#4ade80">${active}</div><div class="lbl">Paying</div></div>
     <div class="stat-card"><div class="num" style="color:#60a5fa">${trialing}</div><div class="lbl">On Trial</div></div>
     <div class="stat-card"><div class="num" style="color:#a78bfa">${recentlyActive}</div><div class="lbl">Active (7d)</div></div>
-    <div class="stat-card mrr"><div class="num">$${mrr.toLocaleString()}</div><div class="lbl">MRR</div></div>
+    <div class="stat-card"><div class="num" style="color:#555">$${lastMonth !== null ? lastMonth.toLocaleString() : '—'}</div><div class="lbl">Last Month MRR</div></div>
+    <div class="stat-card mrr"><div class="num">$${current.toLocaleString()}</div><div class="lbl">Current MRR</div>${deltaHtml}</div>
+    <div class="stat-card"><div class="num" style="color:#a78bfa">$${projected.toLocaleString()}</div><div class="lbl">Projected MRR</div><div style="font-size:11px;margin-top:3px;color:#555">20% trial conversion</div></div>
   `;
 }
 

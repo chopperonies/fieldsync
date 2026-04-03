@@ -2201,6 +2201,26 @@ app.patch('/api/admin/tenants/:id/plan', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// MRR summary for admin panel
+app.get('/api/admin/mrr', auth, async (req, res) => {
+  if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
+
+  const { data: tenants } = await supabaseAdmin.from('tenants').select('plan, subscription_status');
+  const currentMRR = (tenants || [])
+    .filter(t => t.subscription_status === 'active')
+    .reduce((sum, t) => sum + (PLAN_MRR[t.plan] || 0), 0);
+  const trialingCount = (tenants || []).filter(t => t.subscription_status === 'trialing').length;
+  const projectedMRR = currentMRR + Math.round(trialingCount * 97 * 0.2); // 20% conversion at avg Team price
+
+  // Last month snapshot
+  const lastMonth = new Date(); lastMonth.setDate(1); lastMonth.setMonth(lastMonth.getMonth() - 1);
+  const lastMonthKey = lastMonth.toISOString().split('T')[0];
+  const { data: snapshot } = await supabaseAdmin.from('mrr_snapshots')
+    .select('mrr').eq('month', lastMonthKey).single();
+
+  res.json({ current: currentMRR, last_month: snapshot?.mrr ?? null, projected: projectedMRR });
+});
+
 // Generate a Stripe checkout link for a tenant (admin sends to customer)
 app.post('/api/admin/tenants/:id/payment-link', auth, async (req, res) => {
   if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
@@ -2258,6 +2278,20 @@ cron.schedule('0 18 * * *', async () => {
   console.log('📧 Sending daily digest...');
   await sendDailyDigest();
 });
+
+// Snapshot MRR on the 1st of every month at midnight
+const PLAN_MRR = { solo: 49, team: 97, pro: 165, business: 299 };
+async function snapshotMRR() {
+  const { data: tenants } = await supabaseAdmin.from('tenants')
+    .select('plan, subscription_status').eq('subscription_status', 'active');
+  const mrr = (tenants || []).reduce((sum, t) => sum + (PLAN_MRR[t.plan] || 0), 0);
+  const month = new Date();
+  month.setDate(1); month.setHours(0, 0, 0, 0);
+  await supabaseAdmin.from('mrr_snapshots')
+    .upsert({ month: month.toISOString().split('T')[0], mrr }, { onConflict: 'month' });
+  console.log(`📊 MRR snapshot saved: $${mrr}`);
+}
+cron.schedule('0 0 1 * *', snapshotMRR);
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
