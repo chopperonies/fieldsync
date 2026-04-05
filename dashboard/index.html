@@ -452,6 +452,7 @@
   <div class="main-tab" id="mtab-reports" onclick="switchMainTab('reports')">📊 Reports</div>
   <div class="main-tab" id="mtab-agreements" onclick="switchMainTab('agreements')">📄 Agreements</div>
   <div class="main-tab" id="mtab-calendar" onclick="switchMainTab('calendar')">📅 Calendar</div>
+  <div class="main-tab" id="mtab-timesheets" onclick="switchMainTab('timesheets')">🕐 Timesheets</div>
   <div class="main-tab" id="mtab-settings" onclick="switchMainTab('settings')">⚙️ Settings</div>
 </div>
 
@@ -605,6 +606,73 @@
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeAgreementModal()">Cancel</button>
       <button class="btn-save" id="ag-modal-save" onclick="saveAgreement()">Add Agreement</button>
+    </div>
+  </div>
+</div>
+
+<!-- Timesheets view -->
+<div id="timesheets-view" style="display:none">
+  <div style="max-width:1000px;margin:0 auto;padding:24px">
+
+    <!-- Header + filters -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div style="font-size:18px;font-weight:700;color:#17191c">Timesheets</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input type="date" id="ts-start" style="background:#fff;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c">
+        <span style="font-size:13px;color:#737475">to</span>
+        <input type="date" id="ts-end" style="background:#fff;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c">
+        <select id="ts-employee" style="background:#fff;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c">
+          <option value="">All crew</option>
+        </select>
+        <button onclick="loadTimesheets()" style="background:#0265dc;color:#fff;border:none;border-radius:7px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">Filter</button>
+      </div>
+    </div>
+
+    <!-- Manual punch in/out (lower tiers) -->
+    <div id="ts-punch-panel" style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:20px;margin-bottom:20px">
+      <div style="font-size:14px;font-weight:700;color:#17191c;margin-bottom:14px">Manual Punch</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#737475;margin-bottom:5px">Crew Member</div>
+          <select id="ts-punch-employee" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c;min-width:160px">
+            <option value="">Select crew...</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#737475;margin-bottom:5px">Job (optional)</div>
+          <select id="ts-punch-job" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c;min-width:160px">
+            <option value="">No specific job</option>
+          </select>
+        </div>
+        <button onclick="manualPunchIn()" style="background:#166534;color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">Punch In</button>
+        <button onclick="manualPunchOut()" style="background:#dc2626;color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">Punch Out</button>
+        <span id="ts-punch-status" style="font-size:13px;color:#4ade80"></span>
+      </div>
+    </div>
+
+    <!-- Summary cards -->
+    <div id="ts-summary" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px"></div>
+
+    <!-- Entries table -->
+    <div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;overflow:hidden">
+      <div id="ts-table"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Timesheet edit modal -->
+<div class="modal-overlay" id="ts-edit-modal">
+  <div class="modal" style="width:400px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="margin:0">Edit Entry</h3>
+      <button class="btn-cancel" onclick="closeTsEditModal()" style="padding:4px 10px">✕</button>
+    </div>
+    <div class="form-group"><label>Punch In</label><input type="datetime-local" id="ts-edit-in"></div>
+    <div class="form-group"><label>Punch Out</label><input type="datetime-local" id="ts-edit-out"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeTsEditModal()">Cancel</button>
+      <button class="btn-save" onclick="saveTsEdit()">Save</button>
     </div>
   </div>
 </div>
@@ -1807,7 +1875,7 @@ function closeOverlay(e) {
 
 // ── Main Tab Navigation ───────────────────────────────────────────────────────
 function switchMainTab(tab) {
-  ['jobs','clients','reports','agreements','calendar','settings'].forEach(t => {
+  ['jobs','clients','reports','agreements','calendar','timesheets','settings'].forEach(t => {
     document.getElementById(`${t}-view`).style.display = t === tab ? 'block' : 'none';
     document.getElementById(`mtab-${t}`).classList.toggle('active', t === tab);
   });
@@ -1815,6 +1883,7 @@ function switchMainTab(tab) {
   if (tab === 'reports') loadReports(30);
   if (tab === 'agreements') loadAgreements();
   if (tab === 'calendar') initCalendar();
+  if (tab === 'timesheets') initTimesheets();
   if (tab === 'settings') loadSettings();
 }
 
@@ -2074,6 +2143,206 @@ async function deleteService() {
   await authFetch(`/api/services/${editingServiceId}`, { method: 'DELETE' });
   closeServiceModal();
   await loadServices();
+}
+
+// ── Timesheets ────────────────────────────────────────────────────────────────
+let tsInitialized = false;
+let tsEditingId = null;
+let allEmployeesData = [];
+let allJobsData = [];
+
+async function initTimesheets() {
+  // Set default date range to current week
+  if (!document.getElementById('ts-start').value) {
+    const weekStart = getWeekStart(new Date());
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
+    document.getElementById('ts-start').value = weekStart.toISOString().split('T')[0];
+    document.getElementById('ts-end').value = weekEnd.toISOString().split('T')[0];
+  }
+
+  // Load employees for dropdowns
+  if (!allEmployeesData.length) {
+    const res = await authFetch('/api/employees');
+    allEmployeesData = await res.json();
+    const empSel = document.getElementById('ts-employee');
+    const punchSel = document.getElementById('ts-punch-employee');
+    allEmployeesData.forEach(e => {
+      empSel.innerHTML += `<option value="${e.id}">${e.name}</option>`;
+      punchSel.innerHTML += `<option value="${e.id}">${e.name}</option>`;
+    });
+  }
+
+  // Load active jobs for punch panel
+  if (!allJobsData.length) {
+    const res = await authFetch('/api/jobs');
+    allJobsData = (await res.json()).filter(j => ['active','in_progress','scheduled'].includes(j.status));
+    const jobSel = document.getElementById('ts-punch-job');
+    allJobsData.forEach(j => jobSel.innerHTML += `<option value="${j.id}">${j.name}</option>`);
+  }
+
+  await loadTimesheets();
+  tsInitialized = true;
+}
+
+async function loadTimesheets() {
+  const start = document.getElementById('ts-start').value;
+  const end = document.getElementById('ts-end').value;
+  const employeeId = document.getElementById('ts-employee').value;
+
+  let url = '/api/timesheets?';
+  if (start) url += `start=${start}T00:00:00Z&`;
+  if (end) url += `end=${end}T23:59:59Z&`;
+  if (employeeId) url += `employee_id=${employeeId}`;
+
+  const res = await authFetch(url);
+  const entries = await res.json();
+  renderTimesheetSummary(entries);
+  renderTimesheetTable(entries);
+}
+
+function renderTimesheetSummary(entries) {
+  const byEmployee = {};
+  for (const e of entries) {
+    const name = e.employees?.name || 'Unknown';
+    if (!byEmployee[name]) byEmployee[name] = { hours: 0, shifts: 0 };
+    if (e.checked_in_at && e.checked_out_at) {
+      byEmployee[name].hours += (new Date(e.checked_out_at) - new Date(e.checked_in_at)) / 3600000;
+    }
+    byEmployee[name].shifts++;
+  }
+
+  const el = document.getElementById('ts-summary');
+  if (!Object.keys(byEmployee).length) { el.innerHTML = ''; return; }
+  el.innerHTML = Object.entries(byEmployee).map(([name, d]) => `
+    <div style="background:#fff;border:1px solid #e8e8e8;border-radius:10px;padding:14px 16px">
+      <div style="font-size:12px;font-weight:700;color:#737475;margin-bottom:4px">${name}</div>
+      <div style="font-size:22px;font-weight:700;color:#17191c">${d.hours.toFixed(1)}<span style="font-size:13px;font-weight:400;color:#737475"> hrs</span></div>
+      <div style="font-size:12px;color:#737475;margin-top:2px">${d.shifts} shift${d.shifts !== 1 ? 's' : ''}</div>
+    </div>
+  `).join('');
+}
+
+function renderTimesheetTable(entries) {
+  const el = document.getElementById('ts-table');
+  if (!entries.length) {
+    el.innerHTML = '<div class="empty" style="padding:32px"><div class="e-icon">🕐</div>No entries in this period</div>';
+    return;
+  }
+
+  el.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="border-bottom:2px solid #e8e8e8;text-align:left">
+          <th style="padding:12px 16px;font-size:11px;font-weight:700;color:#737475;text-transform:uppercase">Crew Member</th>
+          <th style="padding:12px 16px;font-size:11px;font-weight:700;color:#737475;text-transform:uppercase">Job</th>
+          <th style="padding:12px 16px;font-size:11px;font-weight:700;color:#737475;text-transform:uppercase">Punch In</th>
+          <th style="padding:12px 16px;font-size:11px;font-weight:700;color:#737475;text-transform:uppercase">Punch Out</th>
+          <th style="padding:12px 16px;font-size:11px;font-weight:700;color:#737475;text-transform:uppercase">Hours</th>
+          <th style="padding:12px 16px;font-size:11px;font-weight:700;color:#737475;text-transform:uppercase">Type</th>
+          <th style="padding:12px 4px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${entries.map(e => {
+          const inTime = e.checked_in_at ? new Date(e.checked_in_at) : null;
+          const outTime = e.checked_out_at ? new Date(e.checked_out_at) : null;
+          const hrs = inTime && outTime ? ((outTime - inTime) / 3600000).toFixed(2) : '—';
+          const fmt = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+          const hasGps = e.punch_in_lat || e.punch_out_lat;
+          return `
+          <tr style="border-bottom:1px solid #f0f0f0">
+            <td style="padding:12px 16px;font-weight:600;color:#17191c">${e.employees?.name || '—'}</td>
+            <td style="padding:12px 16px;color:#737475">${e.jobs?.name || '—'}</td>
+            <td style="padding:12px 16px;color:#17191c">${inTime ? fmt(inTime) : '—'}</td>
+            <td style="padding:12px 16px;color:#17191c">${outTime ? fmt(outTime) : '<span style="color:#dc2626;font-size:12px">Still in</span>'}</td>
+            <td style="padding:12px 16px;font-weight:700;color:#17191c">${hrs}</td>
+            <td style="padding:12px 16px">
+              ${e.manual_punch
+                ? '<span style="font-size:11px;background:#fefce8;color:#92400e;border:1px solid #fde68a;border-radius:20px;padding:2px 8px;font-weight:700">Manual</span>'
+                : '<span style="font-size:11px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:20px;padding:2px 8px;font-weight:700">App</span>'}
+              ${hasGps ? '<span style="font-size:11px;margin-left:4px" title="GPS recorded">📍</span>' : ''}
+            </td>
+            <td style="padding:12px 4px">
+              <button onclick="openTsEditModal('${e.id}','${e.checked_in_at||''}','${e.checked_out_at||''}')"
+                style="background:none;border:1px solid #e8e8e8;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#737475">Edit</button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+async function manualPunchIn() {
+  const employee_id = document.getElementById('ts-punch-employee').value;
+  const job_id = document.getElementById('ts-punch-job').value;
+  const statusEl = document.getElementById('ts-punch-status');
+  if (!employee_id) return alert('Select a crew member first');
+
+  let lat, lng;
+  if (currentPlan === 'business') {
+    try {
+      const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 }));
+      lat = pos.coords.latitude; lng = pos.coords.longitude;
+    } catch (e) { /* GPS optional */ }
+  }
+
+  statusEl.style.color = '#737475'; statusEl.textContent = 'Punching in…';
+  const res = await authFetch('/api/timesheets/punch-in', { method: 'POST', body: JSON.stringify({ employee_id, job_id: job_id || null, lat, lng }) });
+  const json = await res.json();
+  if (!res.ok) { statusEl.style.color = '#dc2626'; statusEl.textContent = json.error; return; }
+  statusEl.style.color = '#4ade80'; statusEl.textContent = '✓ Punched in';
+  setTimeout(() => statusEl.textContent = '', 3000);
+  await loadTimesheets();
+}
+
+async function manualPunchOut() {
+  const employee_id = document.getElementById('ts-punch-employee').value;
+  const statusEl = document.getElementById('ts-punch-status');
+  if (!employee_id) return alert('Select a crew member first');
+
+  let lat, lng;
+  if (currentPlan === 'business') {
+    try {
+      const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 }));
+      lat = pos.coords.latitude; lng = pos.coords.longitude;
+    } catch (e) { /* GPS optional */ }
+  }
+
+  statusEl.style.color = '#737475'; statusEl.textContent = 'Punching out…';
+  const res = await authFetch('/api/timesheets/punch-out', { method: 'POST', body: JSON.stringify({ employee_id, lat, lng }) });
+  const json = await res.json();
+  if (!res.ok) { statusEl.style.color = '#dc2626'; statusEl.textContent = json.error; return; }
+  statusEl.style.color = '#4ade80'; statusEl.textContent = '✓ Punched out';
+  setTimeout(() => statusEl.textContent = '', 3000);
+  await loadTimesheets();
+}
+
+function openTsEditModal(id, inAt, outAt) {
+  tsEditingId = id;
+  const toLocal = iso => iso ? new Date(iso).toISOString().slice(0,16) : '';
+  document.getElementById('ts-edit-in').value = toLocal(inAt);
+  document.getElementById('ts-edit-out').value = toLocal(outAt);
+  document.getElementById('ts-edit-modal').classList.add('visible');
+}
+
+function closeTsEditModal() {
+  document.getElementById('ts-edit-modal').classList.remove('visible');
+  tsEditingId = null;
+}
+
+async function saveTsEdit() {
+  const inVal = document.getElementById('ts-edit-in').value;
+  const outVal = document.getElementById('ts-edit-out').value;
+  await authFetch(`/api/timesheets/${tsEditingId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      checked_in_at: inVal ? new Date(inVal).toISOString() : null,
+      checked_out_at: outVal ? new Date(outVal).toISOString() : null,
+    }),
+  });
+  closeTsEditModal();
+  await loadTimesheets();
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────

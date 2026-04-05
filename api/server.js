@@ -1030,6 +1030,122 @@ app.delete('/api/appointments/:id', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Timesheets ────────────────────────────────────────────────────────────────
+
+// Get timesheet entries — filtered by date range and optionally employee
+app.get('/api/timesheets', auth, async (req, res) => {
+  const { start, end, employee_id } = req.query;
+  const { data: jobs } = await supabaseAdmin.from('jobs').select('id').eq('tenant_id', req.tenantId);
+  if (!jobs?.length) return res.json([]);
+
+  let query = supabaseAdmin
+    .from('job_assignments')
+    .select('id, checked_in_at, checked_out_at, punch_in_lat, punch_in_lng, punch_out_lat, punch_out_lng, manual_punch, job_id, employee_id, jobs(name), employees(id, name, role)')
+    .in('job_id', jobs.map(j => j.id))
+    .not('checked_in_at', 'is', null)
+    .order('checked_in_at', { ascending: false });
+
+  if (start) query = query.gte('checked_in_at', start);
+  if (end) query = query.lte('checked_in_at', end);
+  if (employee_id) query = query.eq('employee_id', employee_id);
+
+  const { data } = await query;
+  res.json(data || []);
+});
+
+// Manual punch in
+app.post('/api/timesheets/punch-in', auth, async (req, res) => {
+  const { employee_id, job_id, lat, lng } = req.body;
+  if (!employee_id) return res.status(400).json({ error: 'employee_id required' });
+
+  // Check not already punched in
+  const { data: jobs } = await supabaseAdmin.from('jobs').select('id').eq('tenant_id', req.tenantId);
+  const { data: existing } = await supabaseAdmin
+    .from('job_assignments')
+    .select('id')
+    .eq('employee_id', employee_id)
+    .in('job_id', (jobs || []).map(j => j.id))
+    .not('checked_in_at', 'is', null)
+    .is('checked_out_at', null)
+    .maybeSingle();
+  if (existing) return res.status(400).json({ error: 'Already punched in' });
+
+  // Upsert assignment
+  let assignmentId;
+  if (job_id) {
+    const { data: existing } = await supabaseAdmin
+      .from('job_assignments').select('id').eq('job_id', job_id).eq('employee_id', employee_id).maybeSingle();
+    if (existing) {
+      assignmentId = existing.id;
+      await supabaseAdmin.from('job_assignments').update({
+        checked_in_at: new Date().toISOString(),
+        checked_out_at: null,
+        punch_in_lat: lat || null,
+        punch_in_lng: lng || null,
+        manual_punch: true,
+      }).eq('id', assignmentId);
+    } else {
+      const { data } = await supabaseAdmin.from('job_assignments').insert({
+        job_id, employee_id, tenant_id: req.tenantId,
+        checked_in_at: new Date().toISOString(),
+        punch_in_lat: lat || null, punch_in_lng: lng || null,
+        manual_punch: true,
+      }).select().single();
+      assignmentId = data?.id;
+    }
+  } else {
+    // No job — use a placeholder: create a "No Job" punch
+    const { data } = await supabaseAdmin.from('job_assignments').insert({
+      employee_id, tenant_id: req.tenantId,
+      checked_in_at: new Date().toISOString(),
+      punch_in_lat: lat || null, punch_in_lng: lng || null,
+      manual_punch: true,
+    }).select().single();
+    assignmentId = data?.id;
+  }
+
+  res.json({ ok: true, id: assignmentId });
+});
+
+// Manual punch out
+app.post('/api/timesheets/punch-out', auth, async (req, res) => {
+  const { employee_id, lat, lng } = req.body;
+  if (!employee_id) return res.status(400).json({ error: 'employee_id required' });
+
+  const { data: jobs } = await supabaseAdmin.from('jobs').select('id').eq('tenant_id', req.tenantId);
+  const { data: entry } = await supabaseAdmin
+    .from('job_assignments')
+    .select('id')
+    .eq('employee_id', employee_id)
+    .in('job_id', (jobs || []).map(j => j.id).concat(['00000000-0000-0000-0000-000000000000']))
+    .not('checked_in_at', 'is', null)
+    .is('checked_out_at', null)
+    .order('checked_in_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!entry) return res.status(404).json({ error: 'No active punch-in found' });
+
+  await supabaseAdmin.from('job_assignments').update({
+    checked_out_at: new Date().toISOString(),
+    punch_out_lat: lat || null,
+    punch_out_lng: lng || null,
+  }).eq('id', entry.id);
+
+  res.json({ ok: true });
+});
+
+// Update a timesheet entry manually (admin correction)
+app.patch('/api/timesheets/:id', auth, async (req, res) => {
+  const { checked_in_at, checked_out_at } = req.body;
+  const updates = {};
+  if (checked_in_at !== undefined) updates.checked_in_at = checked_in_at;
+  if (checked_out_at !== undefined) updates.checked_out_at = checked_out_at || null;
+  const { data, error } = await supabaseAdmin.from('job_assignments').update(updates).eq('id', req.params.id).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
 // ── Reports ───────────────────────────────────────────────────────────────────
 
 app.get('/api/reports', auth, async (req, res) => {
