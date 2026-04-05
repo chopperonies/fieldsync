@@ -1177,6 +1177,16 @@ async function loadBillingStatus() {
       }
     }
 
+    // Show Upgrade button in header during trial
+    if (data.subscription_status === 'trialing') {
+      const btn = document.createElement('a');
+      btn.className = 'hdr-btn accent';
+      btn.textContent = 'Upgrade';
+      btn.href = '/pricing';
+      btn.style.textDecoration = 'none';
+      document.querySelector('.header-right').insertBefore(btn, document.querySelector('.header-right').firstChild);
+    }
+
     // Show Manage Billing in header if subscribed
     if (data.stripe_customer_id) {
       const btn = document.createElement('button');
