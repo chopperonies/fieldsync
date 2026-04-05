@@ -112,6 +112,17 @@
   .empty { color: #555; text-align: center; padding: 32px; font-size: 13px; }
   .search-bar { background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 13px; outline: none; width: 260px; margin-bottom: 16px; }
   .search-bar:focus { border-color: #0265dc; }
+
+  /* ── Unconverted trials panel ── */
+  .trials-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .trials-toolbar-left { display: flex; flex-direction: column; gap: 2px; }
+  .trials-toolbar-left h3 { font-size: 15px; font-weight: 700; }
+  .trials-toolbar-left p { font-size: 13px; color: #555; }
+  .trials-actions { display: flex; gap: 8px; }
+  .export-btn { background: #1a1a1a; border: 1px solid #2a2a2a; color: #ccc; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .export-btn:hover { background: #222; color: #fff; }
+  .export-btn.primary { background: #0265dc; border-color: #0265dc; color: #fff; }
+  .export-btn.primary:hover { background: #0256c0; }
 </style>
 </head>
 <body>
@@ -152,6 +163,7 @@
   <div class="tabs">
     <button class="tab active" onclick="switchTab('customers')">Customers</button>
     <button class="tab" onclick="switchTab('invites')">Invite Links</button>
+    <button class="tab" onclick="switchTab('trials')">Unconverted Trials</button>
   </div>
 
   <main>
@@ -175,6 +187,35 @@
             </tr>
           </thead>
           <tbody id="tenant-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Unconverted Trials panel -->
+    <div class="panel" id="panel-trials">
+      <div class="trials-toolbar">
+        <div class="trials-toolbar-left">
+          <h3>Unconverted Trials</h3>
+          <p id="trials-count">Accounts whose trial expired without converting to paid.</p>
+        </div>
+        <div class="trials-actions">
+          <button class="export-btn" onclick="copyAllEmails()">Copy All Emails</button>
+          <button class="export-btn primary" onclick="exportCSV()">Export CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Email</th>
+              <th>Trial Ended</th>
+              <th>Crew</th>
+              <th>Jobs</th>
+              <th>Last Seen</th>
+            </tr>
+          </thead>
+          <tbody id="trials-tbody"></tbody>
         </table>
       </div>
     </div>
@@ -293,9 +334,10 @@ function logout() {
 }
 
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', ['customers','invites'][i] === name));
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', ['customers','invites','trials'][i] === name));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById(`panel-${name}`).classList.add('active');
+  if (name === 'trials') renderTrials();
 }
 
 async function loadTenants() {
@@ -630,6 +672,76 @@ async function revokeInvite(id) {
     headers: { Authorization: `Bearer ${token}` }
   });
   loadInvites();
+}
+
+// ── Unconverted Trials ─────────────────────────────────────────────────────────
+
+function getUnconvertedTrials() {
+  const now = new Date();
+  return tenants.filter(t =>
+    t.subscription_status === 'trialing' &&
+    t.trial_ends_at &&
+    new Date(t.trial_ends_at) < now
+  ).sort((a, b) => new Date(b.trial_ends_at) - new Date(a.trial_ends_at));
+}
+
+function renderTrials() {
+  const trials = getUnconvertedTrials();
+  const tbody = document.getElementById('trials-tbody');
+  const countEl = document.getElementById('trials-count');
+  countEl.textContent = `${trials.length} account${trials.length !== 1 ? 's' : ''} whose trial expired without converting to paid.`;
+  if (!trials.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty">No unconverted trials yet — great news!</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = trials.map(t => {
+    const trialEnded = new Date(t.trial_ends_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const daysAgo = Math.floor((Date.now() - new Date(t.trial_ends_at)) / 86400000);
+    return `
+      <tr>
+        <td><div class="company">${t.company_name || '—'}</div></td>
+        <td><div style="font-family:monospace;font-size:12px;color:#ccc">${t.owner_email || '—'}</div></td>
+        <td><span class="trial-exp">${trialEnded}</span><span style="color:#555;font-size:11px;margin-left:6px">${daysAgo}d ago</span></td>
+        <td class="metric">${t.employee_count ?? 0}</td>
+        <td class="metric">${t.job_count ?? 0}</td>
+        <td class="last-seen">${timeSince(t.last_seen_at)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function copyAllEmails() {
+  const trials = getUnconvertedTrials();
+  if (!trials.length) { alert('No unconverted trials to copy'); return; }
+  const emails = trials.map(t => t.owner_email).filter(Boolean).join(', ');
+  navigator.clipboard.writeText(emails);
+  const btn = event.target;
+  btn.textContent = `Copied ${trials.length} emails!`;
+  setTimeout(() => btn.textContent = 'Copy All Emails', 2000);
+}
+
+function exportCSV() {
+  const trials = getUnconvertedTrials();
+  if (!trials.length) { alert('No unconverted trials to export'); return; }
+  const rows = [
+    ['Company', 'Email', 'Trial Ended', 'Crew Size', 'Jobs', 'Last Seen'],
+    ...trials.map(t => [
+      t.company_name || '',
+      t.owner_email || '',
+      t.trial_ends_at ? new Date(t.trial_ends_at).toISOString().split('T')[0] : '',
+      t.employee_count ?? 0,
+      t.job_count ?? 0,
+      t.last_seen_at ? new Date(t.last_seen_at).toISOString().split('T')[0] : '',
+    ])
+  ];
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `unconverted-trials-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 </script>
 </body>

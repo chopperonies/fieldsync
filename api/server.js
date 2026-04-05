@@ -121,15 +121,31 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
         console.error('[webhook] payment email error:', emailErr.message);
       }
     }
+    // Extra users add-on
+    if (session.mode === 'subscription' && session.metadata?.addon === 'extra_users') {
+      const qty = parseInt(session.metadata.quantity) || 0;
+      const { data: t } = await supabaseAdmin.from('tenants').select('extra_users').eq('id', session.metadata.tenant_id).single();
+      await supabaseAdmin.from('tenants').update({
+        extra_users: (t?.extra_users || 0) + qty,
+        max_users: supabaseAdmin.rpc ? undefined : undefined, // recalculated below
+        stripe_extra_users_sub_id: session.subscription,
+        stripe_customer_id: session.customer,
+      }).eq('id', session.metadata.tenant_id);
+      // Recalculate max_users = plan base + extra
+      const { data: updated } = await supabaseAdmin.from('tenants').select('plan, extra_users').eq('id', session.metadata.tenant_id).single();
+      const base = planMaxUsers[updated?.plan] || 1;
+      await supabaseAdmin.from('tenants').update({ max_users: base + (updated?.extra_users || 0) }).eq('id', session.metadata.tenant_id);
+    }
     // Subscription checkout
-    if (session.mode === 'subscription' && session.metadata?.tenant_id) {
+    if (session.mode === 'subscription' && session.metadata?.tenant_id && !session.metadata?.addon) {
       const plan = session.metadata.plan;
+      const { data: existing } = await supabaseAdmin.from('tenants').select('extra_users').eq('id', session.metadata.tenant_id).single();
       await supabaseAdmin.from('tenants').update({
         plan,
         subscription_status: 'active',
         stripe_customer_id: session.customer,
         stripe_subscription_id: session.subscription,
-        max_users: planMaxUsers[plan] || 1,
+        max_users: (planMaxUsers[plan] || 1) + (existing?.extra_users || 0),
       }).eq('id', session.metadata.tenant_id);
       // Business plan — send onboarding email with Calendly link
       if (plan === 'business') {
@@ -1175,6 +1191,10 @@ app.patch('/api/timesheets/:id', auth, async (req, res) => {
 // ── Reports ───────────────────────────────────────────────────────────────────
 
 app.get('/api/reports', auth, async (req, res) => {
+  const { data: tenant } = await supabaseAdmin.from('tenants').select('plan').eq('id', req.tenantId).single();
+  if (!['pro', 'business'].includes(tenant?.plan)) {
+    return res.status(403).json({ error: 'upgrade_required', message: 'Reports are available on Pro and Business plans.' });
+  }
   const days = parseInt(req.query.period || '30');
   const since = new Date();
   since.setDate(since.getDate() - days);
@@ -1518,7 +1538,7 @@ app.get('/api/billing/status', auth, async (req, res) => {
   const tenantId = await getEffectiveTenantId(req);
   if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
   const { data } = await supabaseAdmin.from('tenants')
-    .select('plan, subscription_status, trial_ends_at, stripe_customer_id, max_users')
+    .select('plan, subscription_status, trial_ends_at, stripe_customer_id, max_users, extra_users')
     .eq('id', tenantId).single();
   res.json(data || {});
 });
@@ -1551,6 +1571,36 @@ app.post('/api/billing/checkout', auth, async (req, res) => {
       cancel_url: `${req.protocol}://${req.get('host')}/pricing`,
       metadata: { tenant_id: tenantId, plan },
       subscription_data: { metadata: { tenant_id: tenantId, plan } },
+    });
+    res.json({ url: session.url });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Extra users add-on checkout
+app.post('/api/billing/extra-users', auth, async (req, res) => {
+  const { quantity } = req.body;
+  if (!quantity || quantity < 1 || quantity > 50)
+    return res.status(400).json({ error: 'Quantity must be between 1 and 50' });
+  const priceId = process.env.STRIPE_PRICE_EXTRA_USER;
+  if (!priceId) return res.status(500).json({ error: 'Extra user pricing not configured' });
+  const tenantId = await getEffectiveTenantId(req);
+  const { data: tenant } = await supabaseAdmin.from('tenants')
+    .select('stripe_customer_id, owner_email').eq('id', tenantId).single();
+  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      ...(tenant.stripe_customer_id
+        ? { customer: tenant.stripe_customer_id }
+        : { customer_email: tenant.owner_email }),
+      line_items: [{ price: priceId, quantity: parseInt(quantity) }],
+      success_url: `${req.protocol}://${req.get('host')}/app?billing=success`,
+      cancel_url: `${req.protocol}://${req.get('host')}/app`,
+      metadata: { tenant_id: tenantId, addon: 'extra_users', quantity: String(quantity) },
+      subscription_data: { metadata: { tenant_id: tenantId, addon: 'extra_users', quantity: String(quantity) } },
     });
     res.json({ url: session.url });
   } catch (err) {
