@@ -118,6 +118,7 @@
 
     @media (max-width: 768px) {
       nav { padding: 16px 20px; }
+      .nav-ghost-hide { display: none; }
       .hero { padding: 60px 20px 50px; }
       .hero h1 { font-size: 32px; }
       .hero p { font-size: 15px; }
@@ -141,9 +142,9 @@
       Link<span>Crew</span>
     </div>
     <div class="nav-right">
-      <button class="btn-ghost" onclick="location.href='/pricing'">Pricing</button>
-      <button class="btn-ghost" onclick="location.href='/portal'">Client Portal</button>
-      <button class="btn-ghost" onclick="location.href='/app'">Sign In</button>
+      <button class="btn-ghost nav-ghost-hide" onclick="location.href='/pricing'">Pricing</button>
+      <button class="btn-ghost nav-ghost-hide" onclick="location.href='/portal'">Client Portal</button>
+      <button class="btn-ghost nav-ghost-hide" onclick="location.href='/app'">Sign In</button>
       <button class="btn-primary" onclick="location.href='/app'">Get Started Free</button>
     </div>
   </nav>
