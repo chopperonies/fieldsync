@@ -389,12 +389,12 @@ app.post('/api/track', async (req, res) => {
   });
   // Milestone email (fire and forget)
   supabaseAdmin.from('page_views').select('id', { count: 'exact', head: true }).then(({ count }) => {
-    if (count && count % 1000 === 0) {
+    if (count && count % 200 === 0) {
       const { Resend } = require('resend');
       new Resend(process.env.RESEND_API_KEY).emails.send({
         from: 'alerts@linkcrew.io',
         to: (process.env.ADMIN_EMAILS || '').split(',')[0].trim() || 'eliott@kingstondatagroup.com',
-        subject: `🎉 LinkCrew hit ${count.toLocaleString()} page views!`,
+        subject: `🎉 LinkCrew hit ${count.toLocaleString()} total page views!`,
         html: `<p>LinkCrew just crossed <strong>${count.toLocaleString()} total page views</strong>.</p>
                <p><a href="https://linkcrew.io/lc-ops?k=241971">View analytics →</a></p>`,
       }).catch(() => {});
