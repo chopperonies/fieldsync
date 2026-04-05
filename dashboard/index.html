@@ -713,6 +713,25 @@
       </div>
     </div>
 
+    <!-- Photo Settings -->
+    <div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:28px;margin-top:20px">
+      <div style="font-size:15px;font-weight:700;color:#17191c;margin-bottom:6px">Photo Storage</div>
+      <div style="font-size:13px;color:#737475;margin-bottom:20px">Automatically delete site photos after a set period to save storage.</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <select id="set-photo-expiry" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:7px;padding:9px 14px;font-size:13px;color:#17191c">
+          <option value="">Keep forever</option>
+          <option value="30">Delete after 30 days</option>
+          <option value="60">Delete after 60 days</option>
+          <option value="90">Delete after 90 days</option>
+        </select>
+        <button onclick="savePhotoExpiry()"
+          style="background:#0265dc;color:#fff;border:none;border-radius:7px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer">
+          Save
+        </button>
+        <span id="photo-expiry-status" style="font-size:12px;color:#4ade80"></span>
+      </div>
+    </div>
+
     <div id="priority-support-section" style="display:none;margin-top:24px;padding:20px;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:12px">
       <div style="font-size:14px;font-weight:700;color:#17191c;margin-bottom:4px">Priority Support</div>
       <div style="font-size:13px;color:#737475;margin-bottom:14px">As a Team+ member you have access to priority support from our team.</div>
@@ -1266,16 +1285,48 @@ async function loadPhotos() {
   const photos = await res.json();
   const el = document.getElementById('photos-list');
   if (!photos.length) { el.innerHTML = '<div class="empty"><div class="e-icon">📸</div>No photos yet</div>'; return; }
-  el.innerHTML = `<div class="photo-grid">${photos.map(p => `
-    <div class="photo-card" onclick="window.open('${p.photo_url}','_blank')">
-      <img src="${p.photo_url}" alt="${p.message||'Site photo'}" loading="lazy" onerror="this.parentElement.style.display='none'">
-      <div class="photo-meta">
-        <div class="pm-job">${p.jobs?.name||'—'}</div>
-        <div class="pm-info">👷 ${p.employees?.name||'?'} · ${new Date(p.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div>
-        ${p.message&&p.message!=='Site photo'?`<div class="pm-info" style="color:#666">${p.message}</div>`:''}
+
+  // Group by client
+  const grouped = {};
+  for (const p of photos) {
+    const clientName = p.jobs?.clients?.name || 'No Client';
+    const clientId = p.jobs?.clients?.id || 'none';
+    const key = clientId;
+    if (!grouped[key]) grouped[key] = { name: clientName, photos: [] };
+    grouped[key].photos.push(p);
+  }
+
+  el.innerHTML = Object.values(grouped).map(group => `
+    <div style="margin-bottom:18px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#737475;margin-bottom:8px;padding:0 2px">${group.name}</div>
+      <div class="photo-grid">
+        ${group.photos.map(p => `
+          <div class="photo-card" id="photo-card-${p.id}">
+            <img src="${p.photo_url}" alt="${p.message||'Site photo'}" loading="lazy" onclick="window.open('${p.photo_url}','_blank')" onerror="this.parentElement.style.display='none'">
+            <div class="photo-meta" style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">
+              <div style="min-width:0">
+                <div class="pm-job">${p.jobs?.name||'—'}</div>
+                <div class="pm-info">👷 ${p.employees?.name||'?'} · ${new Date(p.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
+              </div>
+              <button onclick="deletePhoto('${p.id}')" title="Delete photo"
+                style="flex-shrink:0;background:none;border:none;cursor:pointer;color:#dc2626;font-size:14px;padding:0;line-height:1">🗑</button>
+            </div>
+          </div>
+        `).join('')}
       </div>
     </div>
-  `).join('')}</div>`;
+  `).join('');
+}
+
+async function deletePhoto(id) {
+  if (!confirm('Delete this photo? This cannot be undone.')) return;
+  const res = await authFetch(`/api/photos/${id}`, { method: 'DELETE' });
+  if (res.ok) {
+    document.getElementById(`photo-card-${id}`)?.remove();
+  } else {
+    const j = await res.json();
+    alert('Error: ' + (j.error || 'Failed to delete'));
+  }
 }
 
 async function updateSupply(id, status) {
@@ -1674,10 +1725,25 @@ async function loadSettings() {
     document.getElementById('vb-phone').value = data.twilio_phone || '';
     document.getElementById('vb-sid').value = data.twilio_account_sid || '';
   }
+  if (data.photo_expiry_days) document.getElementById('set-photo-expiry').value = String(data.photo_expiry_days);
   const priorityPlans = ['team', 'pro', 'business'];
   document.getElementById('priority-support-section').style.display =
     priorityPlans.includes(currentPlan) ? 'block' : 'none';
   settingsLoaded = true;
+}
+
+async function savePhotoExpiry() {
+  const photo_expiry_days = document.getElementById('set-photo-expiry').value;
+  const statusEl = document.getElementById('photo-expiry-status');
+  statusEl.style.color = '#737475'; statusEl.textContent = 'Saving…';
+  const res = await authFetch('/api/settings', { method: 'PATCH', body: JSON.stringify({ photo_expiry_days: photo_expiry_days ? parseInt(photo_expiry_days) : null }) });
+  if (res.ok) {
+    statusEl.style.color = '#4ade80'; statusEl.textContent = '✓ Saved';
+    setTimeout(() => statusEl.textContent = '', 3000);
+    settingsLoaded = false;
+  } else {
+    statusEl.style.color = '#dc2626'; statusEl.textContent = 'Error saving';
+  }
 }
 
 async function saveKnowledge() {

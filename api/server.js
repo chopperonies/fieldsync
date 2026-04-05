@@ -593,23 +593,41 @@ app.get('/api/jobs/:id', auth, async (req, res) => {
 });
 
 app.get('/api/photos/recent', auth, async (req, res) => {
-  let query = supabaseAdmin
-    .from('job_updates')
-    .select('id, message, photo_url, created_at, jobs(name), employees(name)')
-    .eq('type', 'photo').not('photo_url', 'is', null)
-    .order('created_at', { ascending: false }).limit(30);
+  if (!req.tenantId) return res.json([]);
+  const { data: jobs } = await supabaseAdmin
+    .from('jobs').select('id, client_id, clients(id, name)').eq('tenant_id', req.tenantId);
+  if (!jobs?.length) return res.json([]);
 
-  if (req.tenantId) {
-    const { data: jobs } = await supabaseAdmin
-      .from('jobs').select('id').eq('tenant_id', req.tenantId);
-    if (jobs?.length) {
-      query = query.in('job_id', jobs.map(j => j.id));
-    } else {
-      return res.json([]);
-    }
-  }
-  const { data } = await query;
+  const { data } = await supabaseAdmin
+    .from('job_updates')
+    .select('id, message, photo_url, created_at, job_id, jobs(name, client_id, clients(id, name)), employees(name)')
+    .eq('type', 'photo').not('photo_url', 'is', null)
+    .in('job_id', jobs.map(j => j.id))
+    .order('created_at', { ascending: false }).limit(100);
   res.json(data || []);
+});
+
+app.delete('/api/photos/:id', auth, async (req, res) => {
+  const { id } = req.params;
+  // Verify ownership via tenant
+  const { data: photo } = await supabaseAdmin
+    .from('job_updates').select('id, photo_url, job_id, jobs(tenant_id)').eq('id', id).single();
+  if (!photo || photo.jobs?.tenant_id !== req.tenantId) return res.status(403).json({ error: 'Not found' });
+
+  // Delete from storage
+  if (photo.photo_url) {
+    try {
+      const url = new URL(photo.photo_url);
+      const parts = url.pathname.split('/object/public/');
+      if (parts[1]) {
+        const [bucket, ...pathParts] = parts[1].split('/');
+        await supabaseAdmin.storage.from(bucket).remove([pathParts.join('/')]);
+      }
+    } catch (e) { /* storage delete best-effort */ }
+  }
+
+  await supabaseAdmin.from('job_updates').delete().eq('id', id);
+  res.json({ ok: true });
 });
 
 app.get('/api/supplies/pending', auth, async (req, res) => {
@@ -1327,7 +1345,7 @@ app.get('/api/settings', auth, async (req, res) => {
   const tenantId = await getEffectiveTenantId(req);
   if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
   const { data } = await supabaseAdmin.from('tenants')
-    .select('company_name, owner_email, logo_url, phone, address, voicebot_enabled, twilio_phone, twilio_account_sid, voicebot_knowledge')
+    .select('company_name, owner_email, logo_url, phone, address, voicebot_enabled, twilio_phone, twilio_account_sid, voicebot_knowledge, photo_expiry_days')
     .eq('id', tenantId).single();
   res.json(data || {});
 });
@@ -1335,12 +1353,13 @@ app.get('/api/settings', auth, async (req, res) => {
 app.patch('/api/settings', auth, async (req, res) => {
   const tenantId = await getEffectiveTenantId(req);
   if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
-  const { company_name, phone, address, voicebot_knowledge } = req.body;
+  const { company_name, phone, address, voicebot_knowledge, photo_expiry_days } = req.body;
   const updates = {};
   if (company_name !== undefined) updates.company_name = company_name;
   if (phone !== undefined) updates.phone = phone;
   if (address !== undefined) updates.address = address;
   if (voicebot_knowledge !== undefined) updates.voicebot_knowledge = voicebot_knowledge;
+  if (photo_expiry_days !== undefined) updates.photo_expiry_days = photo_expiry_days || null;
   const { data, error } = await supabaseAdmin.from('tenants')
     .update(updates).eq('id', tenantId).select().single();
   if (error) return res.status(400).json({ error: error.message });
@@ -2359,6 +2378,49 @@ async function snapshotMRR() {
   console.log(`📊 MRR snapshot saved: $${mrr}`);
 }
 cron.schedule('0 0 1 * *', snapshotMRR);
+
+// ── Nightly photo expiry cleanup ──────────────────────────────────────────────
+cron.schedule('0 2 * * *', async () => {
+  console.log('🗑 Running photo expiry cleanup...');
+  const { data: tenants } = await supabaseAdmin
+    .from('tenants').select('id, photo_expiry_days').not('photo_expiry_days', 'is', null);
+  if (!tenants?.length) return;
+
+  for (const tenant of tenants) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - tenant.photo_expiry_days);
+
+    const { data: tenantJobs } = await supabaseAdmin
+      .from('jobs').select('id').eq('tenant_id', tenant.id);
+    if (!tenantJobs?.length) continue;
+
+    const { data: oldPhotos } = await supabaseAdmin
+      .from('job_updates')
+      .select('id, photo_url')
+      .in('job_id', tenantJobs.map(j => j.id))
+      .eq('type', 'photo')
+      .not('photo_url', 'is', null)
+      .lt('created_at', cutoff.toISOString());
+
+    if (!oldPhotos?.length) continue;
+
+    for (const photo of oldPhotos) {
+      try {
+        const url = new URL(photo.photo_url);
+        const parts = url.pathname.split('/object/public/');
+        if (parts[1]) {
+          const [bucket, ...pathParts] = parts[1].split('/');
+          await supabaseAdmin.storage.from(bucket).remove([pathParts.join('/')]);
+        }
+      } catch (e) { /* best-effort */ }
+    }
+
+    await supabaseAdmin.from('job_updates')
+      .delete().in('id', oldPhotos.map(p => p.id));
+
+    console.log(`🗑 Deleted ${oldPhotos.length} photos for tenant ${tenant.id} (>${tenant.photo_expiry_days} days old)`);
+  }
+});
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
