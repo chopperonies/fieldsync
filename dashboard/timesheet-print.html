@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timesheet — LinkCrew</title>
+  <link rel="icon" type="image/svg+xml" href="/logo.svg">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f5f5; color: #17191c; }
+
+    .actions {
+      display: flex; gap: 12px; justify-content: flex-end;
+      padding: 20px 40px; background: #fff; border-bottom: 1px solid #e8e8e8;
+    }
+    .btn { border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; padding: 10px 22px; }
+    .btn-print { background: #0265dc; color: #fff; }
+    .btn-back { background: #f5f5f5; color: #17191c; border: 1px solid #e8e8e8; }
+
+    .page { max-width: 800px; margin: 40px auto; background: #fff;
+      border: 1px solid #e8e8e8; border-radius: 12px; padding: 60px; }
+
+    .ts-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 48px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-name { font-size: 22px; font-weight: 800; color: #17191c; }
+    .brand-name span { color: #0265dc; }
+    .ts-meta { text-align: right; }
+    .ts-title { font-size: 32px; font-weight: 800; color: #17191c; margin-bottom: 8px; }
+    .ts-period { font-size: 13px; color: #737475; }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 32px; }
+    .summary-card { background: #f5f5f5; border-radius: 8px; padding: 14px 16px; }
+    .summary-card .sc-name { font-size: 11px; font-weight: 700; color: #737475; text-transform: uppercase; margin-bottom: 4px; }
+    .summary-card .sc-hours { font-size: 24px; font-weight: 800; color: #17191c; }
+    .summary-card .sc-shifts { font-size: 12px; color: #737475; margin-top: 2px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { padding: 10px 12px; font-size: 11px; font-weight: 700; color: #737475; text-transform: uppercase; border-bottom: 2px solid #e8e8e8; text-align: left; }
+    td { padding: 11px 12px; border-bottom: 1px solid #f0f0f0; color: #17191c; }
+    tr:last-child td { border-bottom: none; }
+    .badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+    .badge-manual { background: #fefce8; color: #92400e; border: 1px solid #fde68a; }
+    .badge-app { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+
+    #loading { text-align: center; padding: 60px; color: #737475; }
+
+    @media print {
+      .actions { display: none; }
+      body { background: #fff; }
+      .page { margin: 0; border: none; border-radius: 0; padding: 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="actions">
+  <button class="btn btn-back" onclick="history.back()">← Back</button>
+  <button class="btn btn-print" onclick="window.print()">🖨 Print</button>
+</div>
+
+<div id="loading" class="page">Loading timesheet...</div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const start = params.get('start');
+  const end = params.get('end');
+  const employeeId = params.get('employee_id') || '';
+
+  async function getDashboardToken() {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    const cfgRes = await fetch('/api/config');
+    const { supabaseUrl, supabaseKey } = await cfgRes.json();
+    const sb = createClient(supabaseUrl, supabaseKey);
+    const { data: { session } } = await sb.auth.getSession();
+    return session?.access_token;
+  }
+
+  async function load() {
+    const token = await getDashboardToken();
+    let url = `/api/timesheets?`;
+    if (start) url += `start=${start}T00:00:00Z&`;
+    if (end) url += `end=${end}T23:59:59Z&`;
+    if (employeeId) url += `employee_id=${employeeId}`;
+
+    const [tsRes, settingsRes] = await Promise.all([
+      fetch(url, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch('/api/settings', { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+
+    const entries = await tsRes.json();
+    const tenant = await settingsRes.json();
+    render(entries, tenant);
+  }
+
+  function render(entries, tenant) {
+    const periodLabel = start && end
+      ? `${new Date(start).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} – ${new Date(end).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}`
+      : 'All time';
+
+    // Summary by employee
+    const byEmployee = {};
+    for (const e of entries) {
+      const name = e.employees?.name || 'Unknown';
+      if (!byEmployee[name]) byEmployee[name] = { hours: 0, shifts: 0 };
+      if (e.checked_in_at && e.checked_out_at)
+        byEmployee[name].hours += (new Date(e.checked_out_at) - new Date(e.checked_in_at)) / 3600000;
+      byEmployee[name].shifts++;
+    }
+
+    const summaryHtml = Object.entries(byEmployee).map(([name, d]) => `
+      <div class="summary-card">
+        <div class="sc-name">${name}</div>
+        <div class="sc-hours">${d.hours.toFixed(1)} hrs</div>
+        <div class="sc-shifts">${d.shifts} shift${d.shifts !== 1 ? 's' : ''}</div>
+      </div>
+    `).join('');
+
+    const fmt = iso => iso
+      ? new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' +
+        new Date(iso).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})
+      : '—';
+
+    const rowsHtml = entries.map(e => {
+      const hrs = e.checked_in_at && e.checked_out_at
+        ? ((new Date(e.checked_out_at) - new Date(e.checked_in_at)) / 3600000).toFixed(2)
+        : '—';
+      return `
+        <tr>
+          <td><strong>${e.employees?.name || '—'}</strong></td>
+          <td>${e.jobs?.name || '—'}</td>
+          <td>${fmt(e.checked_in_at)}</td>
+          <td>${fmt(e.checked_out_at)}</td>
+          <td><strong>${hrs}</strong></td>
+          <td><span class="badge ${e.manual_punch ? 'badge-manual' : 'badge-app'}">${e.manual_punch ? 'Manual' : 'App'}</span>${e.punch_in_lat ? ' 📍' : ''}</td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('loading').outerHTML = `
+      <div class="page">
+        <div class="ts-header">
+          <div class="brand">
+            ${tenant?.logo_url
+              ? `<img src="${tenant.logo_url}" alt="${tenant.company_name || ''}" style="max-height:60px;max-width:180px;object-fit:contain">`
+              : `<img src="/logo.svg" alt="LinkCrew" style="width:40px;height:40px">`}
+            <div class="brand-name">${tenant?.company_name || 'Link<span>Crew</span>'}</div>
+          </div>
+          <div class="ts-meta">
+            <div class="ts-title">Timesheet</div>
+            <div class="ts-period">${periodLabel}</div>
+            <div class="ts-period" style="margin-top:4px">Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+          </div>
+        </div>
+
+        ${summaryHtml ? `<div class="summary-grid">${summaryHtml}</div>` : ''}
+
+        <table>
+          <thead>
+            <tr>
+              <th>Crew Member</th>
+              <th>Job</th>
+              <th>Punch In</th>
+              <th>Punch Out</th>
+              <th>Hours</th>
+              <th>Type</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>`;
+  }
+
+  load().catch(e => {
+    document.getElementById('loading').textContent = 'Error loading timesheet: ' + e.message;
+  });
+</script>
+</body>
+</html>
