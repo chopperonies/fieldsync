@@ -256,8 +256,8 @@
     .client-row { padding: 12px 16px; border-bottom: 1px solid #e8e8e8; cursor: pointer; transition: background 0.1s; }
     .client-row:hover { background: #f5f5f5; }
     .client-row.active { background: #e8f0fd; border-left: 3px solid #0265dc; }
-    .client-row .cr-name { font-size: 14px; font-weight: 600; color: #17191c; }
-    .client-row .cr-sub { font-size: 12px; color: #737475; margin-top: 2px; }
+    .client-row .cr-name { font-size: 14px; font-weight: 600; color: #17191c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .client-row .cr-sub { font-size: 12px; color: #737475; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .client-row .cr-badges { display: flex; gap: 5px; margin-top: 5px; }
     .cr-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
     .cr-badge-blue { background: #e8f0fd; color: #0265dc; }
@@ -531,6 +531,7 @@
       <div class="crm-detail-panel" id="crm-detail-panel">
         <div class="empty" style="margin-top:60px"><div class="e-icon">👈</div>Select a client</div>
       </div>
+
     </div>
   </div>
 
@@ -3196,6 +3197,53 @@ async function loadClients() {
   const res = await authFetch('/api/clients');
   allClientsData = await res.json();
   renderClientList(allClientsData);
+  renderCrmEmptyState();
+}
+
+function renderCrmEmptyState() {
+  const panel = document.getElementById('crm-detail-panel');
+  if (!panel || selectedClientId) return;
+  const today = new Date().toISOString().split('T')[0];
+  const allFu = allClientsData.flatMap(c => c.client_follow_ups || []);
+  const pending = allFu.filter(f => !f.completed).length;
+  const overdue = allFu.filter(f => !f.completed && f.due_date && f.due_date < today);
+
+  panel.innerHTML = `
+    <div style="padding:8px 0">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+        <div style="background:#fff;border:1px solid #e8e8e8;border-radius:10px;padding:18px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:#0265dc">${allClientsData.length}</div>
+          <div style="font-size:11px;color:#737475;margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em">Clients</div>
+        </div>
+        <div style="background:#fff;border:1px solid ${overdue.length ? '#fecaca' : '#e8e8e8'};border-radius:10px;padding:18px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:${overdue.length ? '#dc2626' : '#17191c'}">${overdue.length}</div>
+          <div style="font-size:11px;color:#737475;margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em">Overdue</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e8e8e8;border-radius:10px;padding:18px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:#17191c">${pending}</div>
+          <div style="font-size:11px;color:#737475;margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em">Follow-ups</div>
+        </div>
+      </div>
+      ${overdue.length ? `
+      <div style="background:#fff;border:1px solid #fecaca;border-radius:10px;padding:16px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;color:#dc2626;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em">⚠ Overdue Follow-ups</div>
+        ${allClientsData.flatMap(c =>
+          (c.client_follow_ups||[])
+            .filter(f => !f.completed && f.due_date && f.due_date < today)
+            .map(f => `
+              <div onclick="openClientDetail('${c.id}')"
+                style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #fef2f2;cursor:pointer">
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:#17191c">${c.name}</div>
+                  <div style="font-size:12px;color:#737475;margin-top:1px">${f.note}</div>
+                </div>
+                <span style="font-size:11px;color:#dc2626;font-weight:600;white-space:nowrap">Due ${f.due_date}</span>
+              </div>`)
+        ).join('')}
+      </div>` : ''}
+      <div style="text-align:center;color:#b0b0b0;font-size:13px;padding-top:8px">← Select a client to view their profile</div>
+    </div>
+  `;
 }
 
 function renderClientList(clients) {
@@ -3253,6 +3301,24 @@ async function openClientDetail(clientId) {
       </div>
     </div>
 
+    <!-- Quick stats -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+      <div style="background:#f5f5f5;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:20px;font-weight:800;color:#17191c">${jobs.length}</div>
+        <div style="font-size:10px;color:#737475;margin-top:2px;font-weight:600;text-transform:uppercase">Jobs</div>
+      </div>
+      <div style="background:#f5f5f5;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:20px;font-weight:800;color:#0265dc">$${jobs.reduce((s,j) => s + (parseFloat(j.invoice_amount)||0), 0).toFixed(0)}</div>
+        <div style="font-size:10px;color:#737475;margin-top:2px;font-weight:600;text-transform:uppercase">Invoiced</div>
+      </div>
+      <div style="background:#f5f5f5;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:20px;font-weight:800;color:${jobs.some(j=>j.payment_status!=='paid'&&j.invoice_amount>0)?'#dc2626':'#16a34a'}">
+          $${jobs.filter(j=>j.payment_status!=='paid').reduce((s,j) => s + (parseFloat(j.invoice_amount)||0), 0).toFixed(0)}
+        </div>
+        <div style="font-size:10px;color:#737475;margin-top:2px;font-weight:600;text-transform:uppercase">Outstanding</div>
+      </div>
+    </div>
+
     <!-- Notes -->
     <div class="cd-section">
       <div class="cd-section-title">Notes</div>
@@ -3307,20 +3373,20 @@ async function openClientDetail(clientId) {
     </div>` : ''}
 
     <!-- Photos -->
+    ${photos.length ? `
     <div class="cd-section">
       <div class="cd-section-title">Photos (${photos.length})</div>
-      ${photos.length ? `
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px">
-          ${photos.map(p => `
-            <div style="position:relative">
-              <img src="${p.photo_url}" onclick="window.open('${p.photo_url}','_blank')"
-                style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid #e8e8e8"
-                title="${p.jobs?.name||''} · ${new Date(p.created_at).toLocaleDateString()}">
-            </div>
-          `).join('')}
-        </div>
-      ` : '<div style="font-size:13px;color:#949596;font-style:italic">No photos uploaded yet.</div>'}
-    </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+        ${photos.slice(0,12).map(p => `
+          <div>
+            <img src="${p.photo_url}" onclick="window.open('${p.photo_url}','_blank')"
+              style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid #e8e8e8"
+              title="${p.jobs?.name||''} · ${new Date(p.created_at).toLocaleDateString()}">
+          </div>
+        `).join('')}
+        ${photos.length > 12 ? `<div style="display:flex;align-items:center;justify-content:center;aspect-ratio:1;background:#f5f5f5;border-radius:6px;font-size:12px;font-weight:600;color:#737475">+${photos.length-12} more</div>` : ''}
+      </div>
+    </div>` : ''}
 
     <!-- Job History -->
     <div class="cd-section">
