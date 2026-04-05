@@ -411,7 +411,6 @@
   </div>
   <div class="header-right">
     <div class="live-badge"><div class="live-dot"></div> LIVE</div>
-    <button class="hdr-btn" onclick="openTeam()">👥 Team</button>
     <button class="hdr-btn danger" onclick="doLogout()">Sign Out</button>
   </div>
 </div>
@@ -448,6 +447,7 @@
 <!-- Main nav tabs -->
 <div class="main-tabs">
   <div class="main-tab active" id="mtab-jobs" onclick="switchMainTab('jobs')">📋 Jobs</div>
+  <div class="main-tab" id="mtab-team" onclick="switchMainTab('team')">👥 Team</div>
   <div class="main-tab" id="mtab-clients" onclick="switchMainTab('clients')">👤 Clients</div>
   <div class="main-tab" id="mtab-reports" onclick="switchMainTab('reports')">📊 Reports</div>
   <div class="main-tab" id="mtab-agreements" onclick="switchMainTab('agreements')">📄 Agreements</div>
@@ -496,19 +496,53 @@
 </div>
 </div><!-- end jobs-view -->
 
+<!-- Team view -->
+<div id="team-view" style="display:none">
+  <div style="max-width:640px;margin:0 auto;padding:32px 24px">
+    <div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:28px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:700;color:#17191c">Team Members</div>
+        <button onclick="openTeam()" style="background:#0265dc;color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer">+ Add Employee</button>
+      </div>
+      <div id="team-list-inline"><div class="empty" style="padding:12px">Loading...</div></div>
+    </div>
+  </div>
+</div>
+
 <!-- Clients view -->
 <div id="clients-view" style="display:none">
-  <div class="crm-layout">
-    <div class="crm-list-panel">
-      <div class="crm-search-bar">
-        <input class="crm-search" type="text" placeholder="Search clients..." oninput="filterClients(this.value)">
-        <button class="btn-add-client" onclick="openAddClient()">+ Add</button>
-        <button class="btn-add-client" onclick="openImportModal()" style="background:#f5f5f5;color:#17191c;border:1px solid #e8e8e8">↑ Import</button>
+  <!-- Sub-tabs -->
+  <div style="display:flex;gap:0;border-bottom:2px solid #e8e8e8;margin-bottom:0">
+    <div id="ctab-all" onclick="switchClientsTab('all')" style="padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;color:#0265dc;border-bottom:2px solid #0265dc;margin-bottom:-2px">All Clients</div>
+    <div id="ctab-recurring" onclick="switchClientsTab('recurring')" style="padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;color:#737475;border-bottom:2px solid transparent;margin-bottom:-2px">🔁 Recurring Invoices</div>
+  </div>
+
+  <!-- All Clients sub-view -->
+  <div id="clients-sub-all">
+    <div class="crm-layout">
+      <div class="crm-list-panel">
+        <div class="crm-search-bar">
+          <input class="crm-search" type="text" placeholder="Search clients..." oninput="filterClients(this.value)">
+          <button class="btn-add-client" onclick="openAddClient()">+ Add</button>
+          <button class="btn-add-client" onclick="openImportModal()" style="background:#f5f5f5;color:#17191c;border:1px solid #e8e8e8">↑ Import</button>
+        </div>
+        <div id="clients-list"><div class="empty"><div class="e-icon">👤</div>Loading...</div></div>
       </div>
-      <div id="clients-list"><div class="empty"><div class="e-icon">👤</div>Loading...</div></div>
+      <div class="crm-detail-panel" id="crm-detail-panel">
+        <div class="empty" style="margin-top:60px"><div class="e-icon">👈</div>Select a client</div>
+      </div>
     </div>
-    <div class="crm-detail-panel" id="crm-detail-panel">
-      <div class="empty" style="margin-top:60px"><div class="e-icon">👈</div>Select a client</div>
+  </div>
+
+  <!-- Recurring Invoices sub-view -->
+  <div id="clients-sub-recurring" style="display:none;max-width:640px;margin:0 auto;padding:24px">
+    <div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:28px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:15px;font-weight:700;color:#17191c">Recurring Invoices</div>
+        <button onclick="openRecurringModal()" style="background:#0265dc;color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer">+ Add</button>
+      </div>
+      <div style="font-size:13px;color:#737475;margin-bottom:18px">Automatically create and send an invoice to a client on a set schedule.</div>
+      <div id="recurring-list"><div style="font-size:13px;color:#b0b0b0">Loading...</div></div>
     </div>
   </div>
 </div>
@@ -991,16 +1025,6 @@
         </button>
         <span id="appt-reminder-status" style="font-size:12px;color:#4ade80"></span>
       </div>
-    </div>
-
-    <!-- Recurring Invoices -->
-    <div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:28px;margin-top:20px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div style="font-size:15px;font-weight:700;color:#17191c">Recurring Invoices</div>
-        <button onclick="openRecurringModal()" style="background:#0265dc;color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer">+ Add</button>
-      </div>
-      <div style="font-size:13px;color:#737475;margin-bottom:18px">Automatically create and send an invoice to a client on a set schedule.</div>
-      <div id="recurring-list"><div style="font-size:13px;color:#b0b0b0">Loading...</div></div>
     </div>
 
     <div id="priority-support-section" style="display:none;margin-top:24px;padding:20px;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:12px">
@@ -1976,6 +2000,28 @@ async function sendWorkOrder(jobId) {
 // ── Team Management ───────────────────────────────────────────────────────────
 const roleCls = { owner: 'role-owner', manager: 'role-manager', crew: 'role-crew' };
 
+async function loadTeamInline() {
+  const el = document.getElementById('team-list-inline');
+  try {
+    const res = await authFetch('/api/employees');
+    const employees = await res.json();
+    currentEmployeeCount = employees.length;
+    if (!employees.length) { el.innerHTML = '<div class="empty" style="padding:12px">No employees yet. Click "+ Add Employee" to get started.</div>'; return; }
+    el.innerHTML = employees.map(e => `
+      <div class="team-row" id="emp-row-inline-${e.id}">
+        <div class="team-avatar">${(e.name||'?')[0].toUpperCase()}</div>
+        <div class="team-info">
+          <div class="ti-name">${e.name}</div>
+          <div class="ti-sub">📱 ${e.phone}</div>
+        </div>
+        <span class="role-badge ${roleCls[e.role]||'role-crew'}">${e.role.toUpperCase()}</span>
+        <button onclick="deleteEmployee('${e.id}')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:12px;font-weight:600;padding:4px 8px;border-radius:4px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove</button>
+      </div>
+    `).join('');
+  } catch (err) {
+    el.innerHTML = '<div class="empty" style="padding:12px;color:#dc2626">Failed to load team. Please try again.</div>';
+  }
+}
 async function openTeam() {
   document.getElementById('team-modal').classList.add('visible');
   await loadTeam();
@@ -2022,11 +2068,13 @@ async function saveEmployee() {
   document.getElementById('emp-name').value = '';
   document.getElementById('emp-phone').value = '';
   await loadTeam();
+  if (document.getElementById('team-view').style.display !== 'none') await loadTeamInline();
 }
 async function deleteEmployee(id) {
   if (!confirm('Remove this employee?')) return;
   await authFetch(`/api/employees/${id}`, { method: 'DELETE' });
   await loadTeam();
+  if (document.getElementById('team-view').style.display !== 'none') await loadTeamInline();
 }
 
 // ── Admin: All Accounts ───────────────────────────────────────────────────────
@@ -2120,19 +2168,32 @@ function closeOverlay(e) {
 
 // ── Main Tab Navigation ───────────────────────────────────────────────────────
 function switchMainTab(tab) {
-  ['jobs','clients','reports','agreements','calendar','timesheets','settings','ideas'].forEach(t => {
+  ['jobs','team','clients','reports','agreements','calendar','timesheets','settings','ideas'].forEach(t => {
     const view = document.getElementById(`${t}-view`);
     const tabEl = document.getElementById(`mtab-${t}`);
     if (view) view.style.display = t === tab ? 'block' : 'none';
     if (tabEl) tabEl.classList.toggle('active', t === tab);
   });
+  if (tab === 'team') loadTeamInline();
   if (tab === 'clients' && !allClientsData.length) loadClients();
   if (tab === 'reports') loadReports(30);
   if (tab === 'agreements') loadAgreements();
   if (tab === 'calendar') initCalendar();
   if (tab === 'timesheets') initTimesheets();
-  if (tab === 'settings') { loadSettings(); loadRecurring(); }
+  if (tab === 'settings') loadSettings();
   if (tab === 'ideas') loadIdeas();
+}
+
+function switchClientsTab(sub) {
+  document.getElementById('clients-sub-all').style.display = sub === 'all' ? '' : 'none';
+  document.getElementById('clients-sub-recurring').style.display = sub === 'recurring' ? 'block' : 'none';
+  const allTab = document.getElementById('ctab-all');
+  const recTab = document.getElementById('ctab-recurring');
+  allTab.style.color = sub === 'all' ? '#0265dc' : '#737475';
+  allTab.style.borderBottomColor = sub === 'all' ? '#0265dc' : 'transparent';
+  recTab.style.color = sub === 'recurring' ? '#0265dc' : '#737475';
+  recTab.style.borderBottomColor = sub === 'recurring' ? '#0265dc' : 'transparent';
+  if (sub === 'recurring') loadRecurring();
 }
 
 // ── Calendar ──────────────────────────────────────────────────────────────────
