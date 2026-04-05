@@ -2811,6 +2811,46 @@ app.post('/api/appointments/ask', auth, async (req, res) => {
   res.json({ answer: msg.content[0].text });
 });
 
+// ── Recurring Invoices ────────────────────────────────────────────────────────
+
+app.get('/api/recurring-invoices', auth, async (req, res) => {
+  const { data } = await supabaseAdmin
+    .from('recurring_invoices')
+    .select('*, clients(id, name, email)')
+    .eq('tenant_id', req.tenantId)
+    .order('created_at');
+  res.json(data || []);
+});
+
+app.post('/api/recurring-invoices', auth, async (req, res) => {
+  const { client_id, description, amount, frequency, next_send_date } = req.body;
+  if (!description || !amount || !frequency || !next_send_date)
+    return res.status(400).json({ error: 'Description, amount, frequency, and start date required' });
+  const { data, error } = await supabaseAdmin.from('recurring_invoices')
+    .insert({ tenant_id: req.tenantId, client_id: client_id || null, description, amount: parseFloat(amount), frequency, next_send_date, active: true })
+    .select('*, clients(id, name, email)').single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+app.patch('/api/recurring-invoices/:id', auth, async (req, res) => {
+  const allowed = ['active', 'amount', 'description', 'frequency', 'next_send_date', 'client_id'];
+  const updates = {};
+  for (const k of allowed) if (req.body[k] !== undefined) updates[k] = req.body[k];
+  if (updates.amount !== undefined) updates.amount = parseFloat(updates.amount);
+  const { data, error } = await supabaseAdmin.from('recurring_invoices')
+    .update(updates).eq('id', req.params.id).eq('tenant_id', req.tenantId)
+    .select('*, clients(id, name, email)').single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+app.delete('/api/recurring-invoices/:id', auth, async (req, res) => {
+  await supabaseAdmin.from('recurring_invoices')
+    .delete().eq('id', req.params.id).eq('tenant_id', req.tenantId);
+  res.json({ ok: true });
+});
+
 // ── Scheduled Email Digest ────────────────────────────────────────────────────
 cron.schedule('0 18 * * *', async () => {
   console.log('📧 Sending daily digest...');
@@ -2905,6 +2945,60 @@ cron.schedule('*/15 * * * *', async () => {
     for (const appt of eligibleAppts) {
       if (!appt.notify_client || !appt.clients) continue;
       await notifyApptClient(appt, tenantId, 'reminder').catch(() => {});
+    }
+  }
+});
+
+// ── Recurring invoice cron — daily at 7am ─────────────────────────────────────
+cron.schedule('0 7 * * *', async () => {
+  const today = new Date().toISOString().split('T')[0];
+  const { data: due } = await supabaseAdmin
+    .from('recurring_invoices')
+    .select('*, clients(id, name, email), tenants(owner_email, company_name)')
+    .eq('active', true)
+    .lte('next_send_date', today);
+  if (!due?.length) return;
+
+  for (const ri of due) {
+    try {
+      const { data: job } = await supabaseAdmin.from('jobs').insert({
+        name: ri.description,
+        tenant_id: ri.tenant_id,
+        client_id: ri.client_id,
+        status: 'invoiced',
+        invoice_amount: ri.amount,
+        payment_status: 'unpaid',
+      }).select('id').single();
+      if (!job) continue;
+
+      if (ri.clients?.email) {
+        const { data: clientUser } = await supabaseAdmin
+          .from('client_users').select('portal_token').eq('client_id', ri.client_id).single();
+        const portalUrl = clientUser?.portal_token
+          ? `https://linkcrew.io/portal?token=${clientUser.portal_token}`
+          : 'https://linkcrew.io/portal';
+        await sendInvoiceToClient({
+          clientName: ri.clients.name,
+          clientEmail: ri.clients.email,
+          jobName: ri.description,
+          amount: ri.amount,
+          portalUrl,
+          tenantName: ri.tenants?.company_name,
+        }).catch(() => {});
+      }
+
+      // Advance next_send_date
+      const next = new Date(ri.next_send_date + 'T12:00:00Z');
+      if (ri.frequency === 'weekly') next.setDate(next.getDate() + 7);
+      else if (ri.frequency === 'biweekly') next.setDate(next.getDate() + 14);
+      else next.setMonth(next.getMonth() + 1);
+      await supabaseAdmin.from('recurring_invoices')
+        .update({ next_send_date: next.toISOString().split('T')[0] })
+        .eq('id', ri.id);
+
+      console.log(`📄 Recurring invoice fired: "${ri.description}" tenant ${ri.tenant_id}`);
+    } catch (e) {
+      console.error('[recurring invoice] error:', ri.id, e.message);
     }
   }
 });
