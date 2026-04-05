@@ -2695,99 +2695,49 @@ app.delete('/api/admin/invites/:id', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Crew Invite ────────────────────────────────────────────────────────────────
+// ── Crew Invite (stateless — tenant ID encoded in token) ───────────────────────
 
-// Generate (or return existing) crew invite link for a tenant
+function encodeCrewToken(tenantId) {
+  return Buffer.from(tenantId).toString('base64url');
+}
+function decodeCrewToken(token) {
+  try { return Buffer.from(token, 'base64url').toString('utf8'); } catch { return null; }
+}
+
 app.post('/api/crew-invite', auth, async (req, res) => {
-  const tenantId = req.tenantId;
   const appUrl = process.env.APP_URL || 'https://linkcrew.io';
-
-  // Look for existing crew invite for this tenant
-  const { data: rows } = await supabaseAdmin
-    .from('beta_invites')
-    .select('code')
-    .eq('tenant_id', tenantId)
-    .like('code', 'CREW-%')
-    .limit(1);
-
-  if (rows && rows.length > 0) {
-    return res.json({ url: `${appUrl}/join?code=${rows[0].code}` });
-  }
-
-  const code = 'CREW-' + require('crypto').randomBytes(3).toString('hex').toUpperCase();
-  const { error } = await supabaseAdmin.from('beta_invites')
-    .insert({ code, tenant_id: tenantId, max_uses: null, trial_days: 14 });
-  if (error) return res.status(500).json({ error: error.message });
-  res.json({ url: `${appUrl}/join?code=${code}` });
+  const token = encodeCrewToken(req.tenantId);
+  res.json({ url: `${appUrl}/join?t=${token}` });
 });
 
-// Regenerate crew invite — deletes old, creates new
-app.post('/api/crew-invite/regenerate', auth, async (req, res) => {
-  const tenantId = req.tenantId;
-  const appUrl = process.env.APP_URL || 'https://linkcrew.io';
-
-  await supabaseAdmin.from('beta_invites')
-    .delete().eq('tenant_id', tenantId).like('code', 'CREW-%');
-
-  const code = 'CREW-' + require('crypto').randomBytes(3).toString('hex').toUpperCase();
-  const { error } = await supabaseAdmin.from('beta_invites')
-    .insert({ code, tenant_id: tenantId, max_uses: null, trial_days: 14 });
-  if (error) return res.status(500).json({ error: error.message });
-  res.json({ url: `${appUrl}/join?code=${code}` });
-});
-
-// Public: get company info for a crew invite code
+// Public: get company info from token
 app.get('/api/join-info', async (req, res) => {
-  const { code } = req.query;
-  if (!code) return res.status(400).json({ error: 'Missing code' });
-
-  const { data: invite } = await supabaseAdmin
-    .from('beta_invites')
-    .select('tenant_id')
-    .ilike('code', code.trim())
-    .maybeSingle();
-
-  if (!invite?.tenant_id) return res.status(404).json({ error: 'Invalid invite link' });
-
-  const { data: tenant } = await supabaseAdmin
-    .from('tenants')
-    .select('company_name')
-    .eq('id', invite.tenant_id)
-    .single();
-
-  res.json({ companyName: tenant?.company_name || 'Your Team' });
+  const tenantId = decodeCrewToken(req.query.t);
+  if (!tenantId) return res.status(400).json({ error: 'Invalid invite link' });
+  const { data: tenant } = await supabaseAdmin.from('tenants')
+    .select('company_name').eq('id', tenantId).single();
+  if (!tenant) return res.status(404).json({ error: 'Invalid invite link' });
+  res.json({ companyName: tenant.company_name || 'Your Team' });
 });
 
-// Public: crew member self-registers via invite link
+// Public: crew member self-registers
 app.post('/api/crew-register', async (req, res) => {
-  const { code, name, phone, role } = req.body;
-  if (!code || !name || !phone) return res.status(400).json({ error: 'name and phone are required' });
+  const { t, name, phone, role } = req.body;
+  if (!t || !name || !phone) return res.status(400).json({ error: 'Name and phone are required' });
+  const tenantId = decodeCrewToken(t);
+  if (!tenantId) return res.status(400).json({ error: 'Invalid invite link' });
 
-  const { data: invite } = await supabaseAdmin
-    .from('beta_invites')
-    .select('tenant_id')
-    .ilike('code', code.trim())
-    .maybeSingle();
+  const { data: tenant } = await supabaseAdmin.from('tenants').select('id').eq('id', tenantId).single();
+  if (!tenant) return res.status(400).json({ error: 'Invalid invite link' });
 
-  if (!invite?.tenant_id) return res.status(400).json({ error: 'Invalid invite code' });
-
-  // Check for duplicate phone in this tenant
-  const { data: dup } = await supabaseAdmin
-    .from('employees')
-    .select('id')
-    .eq('tenant_id', invite.tenant_id)
-    .eq('phone', phone.trim())
-    .maybeSingle();
-
+  const { data: dup } = await supabaseAdmin.from('employees')
+    .select('id').eq('tenant_id', tenantId).eq('phone', phone.trim()).maybeSingle();
   if (dup) return res.status(409).json({ error: 'A crew member with this phone number already exists.' });
 
   const { data, error } = await supabaseAdmin.from('employees').insert({
-    name: name.trim(),
-    phone: phone.trim(),
-    role: role?.trim() || 'Crew',
-    tenant_id: invite.tenant_id
+    name: name.trim(), phone: phone.trim(),
+    role: role?.trim() || 'Crew', tenant_id: tenantId
   }).select().single();
-
   if (error) return res.status(500).json({ error: error.message });
   res.json({ success: true, employee: data });
 });

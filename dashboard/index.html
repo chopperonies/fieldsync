@@ -1055,13 +1055,7 @@
         </button>
       </div>
 
-      <button onclick="confirmRegenerateCrewInvite()"
-        style="background:#fff;color:#737475;border:1px solid #e8e8e8;border-radius:7px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer">
-        🔄 Generate New Link
-      </button>
-      <div style="margin-top:12px;font-size:12px;color:#d97706;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:9px 12px;line-height:1.5">
-        ⚠ Regenerating creates a new link and immediately invalidates the old one. Any crew member who hasn&apos;t joined yet using the old link will need the new one.
-      </div>
+      <div style="font-size:12px;color:#737475;margin-top:4px">This link is permanent and never expires. Share it with any crew member to let them join your team.</div>
     </div>
 
   </div>
@@ -1553,19 +1547,6 @@ async function copyCrewInviteUrl() {
   setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
 }
 
-async function confirmRegenerateCrewInvite() {
-  const ok = confirm('Regenerate the crew invite link?\n\nThe current link will stop working immediately. Any crew members who haven\'t joined yet will need the new link.');
-  if (!ok) return;
-  const urlInput = document.getElementById('crew-invite-url');
-  urlInput.value = 'Regenerating...';
-  const res = await authFetch('/api/crew-invite/regenerate', { method: 'POST' });
-  const { url } = await res.json();
-  urlInput.value = url;
-  const btn = document.getElementById('crew-invite-copy-btn');
-  btn.textContent = '✓ Copied!';
-  await navigator.clipboard.writeText(url);
-  setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
-}
 
 async function doLogout() {
   const token = getToken();

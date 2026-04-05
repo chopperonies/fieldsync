@@ -96,11 +96,11 @@
 
 <script>
   const params = new URLSearchParams(location.search);
-  const code = params.get('code');
+  const t = params.get('t');
 
   async function init() {
-    if (!code) return showInvalid();
-    const res = await fetch(`/api/join-info?code=${encodeURIComponent(code)}`);
+    if (!t) return showInvalid();
+    const res = await fetch(`/api/join-info?t=${encodeURIComponent(t)}`);
     if (!res.ok) return showInvalid();
     const { companyName } = await res.json();
     document.getElementById('company-line').innerHTML = `You&apos;ve been invited to join <strong>${companyName}</strong> on LinkCrew.`;
@@ -131,7 +131,7 @@
     const res = await fetch('/api/crew-register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, name, phone, role })
+      body: JSON.stringify({ t, name, phone, role })
     });
 
     const data = await res.json();
