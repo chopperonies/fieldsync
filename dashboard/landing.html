@@ -74,12 +74,18 @@
 
     /* ── Stats bar ── */
     .stats-bar {
-      background: #f5f5f5; border-bottom: 1px solid #e8e8e8;
-      display: flex; justify-content: center; gap: 60px; padding: 28px 60px;
+      background: #0f1419; border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex; justify-content: center; gap: 0; padding: 0 60px;
     }
-    .stat-item { text-align: center; }
-    .stat-item .num { font-size: 28px; font-weight: 800; color: #0265dc; }
-    .stat-item .lbl { font-size: 12px; color: #737475; margin-top: 2px; font-weight: 500; }
+    .stat-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 28px 48px; border-right: 1px solid rgba(255,255,255,0.07);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-item i { font-size: 28px; flex-shrink: 0; }
+    .stat-item .si-text { text-align: left; }
+    .stat-item .num { font-size: 18px; font-weight: 800; color: #fff; }
+    .stat-item .lbl { font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 2px; font-weight: 500; }
 
     /* ── Features ── */
     .features { padding: 80px 60px; background: #fff; }
@@ -102,29 +108,45 @@
 
     /* ── How it works ── */
     .how {
-      background: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)),
+      background: linear-gradient(rgba(0,0,0,0.68), rgba(0,0,0,0.68)),
         url('https://images.unsplash.com/photo-1642006953671-1bda5cd362ba?q=80&w=1400&auto=format&fit=crop') center/cover no-repeat;
       padding: 80px 60px;
     }
     .how .section-title { color: #fff; }
-    .how .section-sub { color: rgba(255,255,255,0.7); }
-    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; max-width: 1000px; margin: 0 auto; }
-    .step { text-align: center; }
+    .how .section-sub { color: rgba(255,255,255,0.65); }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1000px; margin: 0 auto; }
+    .step {
+      text-align: center;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px; padding: 32px 24px;
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    }
     .step-num {
-      width: 48px; height: 48px; border-radius: 50%; background: #0265dc;
+      width: 52px; height: 52px; border-radius: 50%;
+      background: rgba(2,101,220,0.2);
+      border: 2px solid rgba(2,101,220,0.65);
       color: #fff; font-size: 18px; font-weight: 800;
       display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 16px;
+      margin: 0 auto 20px;
+      box-shadow: 0 0 18px rgba(2,101,220,0.35);
     }
-    .step h3 { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 8px; }
-    .step p { font-size: 14px; color: #737475; line-height: 1.6; }
+    .step h3 { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+    .step p { font-size: 14px; color: rgba(255,255,255,0.68); line-height: 1.65; }
 
     /* ── CTA section ── */
     .cta-section { background: #0265dc; padding: 80px 60px; text-align: center; }
     .cta-section h2 { font-size: 36px; font-weight: 800; color: #fff; margin-bottom: 14px; }
     .cta-section p { font-size: 16px; color: rgba(255,255,255,0.75); margin-bottom: 36px; }
-    .btn-cta { background: #fff; color: #0265dc; border: none; font-size: 16px; font-weight: 700; cursor: pointer; padding: 16px 36px; border-radius: 8px; }
-    .btn-cta:hover { background: #f0f7ff; }
+    .btn-cta {
+      background: #fff; color: #0265dc; border: none;
+      font-size: 16px; font-weight: 700; cursor: pointer;
+      padding: 16px 40px; border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+      transition: transform 0.15s, box-shadow 0.15s;
+      letter-spacing: 0.01em;
+    }
+    .btn-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.22); }
 
     /* ── Footer ── */
     footer {
@@ -143,7 +165,9 @@
       .hero h1 { font-size: 32px; }
       .hero p { font-size: 15px; }
       .hero-ctas { flex-direction: column; }
-      .stats-bar { gap: 28px; padding: 20px; flex-wrap: wrap; }
+      .stats-bar { padding: 0 16px; flex-wrap: wrap; }
+      .stat-item { padding: 20px 24px; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07); width: 100%; }
+      .stat-item:last-child { border-bottom: none; }
       .features { padding: 50px 20px; }
       .feature-grid { grid-template-columns: 1fr; }
       .how { padding: 50px 20px; }
@@ -184,16 +208,25 @@
   <!-- Stats bar -->
   <div class="stats-bar">
     <div class="stat-item">
-      <div class="num">Live</div>
-      <div class="lbl">Real-time crew updates</div>
+      <i class="ph-duotone ph-lightning" style="color:#0265dc"></i>
+      <div class="si-text">
+        <div class="num">Live Updates</div>
+        <div class="lbl">Real-time crew tracking</div>
+      </div>
     </div>
     <div class="stat-item">
-      <div class="num">iOS + Android</div>
-      <div class="lbl">Mobile app for your crew</div>
+      <i class="ph-duotone ph-device-mobile" style="color:#7c3aed"></i>
+      <div class="si-text">
+        <div class="num">iOS + Android</div>
+        <div class="lbl">Mobile app for your crew</div>
+      </div>
     </div>
     <div class="stat-item">
-      <div class="num">1 dashboard</div>
-      <div class="lbl">Everything in one place</div>
+      <i class="ph-duotone ph-layout" style="color:#16a34a"></i>
+      <div class="si-text">
+        <div class="num">1 Dashboard</div>
+        <div class="lbl">Everything in one place</div>
+      </div>
     </div>
   </div>
 
