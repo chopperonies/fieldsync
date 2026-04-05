@@ -2736,6 +2736,48 @@ app.post('/api/admin/change-password', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Suggestions ───────────────────────────────────────────────────────────────
+
+app.get('/api/suggestions', auth, async (req, res) => {
+  const { data } = await supabaseAdmin
+    .from('suggestions')
+    .select('*')
+    .order('votes', { ascending: false })
+    .order('created_at', { ascending: false });
+  res.json(data || []);
+});
+
+app.post('/api/suggestions', auth, async (req, res) => {
+  const tenantId = await getEffectiveTenantId(req);
+  if (!req.isAdmin) {
+    const { data: tenant } = await supabaseAdmin.from('tenants')
+      .select('subscription_status').eq('id', tenantId).single();
+    const ok = ['active', 'trialing'].includes(tenant?.subscription_status);
+    if (!ok) return res.status(403).json({ error: 'Trial or active subscription required' });
+  }
+  const { title, priority, description } = req.body;
+  if (!title || !priority) return res.status(400).json({ error: 'Title and priority required' });
+  const { data, error } = await supabaseAdmin.from('suggestions')
+    .insert({ tenant_id: tenantId, title, priority, description: description || null })
+    .select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+app.post('/api/suggestions/:id/vote', auth, async (req, res) => {
+  const tenantId = await getEffectiveTenantId(req);
+  const { data: sug } = await supabaseAdmin.from('suggestions')
+    .select('id, votes, voter_ids').eq('id', req.params.id).single();
+  if (!sug) return res.status(404).json({ error: 'Not found' });
+  const voters = sug.voter_ids || [];
+  if (voters.includes(tenantId)) return res.status(400).json({ error: 'Already voted' });
+  const { data, error } = await supabaseAdmin.from('suggestions')
+    .update({ votes: sug.votes + 1, voter_ids: [...voters, tenantId] })
+    .eq('id', req.params.id).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
 // ── Scheduled Email Digest ────────────────────────────────────────────────────
 cron.schedule('0 18 * * *', async () => {
   console.log('📧 Sending daily digest...');
