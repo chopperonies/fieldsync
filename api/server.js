@@ -2703,18 +2703,20 @@ app.post('/api/crew-invite', auth, async (req, res) => {
   const appUrl = process.env.APP_URL || 'https://linkcrew.io';
 
   // Look for existing crew invite for this tenant
-  const { data: existing } = await supabaseAdmin
+  const { data: rows } = await supabaseAdmin
     .from('beta_invites')
     .select('code')
     .eq('tenant_id', tenantId)
-    .ilike('code', 'CREW-%')
-    .maybeSingle();
+    .like('code', 'CREW-%')
+    .limit(1);
 
-  if (existing) return res.json({ url: `${appUrl}/join?code=${existing.code}` });
+  if (rows && rows.length > 0) {
+    return res.json({ url: `${appUrl}/join?code=${rows[0].code}` });
+  }
 
   const code = 'CREW-' + require('crypto').randomBytes(3).toString('hex').toUpperCase();
   const { error } = await supabaseAdmin.from('beta_invites')
-    .insert({ code, tenant_id: tenantId, label: 'Crew invite', max_uses: null, trial_days: 14 });
+    .insert({ code, tenant_id: tenantId, max_uses: null, trial_days: 14 });
   if (error) return res.status(500).json({ error: error.message });
   res.json({ url: `${appUrl}/join?code=${code}` });
 });
@@ -2725,11 +2727,11 @@ app.post('/api/crew-invite/regenerate', auth, async (req, res) => {
   const appUrl = process.env.APP_URL || 'https://linkcrew.io';
 
   await supabaseAdmin.from('beta_invites')
-    .delete().eq('tenant_id', tenantId).ilike('code', 'CREW-%');
+    .delete().eq('tenant_id', tenantId).like('code', 'CREW-%');
 
   const code = 'CREW-' + require('crypto').randomBytes(3).toString('hex').toUpperCase();
   const { error } = await supabaseAdmin.from('beta_invites')
-    .insert({ code, tenant_id: tenantId, label: 'Crew invite', max_uses: null, trial_days: 14 });
+    .insert({ code, tenant_id: tenantId, max_uses: null, trial_days: 14 });
   if (error) return res.status(500).json({ error: error.message });
   res.json({ url: `${appUrl}/join?code=${code}` });
 });
