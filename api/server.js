@@ -2778,6 +2778,39 @@ app.post('/api/suggestions/:id/vote', auth, async (req, res) => {
   res.json(data);
 });
 
+// ── Appointment AI Query ──────────────────────────────────────────────────────
+
+app.post('/api/appointments/ask', auth, async (req, res) => {
+  const { question } = req.body;
+  if (!question) return res.status(400).json({ error: 'Question required' });
+  const tenantId = await getEffectiveTenantId(req);
+  const now = new Date();
+  const rangeStart = new Date(now); rangeStart.setHours(0, 0, 0, 0);
+  const rangeEnd = new Date(now); rangeEnd.setDate(rangeEnd.getDate() + 30);
+  const { data: appts } = await supabaseAdmin
+    .from('appointments')
+    .select('title, start_time, end_time, notes, clients(name)')
+    .eq('tenant_id', tenantId)
+    .gte('start_time', rangeStart.toISOString())
+    .lte('start_time', rangeEnd.toISOString())
+    .order('start_time');
+  const formatted = (appts || []).map(a => {
+    const start = new Date(a.start_time);
+    const dateStr = start.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    const timeStr = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const end = a.end_time ? ` – ${new Date(a.end_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` : '';
+    return `- ${dateStr} at ${timeStr}${end}: ${a.title}${a.clients ? ` (${a.clients.name})` : ''}${a.notes ? ` — ${a.notes}` : ''}`;
+  }).join('\n');
+  const today = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 400,
+    system: 'You are a friendly scheduling assistant for a contractor. Answer questions about upcoming appointments concisely and naturally. Use plain language, no markdown formatting, no bullet points.',
+    messages: [{ role: 'user', content: `Today is ${today}.\n\nUpcoming appointments (next 30 days):\n${formatted || 'None scheduled.'}\n\nQuestion: ${question}` }],
+  });
+  res.json({ answer: msg.content[0].text });
+});
+
 // ── Scheduled Email Digest ────────────────────────────────────────────────────
 cron.schedule('0 18 * * *', async () => {
   console.log('📧 Sending daily digest...');
