@@ -2826,11 +2826,12 @@ app.post('/api/crew-register', async (req, res) => {
     .select('tenant_id').eq('token', t).maybeSingle();
   if (!invite) return res.status(400).json({ error: 'This invite link is invalid or has been regenerated. Ask your manager for a new one.' });
   const tenantId = invite.tenant_id;
+  const normalizedPhone = phone.replace(/\D/g, '');
   const { data: dup } = await supabaseAdmin.from('employees')
-    .select('id').eq('tenant_id', tenantId).eq('phone', phone.trim()).maybeSingle();
+    .select('id').eq('tenant_id', tenantId).eq('phone', normalizedPhone).maybeSingle();
   if (dup) return res.status(409).json({ error: 'A crew member with this phone number already exists.' });
   const { data, error } = await supabaseAdmin.from('employees').insert({
-    name: name.trim(), phone: phone.trim(), role: role?.trim() || 'crew', tenant_id: tenantId
+    name: name.trim(), phone: normalizedPhone, role: role?.trim() || 'crew', tenant_id: tenantId
   }).select().single();
   if (error) return res.status(500).json({ error: error.message });
 
