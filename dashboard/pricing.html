@@ -18,8 +18,11 @@
       padding: 16px 48px; background: #fff; border-bottom: 1px solid #e8ecf0;
       position: sticky; top: 0; z-index: 10;
     }
-    .nav-brand { display: flex; align-items: center; gap: 10px; font-family: 'Lato', sans-serif; font-size: 20px; font-weight: 900; color: #17191c; text-decoration: none; letter-spacing: -0.3px; }
-    .nav-brand b { color: #0ea5e9; }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-brand-wordmark { display: flex; flex-direction: column; gap: 0; }
+    .nav-brand-name { font-family: 'Lato', sans-serif; font-size: 18px; font-weight: 900; color: #17191c; line-height: 1; letter-spacing: -0.3px; }
+    .nav-brand-name b { color: #0ea5e9; }
+    .nav-brand-sub { font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px; font-family: 'Lato', sans-serif; }
     .nav-actions { display: flex; align-items: center; gap: 8px; }
     .btn-ghost { background: none; border: 1.5px solid #e0e5ea; color: #555; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; }
     .btn-ghost:hover { border-color: #0ea5e9; color: #0ea5e9; }
@@ -117,7 +120,11 @@
 
 <nav>
   <a href="/" class="nav-brand">
-    <img src="/logo.svg" alt="LinkCrew" style="width:28px;height:28px"><span>Link<b>Crew</b></span>
+    <img src="/logo.svg" alt="LinkCrew" style="width:32px;height:32px">
+    <div class="nav-brand-wordmark">
+      <span class="nav-brand-name">Link<b>Crew</b></span>
+      <span class="nav-brand-sub">Field Crew Management</span>
+    </div>
   </a>
   <div class="nav-actions">
     <button class="btn-ghost" onclick="location.href='/app'">Sign In</button>
