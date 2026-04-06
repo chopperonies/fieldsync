@@ -84,8 +84,21 @@
   <div class="success" id="state-success">
     <div class="check">✅</div>
     <h2>You&apos;re on the team!</h2>
-    <p>Your manager can now assign you to jobs.</p>
-    <a href="/app" style="display:inline-block;margin-top:20px;background:#0265dc;color:#fff;font-weight:700;font-size:15px;padding:13px 28px;border-radius:8px;text-decoration:none">Open LinkCrew App →</a>
+    <p>Your manager can now assign you to jobs. Download the LinkCrew app to view your schedule and check in to jobs.</p>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:24px;">
+      <a href="https://apps.apple.com/app/linkcrew/id6744778843" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:10px;background:#000;color:#fff;font-weight:600;font-size:15px;padding:13px 24px;border-radius:10px;text-decoration:none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        Download on the App Store
+      </a>
+      <a href="https://play.google.com/store/apps/details?id=io.linkcrew.app" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:10px;background:#01875f;color:#fff;font-weight:600;font-size:15px;padding:13px 24px;border-radius:10px;text-decoration:none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.76c.3.17.64.22.99.14l12.82-7.38-2.82-2.82-10.99 10zM.54 1.43C.2 1.75 0 2.28 0 2.96v18.08c0 .68.2 1.21.55 1.53l.08.07 10.12-10.12v-.24L.62 1.36zM19.37 10.26l-2.73-1.57-3.15 3.15 3.15 3.15 2.75-1.58c.79-.45.79-1.19-.02-1.65zM4.17.24l12.82 7.38-2.82 2.82L4.17.24z"/></svg>
+        Get it on Google Play
+      </a>
+    </div>
+    <a id="sms-self-btn" href="#" onclick="textSelf(event)" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#f5f5f5;border:1px solid #e8e8e8;color:#737475;font-weight:600;font-size:13px;padding:11px 20px;border-radius:10px;text-decoration:none;margin-top:4px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Text myself the download link
+    </a>
   </div>
 </div>
 
@@ -149,6 +162,18 @@
 
     document.getElementById('state-form').style.display = 'none';
     document.getElementById('state-success').style.display = 'block';
+  }
+
+  function textSelf(e) {
+    e.preventDefault();
+    const msg = encodeURIComponent(
+      'Hey! You just joined your crew on LinkCrew 🎉\n\n' +
+      'Download the LinkCrew app so your manager can assign you jobs, send you schedules, and keep the whole team connected.\n\n' +
+      '📱 iPhone (App Store):\nhttps://apps.apple.com/app/linkcrew/id6744778843\n\n' +
+      '🤖 Android (Google Play):\nhttps://play.google.com/store/apps/details?id=io.linkcrew.app\n\n' +
+      'Once you install it, log in with your phone number and you\'re good to go!'
+    );
+    window.location.href = `sms:?body=${msg}`;
   }
 
   init();

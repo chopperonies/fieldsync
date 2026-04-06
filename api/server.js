@@ -2830,9 +2830,10 @@ app.post('/api/crew-register', async (req, res) => {
     .select('id').eq('tenant_id', tenantId).eq('phone', phone.trim()).maybeSingle();
   if (dup) return res.status(409).json({ error: 'A crew member with this phone number already exists.' });
   const { data, error } = await supabaseAdmin.from('employees').insert({
-    name: name.trim(), phone: phone.trim(), role: role?.trim() || 'Crew', tenant_id: tenantId
+    name: name.trim(), phone: phone.trim(), role: role?.trim() || 'crew', tenant_id: tenantId
   }).select().single();
   if (error) return res.status(500).json({ error: error.message });
+
   res.json({ success: true, employee: data });
 });
 
