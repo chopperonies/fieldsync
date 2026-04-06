@@ -828,41 +828,26 @@
 
 <!-- Ideas view -->
 <div id="ideas-view" style="display:none">
-  <div style="max-width:740px;margin:0 auto;padding:32px 24px">
+  <div style="max-width:520px;margin:0 auto;padding:48px 24px">
 
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:14px">
-      <div>
-        <div style="font-size:20px;font-weight:800;color:#17191c">Feature Ideas</div>
-        <div style="font-size:13px;color:#737475;margin-top:4px">Submit ideas and vote on what gets built next. Most-voted features ship first.</div>
-      </div>
-      <button onclick="openIdeaForm()" style="background:#0265dc;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">+ Submit Idea</button>
-    </div>
+    <!-- Form state -->
+    <div id="ideas-form-state">
+      <div style="font-size:20px;font-weight:800;color:#17191c;margin-bottom:6px">Share a Feature Idea</div>
+      <div style="font-size:13px;color:#737475;margin-bottom:28px">Got an idea that would make LinkCrew better? We read every submission.</div>
 
-    <!-- Submit form (hidden by default) -->
-    <div id="idea-form-card" style="display:none;background:#fff;border:1px solid #0265dc;border-radius:12px;padding:24px;margin-bottom:20px">
-      <div style="font-size:14px;font-weight:700;color:#17191c;margin-bottom:16px">New Feature Idea</div>
       <div class="form-group"><label>Title *</label><input type="text" id="idea-title" placeholder="e.g. Export jobs to PDF" class="auth-input" style="margin-bottom:0"></div>
-      <div class="form-group" style="margin-top:12px">
-        <label>Priority</label>
-        <div style="display:flex;gap:10px;margin-top:6px">
-          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:#17191c;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:8px;padding:8px 14px;flex:1;justify-content:center" id="prio-must-label">
-            <input type="radio" name="idea-priority" value="must_have" id="prio-must" style="cursor:pointer"> Must Have
-          </label>
-          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:#17191c;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:8px;padding:8px 14px;flex:1;justify-content:center" id="prio-nice-label">
-            <input type="radio" name="idea-priority" value="nice_to_have" id="prio-nice" style="cursor:pointer"> Nice to Have
-          </label>
-        </div>
-      </div>
-      <div class="form-group" style="margin-top:12px"><label>Details <span style="font-weight:400;color:#737475">(optional)</span></label><textarea id="idea-desc" rows="3" placeholder="Describe the idea and why it matters to you..." style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 11px;font-size:13px;color:#17191c;resize:vertical"></textarea></div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
-        <button class="btn-cancel" onclick="closeIdeaForm()">Cancel</button>
-        <button class="btn-save" onclick="submitIdea()">Submit</button>
-      </div>
-      <div id="idea-form-error" style="font-size:12px;color:#dc2626;margin-top:8px;display:none"></div>
+      <div class="form-group" style="margin-top:14px"><label>Details <span style="font-weight:400;color:#737475">(optional)</span></label><textarea id="idea-desc" rows="4" placeholder="Describe the idea and why it would help you..." style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:10px 12px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit"></textarea></div>
+      <div id="idea-form-error" style="font-size:12px;color:#dc2626;margin-bottom:10px;display:none"></div>
+      <button id="idea-submit-btn" class="btn-save" style="width:100%;padding:12px" onclick="submitIdea()">Submit Idea</button>
     </div>
 
-    <!-- Ideas list -->
-    <div id="ideas-list"><div class="empty"><div class="e-icon">💡</div>Loading...</div></div>
+    <!-- Thank-you state -->
+    <div id="ideas-thanks-state" style="display:none;text-align:center;padding:40px 0">
+      <div style="font-size:48px;margin-bottom:16px">💡</div>
+      <div style="font-size:20px;font-weight:800;color:#17191c;margin-bottom:8px">Thanks for the idea!</div>
+      <div style="font-size:14px;color:#737475;line-height:1.6">We review every submission and use them to shape the product roadmap.</div>
+    </div>
+
   </div>
 </div>
 
@@ -2215,25 +2200,51 @@ async function deleteEmployee(id) {
 // ── Admin: All Accounts ───────────────────────────────────────────────────────
 async function showAdminTenants() {
   document.getElementById('admin-modal').classList.add('visible');
-  const res = await authFetch('/api/admin/tenants');
-  const tenants = await res.json();
+  const [tenantsRes, suggestionsRes] = await Promise.all([
+    authFetch('/api/admin/tenants'),
+    authFetch('/api/admin/suggestions'),
+  ]);
+  const tenants = await tenantsRes.json();
+  const suggestions = await suggestionsRes.json();
+
+  // Group suggestions by tenant_id
+  const sugsByTenant = {};
+  for (const s of suggestions) {
+    if (!sugsByTenant[s.tenant_id]) sugsByTenant[s.tenant_id] = [];
+    sugsByTenant[s.tenant_id].push(s);
+  }
+
   const el = document.getElementById('admin-tenants-list');
   if (!tenants.length) { el.innerHTML = '<div class="empty">No accounts yet.</div>'; return; }
-  el.innerHTML = tenants.map(t => `
-    <div class="tenant-card">
-      <div>
-        <div class="tc-name">${t.company_name}</div>
-        <div class="tc-meta">${t.owner_email} · Joined ${new Date(t.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · ${t.plan}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:14px">
-        <div class="tenant-stats">
-          <div class="tenant-stat"><div class="ts-num">${t.job_count}</div><div class="ts-lbl">Jobs</div></div>
-          <div class="tenant-stat"><div class="ts-num">${t.employee_count}</div><div class="ts-lbl">Crew</div></div>
+  el.innerHTML = tenants.map(t => {
+    const tSugs = sugsByTenant[t.id] || [];
+    const sugsHtml = tSugs.length
+      ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0">
+          <div style="font-size:11px;font-weight:700;color:#737475;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Feature Ideas (${tSugs.length})</div>
+          ${tSugs.map(s => `<div style="font-size:12px;color:#17191c;padding:6px 10px;background:#f8f8f8;border-radius:6px;margin-bottom:4px">
+            <span style="font-weight:600">${s.title}</span>${s.description ? `<span style="color:#737475;margin-left:6px">— ${s.description.slice(0,80)}${s.description.length>80?'…':''}</span>` : ''}
+            <span style="color:#b0b0b0;margin-left:8px;font-size:11px">${new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+          </div>`).join('')}
+        </div>`
+      : '';
+    return `
+    <div class="tenant-card" style="display:block">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
+        <div>
+          <div class="tc-name">${t.company_name}</div>
+          <div class="tc-meta">${t.owner_email} · Joined ${new Date(t.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · ${t.plan}</div>
         </div>
-        <button class="btn-view-tenant" onclick="viewTenant('${t.id}','${t.company_name.replace(/'/g,"\\'")}')">View →</button>
+        <div style="display:flex;align-items:center;gap:14px">
+          <div class="tenant-stats">
+            <div class="tenant-stat"><div class="ts-num">${t.job_count}</div><div class="ts-lbl">Jobs</div></div>
+            <div class="tenant-stat"><div class="ts-num">${t.employee_count}</div><div class="ts-lbl">Crew</div></div>
+          </div>
+          <button class="btn-view-tenant" onclick="viewTenant('${t.id}','${t.company_name.replace(/'/g,"\\'")}')">View →</button>
+        </div>
       </div>
-    </div>
-  `).join('');
+      ${sugsHtml}
+    </div>`;
+  }).join('');
 }
 function closeAdminModal() { document.getElementById('admin-modal').classList.remove('visible'); }
 async function viewTenant(tenantId, name) {
@@ -2316,7 +2327,16 @@ function switchMainTab(tab) {
   if (tab === 'calendar') initCalendar();
   if (tab === 'timesheets') initTimesheets();
   if (tab === 'settings') { loadSettings(); loadCrewInviteUrl(); }
-  if (tab === 'ideas') loadIdeas();
+  if (tab === 'ideas') {
+    // Reset to form state when tab is opened
+    document.getElementById('ideas-form-state').style.display = 'block';
+    document.getElementById('ideas-thanks-state').style.display = 'none';
+    document.getElementById('idea-title').value = '';
+    document.getElementById('idea-desc').value = '';
+    document.getElementById('idea-form-error').style.display = 'none';
+    const btn = document.getElementById('idea-submit-btn');
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit Idea'; }
+  }
 }
 
 function switchClientsTab(sub) {
@@ -2949,78 +2969,23 @@ function downloadSampleCsv() {
 }
 
 // ── Ideas ─────────────────────────────────────────────────────────────────────
-let ideasData = [];
-
-async function loadIdeas() {
-  const res = await authFetch('/api/suggestions');
-  ideasData = await res.json();
-  renderIdeas();
-}
-
-function renderIdeas() {
-  const el = document.getElementById('ideas-list');
-  if (!ideasData.length) {
-    el.innerHTML = '<div class="empty"><div class="e-icon">💡</div>No ideas yet — be the first to submit one!</div>';
-    return;
-  }
-  el.innerHTML = ideasData.map(s => {
-    const badge = s.priority === 'must_have'
-      ? '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;background:#fef2f2;color:#dc2626">Must Have</span>'
-      : '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;background:#f0f9ff;color:#0265dc">Nice to Have</span>';
-    const voted = (s.voter_ids || []).includes(currentTenantId);
-    return `<div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:18px 20px;margin-bottom:10px;display:flex;gap:16px;align-items:flex-start">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:48px">
-        <button onclick="voteIdea('${s.id}')" style="background:${voted ? '#0265dc' : '#f5f5f5'};color:${voted ? '#fff' : '#17191c'};border:1px solid ${voted ? '#0265dc' : '#e8e8e8'};border-radius:8px;padding:6px 10px;font-size:13px;cursor:${voted ? 'default' : 'pointer'};font-weight:700" ${voted ? 'disabled' : ''}>▲</button>
-        <span style="font-size:14px;font-weight:800;color:#17191c">${s.votes}</span>
-      </div>
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-          <span style="font-size:14px;font-weight:700;color:#17191c">${s.title}</span>
-          ${badge}
-        </div>
-        ${s.description ? `<div style="font-size:13px;color:#737475;line-height:1.5">${s.description}</div>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function openIdeaForm() {
-  document.getElementById('idea-form-card').style.display = 'block';
-  document.getElementById('idea-title').focus();
-}
-
-function closeIdeaForm() {
-  document.getElementById('idea-form-card').style.display = 'none';
-  document.getElementById('idea-title').value = '';
-  document.getElementById('idea-desc').value = '';
-  document.querySelectorAll('input[name="idea-priority"]').forEach(r => r.checked = false);
-  document.getElementById('idea-form-error').style.display = 'none';
-}
-
 async function submitIdea() {
   const title = document.getElementById('idea-title').value.trim();
-  const priority = document.querySelector('input[name="idea-priority"]:checked')?.value;
   const description = document.getElementById('idea-desc').value.trim();
   const errEl = document.getElementById('idea-form-error');
   if (!title) { errEl.textContent = 'Title is required.'; errEl.style.display = 'block'; return; }
-  if (!priority) { errEl.textContent = 'Please select a priority.'; errEl.style.display = 'block'; return; }
   errEl.style.display = 'none';
-  const btn = document.querySelector('#idea-form-card .btn-save');
+  const btn = document.getElementById('idea-submit-btn');
   btn.disabled = true; btn.textContent = 'Submitting...';
   try {
-    const res = await authFetch('/api/suggestions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, priority, description }) });
-    if (!res.ok) { const d = await res.json(); errEl.textContent = d.error || 'Error submitting'; errEl.style.display = 'block'; return; }
-    closeIdeaForm();
-    await loadIdeas();
-  } finally {
-    btn.disabled = false; btn.textContent = 'Submit';
+    const res = await authFetch('/api/suggestions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, description }) });
+    if (!res.ok) { const d = await res.json(); errEl.textContent = d.error || 'Error submitting'; errEl.style.display = 'block'; btn.disabled = false; btn.textContent = 'Submit Idea'; return; }
+    document.getElementById('ideas-form-state').style.display = 'none';
+    document.getElementById('ideas-thanks-state').style.display = 'block';
+  } catch (e) {
+    errEl.textContent = 'Something went wrong. Please try again.'; errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Submit Idea';
   }
-}
-
-async function voteIdea(id) {
-  const res = await authFetch(`/api/suggestions/${id}/vote`, { method: 'POST' });
-  if (!res.ok) return;
-  await loadIdeas();
 }
 
 // ── Recurring Invoices ────────────────────────────────────────────────────────

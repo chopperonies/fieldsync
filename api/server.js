@@ -15,15 +15,6 @@ const twilio = require('twilio');
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
-// In-memory voice conversation store (keyed by CallSid)
-const voiceConversations = new Map();
-// Clean up old conversations every hour
-setInterval(() => {
-  const cutoff = Date.now() - 3600000;
-  for (const [sid, data] of voiceConversations) {
-    if (data.ts < cutoff) voiceConversations.delete(sid);
-  }
-}, 3600000);
 
 const LINKCREW_SYSTEM = `You are an AI assistant for LinkCrew, a field service management platform built for contractors and field service crews.
 
@@ -77,6 +68,70 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY,
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
+
+// ── Session DB helpers ────────────────────────────────────────────────────────
+
+async function getVoiceSession(callSid) {
+  const { data } = await supabaseAdmin.from('voice_sessions')
+    .select('*').eq('call_sid', callSid).maybeSingle();
+  if (!data) return null;
+  return {
+    tenantId: data.tenant_id,
+    companyName: data.company_name,
+    ownerEmail: data.owner_email,
+    knowledge: data.knowledge || '',
+    callerNumber: data.caller_number,
+    startTime: data.start_time,
+    mode: data.mode || 'support',
+    demoData: data.demo_data || {},
+    demoStep: data.demo_step || 0,
+    demoTurns: data.demo_turns || 0,
+    history: data.history || [],
+  };
+}
+
+async function saveVoiceSession(callSid, conv) {
+  await supabaseAdmin.from('voice_sessions').upsert({
+    call_sid: callSid,
+    tenant_id: conv.tenantId || null,
+    company_name: conv.companyName || null,
+    owner_email: conv.ownerEmail || null,
+    knowledge: conv.knowledge || null,
+    caller_number: conv.callerNumber || null,
+    start_time: conv.startTime || null,
+    mode: conv.mode || 'support',
+    demo_data: conv.demoData || {},
+    demo_step: conv.demoStep || 0,
+    demo_turns: conv.demoTurns || 0,
+    history: conv.history || [],
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'call_sid' });
+}
+
+async function deleteVoiceSession(callSid) {
+  await supabaseAdmin.from('voice_sessions').delete().eq('call_sid', callSid);
+}
+
+async function getKdgVoiceSession(callSid) {
+  const { data } = await supabaseAdmin.from('kdg_voice_sessions')
+    .select('*').eq('call_sid', callSid).maybeSingle();
+  if (!data) return null;
+  return { callerNumber: data.caller_number, startTime: data.start_time, history: data.history || [] };
+}
+
+async function saveKdgVoiceSession(callSid, conv) {
+  await supabaseAdmin.from('kdg_voice_sessions').upsert({
+    call_sid: callSid,
+    caller_number: conv.callerNumber || null,
+    start_time: conv.startTime || null,
+    history: conv.history || [],
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'call_sid' });
+}
+
+async function deleteKdgVoiceSession(callSid) {
+  await supabaseAdmin.from('kdg_voice_sessions').delete().eq('call_sid', callSid);
+}
 
 // ── Stripe webhook (must be before express.json to access raw body) ───────────
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -479,8 +534,6 @@ app.post('/api/contact-kdg', async (req, res) => {
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
   .split(',').map(e => e.trim()).filter(Boolean);
 
-// Short-lived impersonation tokens: token → { tenantId, expires }
-const impersonationSessions = new Map();
 
 // ── Auth middleware ───────────────────────────────────────────────────────────
 
@@ -491,12 +544,13 @@ async function auth(req, res, next) {
 
   // Impersonation token (admin "Login as" feature)
   if (token.startsWith('imp_')) {
-    const session = impersonationSessions.get(token);
-    if (!session || session.expires < Date.now()) {
-      impersonationSessions.delete(token);
+    const { data: session } = await supabaseAdmin.from('impersonation_sessions')
+      .select('tenant_id, expires_at').eq('token', token).maybeSingle();
+    if (!session || new Date(session.expires_at) < new Date()) {
+      if (session) await supabaseAdmin.from('impersonation_sessions').delete().eq('token', token);
       return res.status(401).json({ error: 'Impersonation token expired' });
     }
-    req.tenantId = session.tenantId;
+    req.tenantId = session.tenant_id;
     req.isAdmin = false;
     req.isImpersonating = true;
     return next();
@@ -1927,14 +1981,6 @@ app.delete('/api/settings/voicebot', auth, async (req, res) => {
 
 // ── KDG Chat Bot ─────────────────────────────────────────────────────────────
 
-const kdgChatSessions = new Map();
-setInterval(() => {
-  const cutoff = Date.now() - 3600000;
-  for (const [id, data] of kdgChatSessions) {
-    if (data.ts < cutoff) kdgChatSessions.delete(id);
-  }
-}, 3600000);
-
 const KDG_SYSTEM = `You are an AI assistant for Kingston Data Group (KDG), an AI automation and SaaS development studio based in Silicon Valley.
 
 KDG builds AI-powered software that automates business operations. Their flagship product is LinkCrew (linkcrew.io) — a field crew management platform for contractors.
@@ -1972,12 +2018,10 @@ app.post('/api/chat-kdg', async (req, res) => {
   if (!message) return res.status(400).json({ error: 'Message required' });
 
   const sid = sessionId || crypto.randomUUID();
-  if (!kdgChatSessions.has(sid)) {
-    kdgChatSessions.set(sid, { ts: Date.now(), history: [] });
-  }
-  const session = kdgChatSessions.get(sid);
-  session.ts = Date.now();
-  session.history.push({ role: 'user', content: message });
+  const { data: existingSession } = await supabaseAdmin.from('kdg_chat_sessions')
+    .select('history').eq('session_id', sid).maybeSingle();
+  const history = existingSession?.history || [];
+  history.push({ role: 'user', content: message });
 
   // Decide if web search would help
   let searchContext = '';
@@ -2015,10 +2059,13 @@ app.post('/api/chat-kdg', async (req, res) => {
       model: 'claude-sonnet-4-6',
       max_tokens: 500,
       system: KDG_SYSTEM + searchContext,
-      messages: session.history.slice(-12),
+      messages: history.slice(-12),
     });
     const reply = result.content[0].text;
-    session.history.push({ role: 'assistant', content: reply });
+    history.push({ role: 'assistant', content: reply });
+    await supabaseAdmin.from('kdg_chat_sessions').upsert({
+      session_id: sid, history, updated_at: new Date().toISOString(),
+    }, { onConflict: 'session_id' });
     res.json({ reply, sessionId: sid });
   } catch (err) {
     console.error('[kdg chat] Claude error:', err.message);
@@ -2027,14 +2074,6 @@ app.post('/api/chat-kdg', async (req, res) => {
 });
 
 // ── KDG Voice Bot ─────────────────────────────────────────────────────────────
-
-const kdgVoiceConversations = new Map();
-setInterval(() => {
-  const cutoff = Date.now() - 3600000;
-  for (const [sid, data] of kdgVoiceConversations) {
-    if (data.ts < cutoff) kdgVoiceConversations.delete(sid);
-  }
-}, 3600000);
 
 // ── Incoming SMS ─────────────────────────────────────────────────────────────
 
@@ -2079,12 +2118,7 @@ app.post('/api/voice/kdg', async (req, res) => {
   const callSid = req.body.CallSid;
   const callerNumber = req.body.From || 'Unknown';
 
-  kdgVoiceConversations.set(callSid, {
-    ts: Date.now(),
-    history: [],
-    callerNumber,
-    startTime: Date.now(),
-  });
+  await saveKdgVoiceSession(callSid, { callerNumber, startTime: Date.now(), history: [] });
 
   const twiml = new VoiceResponse();
   const gather = twiml.gather({
@@ -2107,16 +2141,8 @@ app.post('/api/voice/kdg/respond', async (req, res) => {
   const callSid = req.body.CallSid;
   const speech = (req.body.SpeechResult || '').trim();
 
-  if (!kdgVoiceConversations.has(callSid)) {
-    kdgVoiceConversations.set(callSid, {
-      ts: Date.now(), history: [],
-      callerNumber: req.body.From || 'Unknown',
-      startTime: Date.now(),
-    });
-  }
-
-  const conv = kdgVoiceConversations.get(callSid);
-  conv.ts = Date.now();
+  let conv = await getKdgVoiceSession(callSid);
+  if (!conv) conv = { callerNumber: req.body.From || 'Unknown', startTime: Date.now(), history: [] };
   if (speech) conv.history.push({ role: 'user', content: speech });
 
   // Web search for voice too
@@ -2163,6 +2189,8 @@ Contact: sales@kingstondatagroup.com${searchContext}`,
     console.error('[kdg voice] Claude error:', err.message);
   }
 
+  await saveKdgVoiceSession(callSid, conv);
+
   const twiml = new VoiceResponse();
   const endWords = ['goodbye', 'bye', 'hang up', "that's all", 'no thanks', 'thank you', 'thanks'];
   const ending = endWords.some(w => speech.toLowerCase().includes(w));
@@ -2189,7 +2217,7 @@ Contact: sales@kingstondatagroup.com${searchContext}`,
 
 app.post('/api/voice/kdg/end', async (req, res) => {
   const callSid = req.query.sid || req.body.CallSid;
-  const conv = kdgVoiceConversations.get(callSid);
+  const conv = callSid ? await getKdgVoiceSession(callSid) : null;
 
   if (conv?.history?.length) {
     const duration = conv.startTime
@@ -2222,7 +2250,7 @@ app.post('/api/voice/kdg/end', async (req, res) => {
     }).then();
   }
 
-  if (callSid) kdgVoiceConversations.delete(callSid);
+  if (callSid) await deleteKdgVoiceSession(callSid);
 
   const twiml = new VoiceResponse();
   twiml.hangup();
@@ -2244,19 +2272,18 @@ app.post('/api/voice/contractor/:tenantId', async (req, res) => {
   if (!tenant || !tenant.voicebot_enabled)
     return res.status(404).send('<Response><Say>This number is not configured.</Say></Response>');
 
-  voiceConversations.set(callSid, {
-    ts: Date.now(),
-    history: [],
+  await saveVoiceSession(callSid, {
     tenantId,
     companyName: tenant.company_name,
     ownerEmail: tenant.owner_email,
     knowledge: tenant.voicebot_knowledge || '',
     callerNumber,
     startTime: Date.now(),
-    mode: 'support',       // support | demo_collecting | demo_running
-    demoData: {},          // { trade, company, city }
-    demoStep: 0,           // 0=need trade, 1=need company, 2=need city, 3=ready
+    mode: 'support',
+    demoData: {},
+    demoStep: 0,
     demoTurns: 0,
+    history: [],
   });
 
   const twiml = new VoiceResponse();
@@ -2290,22 +2317,20 @@ app.post('/api/voice/contractor/:tenantId/respond', async (req, res) => {
   };
   try {
 
-  if (!voiceConversations.has(callSid)) {
+  let conv = await getVoiceSession(callSid);
+  if (!conv) {
     const { data: tenant } = await supabaseAdmin.from('tenants')
       .select('company_name, owner_email, voicebot_knowledge').eq('id', tenantId).single();
-    voiceConversations.set(callSid, {
-      ts: Date.now(), history: [], tenantId,
+    conv = {
+      tenantId, history: [],
       companyName: tenant?.company_name || 'LinkCrew',
       ownerEmail: tenant?.owner_email,
       knowledge: tenant?.voicebot_knowledge || '',
       callerNumber: req.body.From || 'Unknown',
       startTime: Date.now(),
       mode: 'support', demoData: {}, demoStep: 0, demoTurns: 0,
-    });
+    };
   }
-
-  const conv = voiceConversations.get(callSid);
-  conv.ts = Date.now();
   if (speech) conv.history.push({ role: 'user', content: speech });
 
   // ── Build system prompt based on current mode ────────────────────────────
@@ -2348,6 +2373,7 @@ ${conv.knowledge ? `\nLinkCrew product info:\n${conv.knowledge}` : ''}`;
     }
 
     // Skip Claude call entirely for demo_collecting
+    await saveVoiceSession(callSid, conv);
     const twiml2 = new VoiceResponse();
     const gather2 = twiml2.gather({
       input: 'speech',
@@ -2400,6 +2426,8 @@ ${isLastTurn ? `After answering this question, wrap up warmly as ${company} — 
   } catch (err) {
     console.error('[contractor voice] Claude error:', err.message);
   }
+
+  await saveVoiceSession(callSid, conv);
 
   // ── Parse mode-transition markers ────────────────────────────────────────
   spokenReply = rawReply;
@@ -2468,7 +2496,7 @@ app.post('/api/voice/contractor/:tenantId/silence', (req, res) => {
 
 app.post('/api/voice/contractor/:tenantId/end', async (req, res) => {
   const callSid = req.query.sid || req.body.CallSid;
-  const conv = voiceConversations.get(callSid);
+  const conv = callSid ? await getVoiceSession(callSid) : null;
 
   if (conv?.ownerEmail) {
     const duration = conv.startTime
@@ -2487,7 +2515,7 @@ app.post('/api/voice/contractor/:tenantId/end', async (req, res) => {
     }
   }
 
-  if (callSid) voiceConversations.delete(callSid);
+  if (callSid) await deleteVoiceSession(callSid);
 
   const twiml = new VoiceResponse();
   twiml.hangup();
@@ -2530,9 +2558,9 @@ app.get('/portal/api/invoice/:jobId', portalAuth, async (req, res) => {
 // ── Voice Bot ─────────────────────────────────────────────────────────────────
 
 // Incoming call from Twilio
-app.post('/api/voice/incoming', (req, res) => {
+app.post('/api/voice/incoming', async (req, res) => {
   const callSid = req.body.CallSid;
-  voiceConversations.set(callSid, { ts: Date.now(), history: [] });
+  await saveVoiceSession(callSid, { history: [], startTime: Date.now() });
 
   const twiml = new VoiceResponse();
   const gather = twiml.gather({
@@ -2556,11 +2584,8 @@ app.post('/api/voice/respond', async (req, res) => {
   const callSid = req.body.CallSid;
   const speech = (req.body.SpeechResult || '').trim();
 
-  if (!voiceConversations.has(callSid)) {
-    voiceConversations.set(callSid, { ts: Date.now(), history: [] });
-  }
-  const conv = voiceConversations.get(callSid);
-  conv.ts = Date.now();
+  let conv = await getVoiceSession(callSid);
+  if (!conv) conv = { history: [], startTime: Date.now() };
   conv.history.push({ role: 'user', content: speech || '(no speech detected)' });
 
   let reply = 'I\'m sorry, I had trouble understanding that. Could you say it again?';
@@ -2584,8 +2609,9 @@ app.post('/api/voice/respond', async (req, res) => {
   if (ending) {
     twiml.say({ voice: 'Polly.Joanna' }, reply + ' Have a great day!');
     twiml.hangup();
-    voiceConversations.delete(callSid);
+    await deleteVoiceSession(callSid);
   } else {
+    await saveVoiceSession(callSid, conv);
     const gather = twiml.gather({
       input: 'speech',
       action: '/api/voice/respond',
@@ -2654,7 +2680,9 @@ app.post('/api/admin/impersonate/:tenantId', auth, async (req, res) => {
   const { data: tenant } = await supabaseAdmin.from('tenants').select('id, company_name').eq('id', tenantId).single();
   if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
   const token = 'imp_' + require('crypto').randomBytes(24).toString('hex');
-  impersonationSessions.set(token, { tenantId, expires: Date.now() + 60 * 60 * 1000 }); // 1 hour
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  await supabaseAdmin.from('impersonation_sessions')
+    .insert({ token, tenant_id: tenantId, expires_at: expiresAt });
   res.json({ token, company_name: tenant.company_name });
 });
 
@@ -2911,15 +2939,6 @@ app.post('/api/admin/change-password', auth, async (req, res) => {
 
 // ── Suggestions ───────────────────────────────────────────────────────────────
 
-app.get('/api/suggestions', auth, async (req, res) => {
-  const { data } = await supabaseAdmin
-    .from('suggestions')
-    .select('*')
-    .order('votes', { ascending: false })
-    .order('created_at', { ascending: false });
-  res.json(data || []);
-});
-
 app.post('/api/suggestions', auth, async (req, res) => {
   const tenantId = await getEffectiveTenantId(req);
   if (!req.isAdmin) {
@@ -2928,27 +2947,23 @@ app.post('/api/suggestions', auth, async (req, res) => {
     const ok = ['active', 'trialing'].includes(tenant?.subscription_status);
     if (!ok) return res.status(403).json({ error: 'Trial or active subscription required' });
   }
-  const { title, priority, description } = req.body;
-  if (!title || !priority) return res.status(400).json({ error: 'Title and priority required' });
+  const { title, description } = req.body;
+  if (!title) return res.status(400).json({ error: 'Title is required' });
   const { data, error } = await supabaseAdmin.from('suggestions')
-    .insert({ tenant_id: tenantId, title, priority, description: description || null })
+    .insert({ tenant_id: tenantId, title, description: description || null })
     .select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.json(data);
 });
 
-app.post('/api/suggestions/:id/vote', auth, async (req, res) => {
-  const tenantId = await getEffectiveTenantId(req);
-  const { data: sug } = await supabaseAdmin.from('suggestions')
-    .select('id, votes, voter_ids').eq('id', req.params.id).single();
-  if (!sug) return res.status(404).json({ error: 'Not found' });
-  const voters = sug.voter_ids || [];
-  if (voters.includes(tenantId)) return res.status(400).json({ error: 'Already voted' });
-  const { data, error } = await supabaseAdmin.from('suggestions')
-    .update({ votes: sug.votes + 1, voter_ids: [...voters, tenantId] })
-    .eq('id', req.params.id).select().single();
-  if (error) return res.status(400).json({ error: error.message });
-  res.json(data);
+// Admin: see all suggestions across all tenants
+app.get('/api/admin/suggestions', auth, async (req, res) => {
+  if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
+  const { data } = await supabaseAdmin
+    .from('suggestions')
+    .select('*, tenants(company_name, owner_email)')
+    .order('created_at', { ascending: false });
+  res.json(data || []);
 });
 
 // ── Appointment AI Query ──────────────────────────────────────────────────────
