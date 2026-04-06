@@ -1992,19 +1992,23 @@ SERVICES:
 - System Integration: Connect CRMs, ERPs, accounting software, field apps into unified automated pipelines
 - Dashboards & Reporting: Real-time operations dashboards with custom metrics and alerts
 - Cloud & Infrastructure: Secure, scalable cloud architecture
+- Data Center & Lab Services: Rack & stack, server configuration, lab management, structured cabling, remote hands
 
 ABOUT KDG:
 - 15+ years of IT infrastructure and data center experience
 - Native AI integration in every product
 - 24/7 always-on systems
 - Full product development from idea to live launch
-- Contact: sales@kingstondatagroup.com
+- Contact: sales@kingstondatagroup.com | (260) 544-6900
 - Website: kingstondatagroup.com
 
 BOOKING:
-- When someone wants to schedule a call or meeting, direct them to: https://calendar.google.com/calendar/u/0/r (or tell them to email sales@kingstondatagroup.com to schedule)
+- When someone wants to schedule a call or meeting, direct them to email sales@kingstondatagroup.com or call (260) 544-6900.
 
-You have access to web search to answer questions about AI, automation, SaaS, technology trends, and anything relevant to the user's business needs. Use search when you need current information or specific technical details.
+DEMO:
+- If someone asks to see a demo, try the AI, or asks how the voice/chat bot would work for their business, output the exact marker ##DEMO## in your reply and invite them to try a live personalized demo.
+
+You have access to web search to answer questions about AI, automation, SaaS, and technology trends.
 
 RESPONSE RULES:
 - Keep responses SHORT — 2-4 sentences max. Never use bullet lists or long paragraphs.
@@ -2014,7 +2018,7 @@ RESPONSE RULES:
 - Never make up pricing — direct them to email or call for a custom quote.`;
 
 app.post('/api/chat-kdg', async (req, res) => {
-  const { message, sessionId } = req.body;
+  const { message, sessionId, demoMode, demoData, demoTurns } = req.body;
   if (!message) return res.status(400).json({ error: 'Message required' });
 
   const sid = sessionId || crypto.randomUUID();
@@ -2023,7 +2027,38 @@ app.post('/api/chat-kdg', async (req, res) => {
   const history = existingSession?.history || [];
   history.push({ role: 'user', content: message });
 
-  // Decide if web search would help
+  // ── Demo running mode — pretend to be the user's business ──────────────
+  if (demoMode && demoData) {
+    const { industry, company, city } = demoData;
+    const maxTurns = 5;
+    const isLastTurn = (demoTurns || 0) >= maxTurns - 1;
+    const demoSystem = `You are an AI chat/phone assistant for ${company}, a ${industry} business in ${city}. Answer questions on their behalf — be helpful, friendly, and realistic.
+Keep responses to 1-3 short sentences. Make up reasonable details (hours, services, pricing ranges) if needed — this is a live demo.
+Do NOT mention KDG, Kingston Data Group, or any software company. Stay in character as ${company}'s assistant at all times.
+${isLastTurn ? `After your response, add this exact marker on a new line with nothing after it: ##DEMO_END##` : ''}`;
+
+    try {
+      const result = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 120,
+        system: demoSystem,
+        messages: history.slice(-10),
+      });
+      let reply = result.content[0].text;
+      const isDemoEnd = reply.includes('##DEMO_END##');
+      reply = reply.replace(/##DEMO_END##.*/s, '').trim();
+      history.push({ role: 'assistant', content: reply });
+      await supabaseAdmin.from('kdg_chat_sessions').upsert({
+        session_id: sid, history, updated_at: new Date().toISOString(),
+      }, { onConflict: 'session_id' });
+      return res.json({ reply, sessionId: sid, demoEnd: isDemoEnd });
+    } catch (err) {
+      console.error('[kdg chat demo] Claude error:', err.message);
+      return res.status(500).json({ error: 'Failed to get response' });
+    }
+  }
+
+  // ── Normal support mode ────────────────────────────────────────────────
   let searchContext = '';
   const searchTriggers = ['how', 'what is', 'latest', 'best', 'price', 'cost', 'compare', 'vs', 'difference', 'trend', 'tool', 'software', 'platform', 'integration', 'api', 'automate'];
   const needsSearch = searchTriggers.some(t => message.toLowerCase().includes(t));
@@ -2061,12 +2096,14 @@ app.post('/api/chat-kdg', async (req, res) => {
       system: KDG_SYSTEM + searchContext,
       messages: history.slice(-12),
     });
-    const reply = result.content[0].text;
+    let reply = result.content[0].text;
+    const triggerDemo = reply.includes('##DEMO##');
+    reply = reply.replace(/##DEMO##/g, '').trim();
     history.push({ role: 'assistant', content: reply });
     await supabaseAdmin.from('kdg_chat_sessions').upsert({
       session_id: sid, history, updated_at: new Date().toISOString(),
     }, { onConflict: 'session_id' });
-    res.json({ reply, sessionId: sid });
+    res.json({ reply, sessionId: sid, triggerDemo });
   } catch (err) {
     console.error('[kdg chat] Claude error:', err.message);
     res.status(500).json({ error: 'Failed to get response' });
