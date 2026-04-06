@@ -328,7 +328,15 @@ async function sendPaymentReceivedToOwner({ ownerEmail, clientName, jobName, amo
   });
 }
 
+function detectCallbackRequest(transcript) {
+  const callerLines = transcript.filter(m => m.role === 'user').map(m => m.content.toLowerCase()).join(' ');
+  const keywords = ['call me back', 'call me at', 'callback', 'call back', 'reach me', 'get back to me', 'give me a call', 'have someone call', 'can you call', 'please call'];
+  return keywords.some(kw => callerLines.includes(kw));
+}
+
 async function sendCallTranscriptToOwner({ ownerEmail, companyName, callerNumber, transcript, duration }) {
+  const callbackRequested = detectCallbackRequest(transcript);
+
   const rows = transcript.map(m => `
     <tr>
       <td style="padding:6px 12px;font-size:12px;color:#6b7280;width:80px;vertical-align:top">${m.role === 'user' ? 'Caller' : 'Choppy'}</td>
@@ -336,14 +344,28 @@ async function sendCallTranscriptToOwner({ ownerEmail, companyName, callerNumber
     </tr>
   `).join('');
 
+  const callbackBanner = callbackRequested ? `
+  <div style="margin:0 0 20px;padding:14px 16px;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;display:flex;align-items:center;gap:10px">
+    <span style="font-size:20px">📲</span>
+    <div>
+      <strong style="color:#92400e;font-size:14px">Callback Requested</strong>
+      <p style="margin:2px 0 0;font-size:13px;color:#b45309">This caller asked to be called back. Call ${callerNumber} when you get a chance.</p>
+    </div>
+  </div>` : '';
+
+  const subject = callbackRequested
+    ? `📲 Callback requested — ${callerNumber} (${companyName})`
+    : `📞 Missed call from ${callerNumber} — ${companyName}`;
+
   const html = `
 <!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px">
 <div style="background:white;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb">
   <div style="background:#0a0a0a;padding:24px">
-    <h2 style="margin:0;color:white;font-size:20px">📞 Missed Call — ${companyName}</h2>
+    <h2 style="margin:0;color:white;font-size:20px">${callbackRequested ? '📲' : '📞'} ${callbackRequested ? 'Callback Requested' : 'Missed Call'} — ${companyName}</h2>
     <p style="margin:6px 0 0;color:#888;font-size:14px">From ${callerNumber} · ${duration || 'Short call'}</p>
   </div>
   <div style="padding:24px">
+    ${callbackBanner}
     <p style="font-size:14px;color:#374151;margin:0 0 16px">Choppy handled a call on your behalf. Here's the full transcript:</p>
     ${transcript.length > 0 ? `
     <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
@@ -359,7 +381,7 @@ async function sendCallTranscriptToOwner({ ownerEmail, companyName, callerNumber
   await resend.emails.send({
     from: 'LinkCrew Alerts <alerts@linkcrew.io>',
     to: ownerEmail,
-    subject: `📞 Missed call from ${callerNumber} — ${companyName}`,
+    subject,
     html,
   });
 }

@@ -2270,15 +2270,24 @@ app.post('/api/voice/kdg/end', async (req, res) => {
     try {
       const { Resend } = require('resend');
       const r = new Resend(process.env.RESEND_API_KEY);
+      const callerLines = conv.history.filter(m => m.role === 'user').map(m => m.content.toLowerCase()).join(' ');
+      const callbackKeywords = ['call me back', 'call me at', 'callback', 'call back', 'reach me', 'get back to me', 'give me a call', 'have someone call', 'can you call', 'please call'];
+      const callbackRequested = callbackKeywords.some(kw => callerLines.includes(kw));
       const transcript = conv.history.map(m => `${m.role === 'user' ? 'Caller' : 'Bot'}: ${m.content}`).join('\n');
+      const callbackBanner = callbackRequested
+        ? `<div style="margin-bottom:16px;padding:14px;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px"><strong style="color:#92400e">📲 Callback Requested</strong><p style="margin:4px 0 0;color:#b45309;font-size:13px">This caller asked to be called back at ${conv.callerNumber}.</p></div>`
+        : '';
       await r.emails.send({
         from: 'KDG Voice Bot <alerts@linkcrew.io>',
         to: 'sales@kingstondatagroup.com',
-        subject: `KDG Call from ${conv.callerNumber}${duration ? ' (' + duration + ')' : ''}`,
+        subject: callbackRequested
+          ? `📲 Callback requested — ${conv.callerNumber} (KDG)`
+          : `KDG Call from ${conv.callerNumber}${duration ? ' (' + duration + ')' : ''}`,
         html: `<div style="font-family:sans-serif;max-width:600px">
-          <h2 style="color:#f97316">Incoming Call Transcript</h2>
+          <h2 style="color:#f97316">${callbackRequested ? '📲 Callback Requested' : 'Incoming Call Transcript'}</h2>
           <p><strong>Caller:</strong> ${conv.callerNumber}</p>
           ${duration ? `<p><strong>Duration:</strong> ${duration}</p>` : ''}
+          ${callbackBanner}
           <div style="margin-top:16px;padding:16px;background:#f5f5f5;border-radius:8px;white-space:pre-wrap;font-size:14px">${transcript}</div>
         </div>`,
       });
