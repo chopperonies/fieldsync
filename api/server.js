@@ -69,68 +69,101 @@ const supabaseAdmin = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
-// ── Session DB helpers ────────────────────────────────────────────────────────
+// ── Session helpers — in-memory primary, Supabase backup ─────────────────────
+const _voiceCache    = new Map();
+const _kdgVoiceCache = new Map();
 
 async function getVoiceSession(callSid) {
-  const { data } = await supabaseAdmin.from('voice_sessions')
-    .select('*').eq('call_sid', callSid).maybeSingle();
-  if (!data) return null;
-  return {
-    tenantId: data.tenant_id,
-    companyName: data.company_name,
-    ownerEmail: data.owner_email,
-    knowledge: data.knowledge || '',
-    callerNumber: data.caller_number,
-    startTime: data.start_time,
-    mode: data.mode || 'support',
-    demoData: data.demo_data || {},
-    demoStep: data.demo_step || 0,
-    demoTurns: data.demo_turns || 0,
-    history: data.history || [],
-  };
+  // Always check memory first (fastest, most reliable within a call)
+  if (_voiceCache.has(callSid)) return _voiceCache.get(callSid);
+  try {
+    const { data } = await supabaseAdmin.from('voice_sessions')
+      .select('*').eq('call_sid', callSid).maybeSingle();
+    if (!data) return null;
+    const conv = {
+      tenantId:    data.tenant_id,
+      companyName: data.company_name,
+      ownerEmail:  data.owner_email,
+      knowledge:   data.knowledge || '',
+      callerNumber: data.caller_number,
+      startTime:   data.start_time,
+      mode:        data.mode || 'support',
+      demoData:    data.demo_data || {},
+      demoStep:    data.demo_step || 0,
+      demoTurns:   data.demo_turns || 0,
+      history:     data.history || [],
+    };
+    _voiceCache.set(callSid, conv);
+    return conv;
+  } catch (err) {
+    console.error('[voice] session read error:', err.message);
+    return null;
+  }
 }
 
 async function saveVoiceSession(callSid, conv) {
-  await supabaseAdmin.from('voice_sessions').upsert({
-    call_sid: callSid,
-    tenant_id: conv.tenantId || null,
-    company_name: conv.companyName || null,
-    owner_email: conv.ownerEmail || null,
-    knowledge: conv.knowledge || null,
-    caller_number: conv.callerNumber || null,
-    start_time: conv.startTime || null,
-    mode: conv.mode || 'support',
-    demo_data: conv.demoData || {},
-    demo_step: conv.demoStep || 0,
-    demo_turns: conv.demoTurns || 0,
-    history: conv.history || [],
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'call_sid' });
+  _voiceCache.set(callSid, conv); // always save to memory immediately
+  try {
+    await supabaseAdmin.from('voice_sessions').upsert({
+      call_sid:     callSid,
+      tenant_id:    conv.tenantId || null,
+      company_name: conv.companyName || null,
+      owner_email:  conv.ownerEmail || null,
+      knowledge:    conv.knowledge || null,
+      caller_number: conv.callerNumber || null,
+      start_time:   conv.startTime || null,
+      mode:         conv.mode || 'support',
+      demo_data:    conv.demoData || {},
+      demo_step:    conv.demoStep || 0,
+      demo_turns:   conv.demoTurns || 0,
+      history:      conv.history || [],
+      updated_at:   new Date().toISOString(),
+    }, { onConflict: 'call_sid' });
+  } catch (err) {
+    console.error('[voice] session write error:', err.message);
+  }
 }
 
 async function deleteVoiceSession(callSid) {
-  await supabaseAdmin.from('voice_sessions').delete().eq('call_sid', callSid);
+  _voiceCache.delete(callSid);
+  try { await supabaseAdmin.from('voice_sessions').delete().eq('call_sid', callSid); }
+  catch (err) { console.error('[voice] session delete error:', err.message); }
 }
 
 async function getKdgVoiceSession(callSid) {
-  const { data } = await supabaseAdmin.from('kdg_voice_sessions')
-    .select('*').eq('call_sid', callSid).maybeSingle();
-  if (!data) return null;
-  return { callerNumber: data.caller_number, startTime: data.start_time, history: data.history || [] };
+  if (_kdgVoiceCache.has(callSid)) return _kdgVoiceCache.get(callSid);
+  try {
+    const { data } = await supabaseAdmin.from('kdg_voice_sessions')
+      .select('*').eq('call_sid', callSid).maybeSingle();
+    if (!data) return null;
+    const conv = { callerNumber: data.caller_number, startTime: data.start_time, history: data.history || [] };
+    _kdgVoiceCache.set(callSid, conv);
+    return conv;
+  } catch (err) {
+    console.error('[kdg voice] session read error:', err.message);
+    return null;
+  }
 }
 
 async function saveKdgVoiceSession(callSid, conv) {
-  await supabaseAdmin.from('kdg_voice_sessions').upsert({
-    call_sid: callSid,
-    caller_number: conv.callerNumber || null,
-    start_time: conv.startTime || null,
-    history: conv.history || [],
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'call_sid' });
+  _kdgVoiceCache.set(callSid, conv);
+  try {
+    await supabaseAdmin.from('kdg_voice_sessions').upsert({
+      call_sid:      callSid,
+      caller_number: conv.callerNumber || null,
+      start_time:    conv.startTime || null,
+      history:       conv.history || [],
+      updated_at:    new Date().toISOString(),
+    }, { onConflict: 'call_sid' });
+  } catch (err) {
+    console.error('[kdg voice] session write error:', err.message);
+  }
 }
 
 async function deleteKdgVoiceSession(callSid) {
-  await supabaseAdmin.from('kdg_voice_sessions').delete().eq('call_sid', callSid);
+  _kdgVoiceCache.delete(callSid);
+  try { await supabaseAdmin.from('kdg_voice_sessions').delete().eq('call_sid', callSid); }
+  catch (err) { console.error('[kdg voice] session delete error:', err.message); }
 }
 
 // ── Stripe webhook (must be before express.json to access raw body) ───────────
