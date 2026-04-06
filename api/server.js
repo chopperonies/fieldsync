@@ -2155,7 +2155,8 @@ app.post('/api/voice/kdg', async (req, res) => {
   const callSid = req.body.CallSid;
   const callerNumber = req.body.From || 'Unknown';
 
-  await saveKdgVoiceSession(callSid, { callerNumber, startTime: Date.now(), history: [] });
+  try { await saveKdgVoiceSession(callSid, { callerNumber, startTime: Date.now(), history: [] }); }
+  catch (err) { console.error('[kdg voice] session save error:', err.message); }
 
   const twiml = new VoiceResponse();
   const gather = twiml.gather({
@@ -2163,7 +2164,6 @@ app.post('/api/voice/kdg', async (req, res) => {
     action: '/api/voice/kdg/respond',
     speechTimeout: '3',
     timeout: 10,
-    enhanced: 'true',
     language: 'en-US',
   });
   gather.say({ voice: 'Polly.Joanna' },
@@ -2241,7 +2241,7 @@ Contact: sales@kingstondatagroup.com${searchContext}`,
       action: '/api/voice/kdg/respond',
       speechTimeout: '3',
       timeout: 10,
-      enhanced: 'true',
+     
       language: 'en-US',
     });
     gather.say({ voice: 'Polly.Joanna' }, reply);
@@ -2309,19 +2309,21 @@ app.post('/api/voice/contractor/:tenantId', async (req, res) => {
   if (!tenant || !tenant.voicebot_enabled)
     return res.status(404).send('<Response><Say>This number is not configured.</Say></Response>');
 
-  await saveVoiceSession(callSid, {
-    tenantId,
-    companyName: tenant.company_name,
-    ownerEmail: tenant.owner_email,
-    knowledge: tenant.voicebot_knowledge || '',
-    callerNumber,
-    startTime: Date.now(),
-    mode: 'support',
-    demoData: {},
-    demoStep: 0,
-    demoTurns: 0,
-    history: [],
-  });
+  try {
+    await saveVoiceSession(callSid, {
+      tenantId,
+      companyName: tenant.company_name,
+      ownerEmail: tenant.owner_email,
+      knowledge: tenant.voicebot_knowledge || '',
+      callerNumber,
+      startTime: Date.now(),
+      mode: 'support',
+      demoData: {},
+      demoStep: 0,
+      demoTurns: 0,
+      history: [],
+    });
+  } catch (err) { console.error('[contractor voice] session save error:', err.message); }
 
   const twiml = new VoiceResponse();
   const gather = twiml.gather({
@@ -2329,7 +2331,6 @@ app.post('/api/voice/contractor/:tenantId', async (req, res) => {
     action: `/api/voice/contractor/${tenantId}/respond`,
     speechTimeout: '3',
     timeout: 10,
-    enhanced: 'true',
     language: 'en-US',
   });
   gather.say({ voice: 'Polly.Joanna' },
@@ -2346,7 +2347,7 @@ app.post('/api/voice/contractor/:tenantId/respond', async (req, res) => {
   const speech = (req.body.SpeechResult || '').trim();
   const safeFallback = (msg) => {
     const t = new VoiceResponse();
-    const g = t.gather({ input: 'speech', action: `/api/voice/contractor/${tenantId}/respond`, speechTimeout: '3', timeout: 10, enhanced: 'true', language: 'en-US' });
+    const g = t.gather({ input: 'speech', action: `/api/voice/contractor/${tenantId}/respond`, speechTimeout: '3', timeout: 10, language: 'en-US' });
     g.say({ voice: 'Polly.Joanna' }, msg);
     t.redirect(`/api/voice/contractor/${tenantId}/end?sid=${callSid}`);
     res.type('text/xml');
@@ -2417,7 +2418,7 @@ ${conv.knowledge ? `\nLinkCrew product info:\n${conv.knowledge}` : ''}`;
       action: `/api/voice/contractor/${tenantId}/respond`,
       speechTimeout: '3',
       timeout: 10,
-      enhanced: 'true',
+     
       language: 'en-US',
     });
     gather2.say({ voice: 'Polly.Joanna' }, spokenReply);
@@ -2432,7 +2433,7 @@ ${conv.knowledge ? `\nLinkCrew product info:\n${conv.knowledge}` : ''}`;
       const twimlSilence = new VoiceResponse();
       const gatherSilence = twimlSilence.gather({
         input: 'speech', action: `/api/voice/contractor/${tenantId}/respond`,
-        speechTimeout: '3', timeout: 10, enhanced: 'true', language: 'en-US',
+        speechTimeout: '3', timeout: 10, language: 'en-US',
       });
       gatherSilence.say({ voice: 'Polly.Joanna' }, "Go ahead — what would you like to know?");
       twimlSilence.redirect(`/api/voice/contractor/${tenantId}/end?sid=${callSid}`);
@@ -2497,7 +2498,7 @@ ${isLastTurn ? `After answering this question, wrap up warmly as ${company} — 
       action: `/api/voice/contractor/${tenantId}/respond`,
       speechTimeout: '3',
       timeout: 10,
-      enhanced: 'true',
+     
       language: 'en-US',
     });
     gather.say({ voice: 'Polly.Joanna' }, spokenReply);
@@ -2521,7 +2522,7 @@ app.post('/api/voice/contractor/:tenantId/silence', (req, res) => {
     action: `/api/voice/contractor/${tenantId}/respond`,
     speechTimeout: '3',
     timeout: 10,
-    enhanced: 'true',
+   
     language: 'en-US',
   });
   gather.say({ voice: 'Polly.Joanna' }, "Sorry, I couldn't hear you — you may have dropped off. Go ahead if you're still there.");
@@ -2605,7 +2606,7 @@ app.post('/api/voice/incoming', async (req, res) => {
     action: '/api/voice/respond',
     speechTimeout: '3',
     timeout: 10,
-    enhanced: 'true',
+   
     language: 'en-US',
   });
   gather.say({ voice: 'Polly.Joanna' },
@@ -2654,7 +2655,7 @@ app.post('/api/voice/respond', async (req, res) => {
       action: '/api/voice/respond',
       speechTimeout: '3',
       timeout: 10,
-      enhanced: 'true',
+     
       language: 'en-US',
     });
     gather.say({ voice: 'Polly.Joanna' }, reply);
