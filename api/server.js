@@ -3272,6 +3272,11 @@ cron.schedule('0 2 * * *', async () => {
   }
 });
 
+// ── Keepalive — ping self every 14 min to prevent Render sleep ────────────────
+cron.schedule('*/14 * * * *', () => {
+  fetch('https://linkcrew.io/api/config').catch(() => {});
+});
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
