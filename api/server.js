@@ -2375,7 +2375,7 @@ ${conv.knowledge ? `\nLinkCrew product info:\n${conv.knowledge}` : ''}`;
       conv.demoTurns = 0;
       conv.history = [];
       const { trade, company, city } = conv.demoData;
-      const greeting = `Hello, thanks for calling ${company}! This is your AI assistant. How can I help you today?`;
+      const greeting = `Hello, thanks for calling ${company}, ${city}'s trusted ${trade} professionals! We handle everything from estimates to completed jobs. How can I help you today?`;
       conv.history.push({ role: 'assistant', content: greeting });
       spokenReply = greeting;
     } else {
@@ -2383,7 +2383,8 @@ ${conv.knowledge ? `\nLinkCrew product info:\n${conv.knowledge}` : ''}`;
       conv.mode = 'demo_running';
       conv.demoTurns = 0;
       conv.history = [];
-      const greeting = `Hello, thanks for calling ${conv.demoData.company}! How can I help you today?`;
+      const { trade, company, city } = conv.demoData;
+      const greeting = `Hello, thanks for calling ${company}, ${city}'s trusted ${trade} professionals! How can I help you today?`;
       conv.history.push({ role: 'assistant', content: greeting });
       spokenReply = greeting;
     }
