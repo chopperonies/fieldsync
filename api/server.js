@@ -2182,32 +2182,6 @@ app.post('/api/voice/kdg/respond', async (req, res) => {
   if (!conv) conv = { callerNumber: req.body.From || 'Unknown', startTime: Date.now(), history: [] };
   if (speech) conv.history.push({ role: 'user', content: speech });
 
-  // Web search for voice too
-  let searchContext = '';
-  if (speech && process.env.TAVILY_API_KEY) {
-    const searchTriggers = ['how', 'what is', 'cost', 'price', 'how much', 'can you', 'do you', 'what are'];
-    const needsSearch = searchTriggers.some(t => speech.toLowerCase().includes(t));
-    if (needsSearch) {
-      try {
-        const searchRes = await fetch('https://api.tavily.com/search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            api_key: process.env.TAVILY_API_KEY,
-            query: speech,
-            search_depth: 'basic',
-            max_results: 2,
-            include_answer: true,
-          }),
-        });
-        const searchData = await searchRes.json();
-        if (searchData.answer) searchContext = `\n\nRelevant info from web: ${searchData.answer}`;
-      } catch (err) {
-        console.error('[kdg voice] Tavily error:', err.message);
-      }
-    }
-  }
-
   let reply = "I'm sorry, I didn't catch that. Could you repeat that?";
   try {
     const result = await anthropic.messages.create({
@@ -2217,7 +2191,7 @@ app.post('/api/voice/kdg/respond', async (req, res) => {
 For meetings: get name and email, say someone follows up within 1 business day.
 For pricing: custom quotes only, invite discovery call.
 Services: AI Automation, SaaS Dev, Voice/Chat Agents, Integrations, Dashboards, Cloud.
-Contact: sales@kingstondatagroup.com${searchContext}`,
+Contact: sales@kingstondatagroup.com`,
       messages: conv.history.slice(-10),
     });
     reply = result.content[0].text;
