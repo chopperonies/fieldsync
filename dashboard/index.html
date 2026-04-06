@@ -36,20 +36,44 @@
     .auth-error { margin-top: 10px; font-size: 12px; color: #f87171; text-align: center; min-height: 18px; }
     .auth-success { margin-top: 10px; font-size: 12px; color: #4ade80; text-align: center; min-height: 18px; }
 
-    /* ── Header ── */
-    .header { background: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e8e8e8; }
-    .header-brand { font-size: 18px; font-weight: 700; color: #17191c; }
-    .header-brand span { color: #0265dc; }
-    .header-right { display: flex; align-items: center; gap: 10px; }
-    .live-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #4ade80; }
-    .live-dot { width: 7px; height: 7px; background: #4ade80; border-radius: 50%; animation: pulse 2s infinite; }
+    /* ── App layout ── */
+    .app-layout { display: flex; height: 100vh; overflow: hidden; }
+
+    /* ── Sidebar ── */
+    .sidebar { width: 228px; flex-shrink: 0; background: #0d1117; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; }
+    .sidebar-brand { padding: 20px 16px 16px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-logo-text { font-size: 17px; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
+    .sidebar-logo-text b { color: #0ea5e9; }
+    .sidebar-nav { flex: 1; padding: 10px 8px; }
+    .sidebar-section-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.2); padding: 12px 10px 4px; }
+    .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 7px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.5); cursor: pointer; transition: all 0.12s; margin-bottom: 1px; user-select: none; }
+    .nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.88); }
+    .nav-item.active { background: rgba(14,165,233,0.16); color: #38bdf8; font-weight: 600; }
+    .nav-item i { width: 15px; height: 15px; flex-shrink: 0; stroke-width: 1.8; }
+    .sidebar-bottom { padding: 12px 8px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-live { display: flex; align-items: center; gap: 6px; font-size: 11px; color: rgba(255,255,255,0.3); padding: 6px 10px 8px; }
+    .live-dot { width: 6px; height: 6px; background: #4ade80; border-radius: 50%; animation: pulse 2s infinite; flex-shrink: 0; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-    .hdr-btn { background: #e8e8e8; color: #17191c; border: none; padding: 6px 13px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
-    .hdr-btn:hover { background: #444; }
+    .sidebar-action-btn { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 7px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; width: 100%; text-align: left; margin-bottom: 2px; font-family: inherit; transition: all 0.12s; }
+    .sidebar-action-btn.crew { background: #0ea5e9; color: #fff; }
+    .sidebar-action-btn.crew:hover { background: #0284c7; }
+    .sidebar-action-btn.signout { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.45); }
+    .sidebar-action-btn.signout:hover { background: rgba(220,38,38,0.12); color: #f87171; }
+
+    /* ── Content area ── */
+    .content-area { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; height: 100vh; background: #f5f7fa; }
+
+    /* ── Topbar ── */
+    .topbar { background: #fff; border-bottom: 1px solid #ebebeb; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; min-height: 52px; flex-shrink: 0; }
+    .topbar-title { font-size: 15px; font-weight: 700; color: #17191c; }
+
+    /* legacy compat */
+    .hdr-btn { background: #e8e8e8; color: #17191c; border: none; padding: 6px 13px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .hdr-btn:hover { background: #d4d4d4; }
     .hdr-btn.danger { background: #fef2f2; color: #dc2626; }
-    .hdr-btn.danger:hover { background: #5c1a1a; }
-    .hdr-btn.accent { background: #0265dc; color: #fff; }
-    .hdr-btn.accent:hover { background: #1b5abe; }
+    .hdr-btn.danger:hover { background: #fee2e2; }
+    .hdr-btn.accent { background: #0ea5e9; color: #fff; }
+    .hdr-btn.accent:hover { background: #0284c7; }
 
     /* ── Admin tenant bar ── */
     .admin-bar { background: #1a0a3a; border-bottom: 1px solid #4c1d95; padding: 8px 24px; display: flex; align-items: center; gap: 12px; font-size: 12px; }
@@ -59,12 +83,12 @@
     .admin-stat strong { color: #17191c; }
 
     /* ── Stats bar ── */
-    .stats { display: flex; gap: 14px; padding: 14px 24px; background: #fff; border-bottom: 1px solid #e8e8e8; overflow-x: auto; }
-    .stat { background: #f5f5f5; border: 1px solid #e8e8e8; border-radius: 8px; padding: 11px 18px; min-width: 130px; cursor: pointer; transition: border-color 0.15s, transform 0.1s; }
-    .stat:hover { border-color: #0265dc; transform: translateY(-1px); }
-    .stat.active { border-color: #0265dc; background: #e8f0fd; }
-    .stat .num { font-size: 26px; font-weight: 700; color: #17191c; }
-    .stat .label { font-size: 10px; color: #17191c; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .stats { display: flex; gap: 12px; padding: 16px 24px; background: #fff; border-bottom: 1px solid #ebebeb; overflow-x: auto; flex-shrink: 0; }
+    .stat { background: #f8fafc; border: 1px solid #e8ecf0; border-radius: 10px; padding: 14px 20px; min-width: 140px; cursor: pointer; transition: all 0.15s; }
+    .stat:hover { border-color: #0ea5e9; box-shadow: 0 2px 8px rgba(14,165,233,0.12); transform: translateY(-1px); }
+    .stat.active { border-color: #0ea5e9; background: #f0f9ff; box-shadow: 0 2px 8px rgba(14,165,233,0.12); }
+    .stat .num { font-size: 28px; font-weight: 800; color: #17191c; line-height: 1; }
+    .stat .label { font-size: 10px; color: #8a8f98; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
 
     /* ── Overlays ── */
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 50; align-items: flex-start; justify-content: center; padding-top: 80px; }
@@ -82,15 +106,15 @@
     .overlay-info .oi-sub { font-size: 11px; color: #17191c; margin-top: 2px; }
 
     /* ── Main layout ── */
-    .main { display: grid; grid-template-columns: 1fr 360px; height: calc(100vh - 112px); }
-    .jobs-panel { padding: 18px; overflow-y: auto; }
-    .side-panel { background: #fff; border-left: 1px solid #e8e8e8; padding: 18px; overflow-y: auto; }
+    .main { display: grid; grid-template-columns: 1fr 360px; height: calc(100vh - 136px); }
+    .jobs-panel { padding: 20px; overflow-y: auto; }
+    .side-panel { background: #fff; border-left: 1px solid #ebebeb; padding: 18px; overflow-y: auto; }
 
     /* ── Job cards ── */
-    .panel-title { font-size: 12px; font-weight: 600; color: #17191c; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
-    .job-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 14px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s; }
-    .job-card:hover { border-color: #0265dc; }
-    .job-card.selected { border-color: #0265dc; background: #e8f0fd; }
+    .panel-title { font-size: 11px; font-weight: 700; color: #8a8f98; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 14px; }
+    .job-card { background: #fff; border: 1px solid #e8ecf0; border-radius: 10px; padding: 14px; margin-bottom: 10px; cursor: pointer; transition: all 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .job-card:hover { border-color: #0ea5e9; box-shadow: 0 3px 10px rgba(14,165,233,0.1); }
+    .job-card.selected { border-color: #0ea5e9; background: #f0f9ff; box-shadow: 0 3px 10px rgba(14,165,233,0.1); }
     .job-card .job-name { font-size: 14px; font-weight: 600; color: #17191c; margin-bottom: 3px; }
     .job-card .job-address { font-size: 11px; color: #17191c; margin-bottom: 8px; }
     .job-meta { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -187,7 +211,7 @@
     .empty .e-icon { font-size: 36px; margin-bottom: 8px; }
 
     /* ── Reports ── */
-    .reports-view { padding: 24px; overflow-y: auto; height: calc(100vh - 148px); }
+    .reports-view { padding: 24px; overflow-y: auto; height: calc(100vh - 84px); }
     .reports-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
     .reports-title { font-size: 18px; font-weight: 800; color: #17191c; }
     .period-selector { display: flex; gap: 0; border: 1px solid #e8e8e8; border-radius: 8px; overflow: hidden; background: #fff; }
@@ -211,7 +235,7 @@
     .supply-bar-count { font-size: 12px; color: #737475; width: 24px; text-align: right; }
 
     /* ── Service Agreements ── */
-    .ag-layout { display: grid; grid-template-columns: 340px 1fr; height: calc(100vh - 148px); }
+    .ag-layout { display: grid; grid-template-columns: 340px 1fr; height: calc(100vh - 52px); }
     .ag-list-panel { border-right: 1px solid #e8e8e8; overflow-y: auto; background: #fff; }
     .ag-detail-panel { overflow-y: auto; padding: 24px; background: #f5f5f5; }
     .ag-search-bar { padding: 12px 14px; border-bottom: 1px solid #e8e8e8; display: flex; gap: 8px; }
@@ -242,15 +266,11 @@
     .btn-status-toggle.active { background: #0265dc; color: #fff; border-color: #0265dc; }
     .btn-status-toggle:hover:not(.active) { background: #f5f5f5; }
 
-    /* ── Main nav tabs ── */
-    .main-tabs { display: flex; gap: 0; background: #fff; border-bottom: 1px solid #e8e8e8; padding: 0 24px; }
-    .main-tab { padding: 12px 18px; font-size: 13px; font-weight: 500; color: #737475; cursor: pointer; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px; }
-    .main-tab i { width: 15px; height: 15px; stroke-width: 2; flex-shrink: 0; }
-    .main-tab.active { color: #0265dc; border-bottom-color: #0265dc; }
-    .main-tab:hover:not(.active) { color: #17191c; }
+    /* ── Main nav tabs (sidebar, kept for js compat) ── */
+    .main-tabs { display: none; }
 
     /* ── CRM layout ── */
-    .crm-layout { display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - 148px); }
+    .crm-layout { display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - 52px); }
     .crm-list-panel { border-right: 1px solid #e8e8e8; overflow-y: auto; background: #fff; }
     .crm-detail-panel { overflow-y: auto; padding: 24px; background: #f5f5f5; }
     .crm-search-bar { padding: 12px 14px; border-bottom: 1px solid #e8e8e8; display: flex; gap: 8px; }
@@ -302,22 +322,24 @@
     .jh-status { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
 
     /* ── Mobile / Responsive ── */
-    @media (max-width: 768px) {
-      /* Header */
-      .header { padding: 10px 14px; }
-      .header-brand { font-size: 16px; }
-      .live-badge span:last-child { display: none; }
-      .hdr-btn { padding: 5px 10px; font-size: 11px; }
+    @media (max-width: 900px) {
+      /* Sidebar collapses to bottom nav */
+      .sidebar { width: 100%; height: auto; flex-direction: row; position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; border-top: 1px solid rgba(255,255,255,0.08); overflow: visible; }
+      .sidebar-brand { display: none; }
+      .sidebar-nav { display: flex; flex-direction: row; padding: 6px 4px; overflow-x: auto; flex: 1; }
+      .sidebar-section-label { display: none; }
+      .nav-item { flex-direction: column; gap: 3px; padding: 6px 10px; font-size: 10px; min-width: 56px; align-items: center; margin-bottom: 0; border-radius: 8px; }
+      .nav-item i { width: 18px; height: 18px; }
+      .sidebar-bottom { display: none; }
+      .content-area { height: calc(100vh - 72px); margin-bottom: 72px; }
+      .app-layout { flex-direction: column; }
+    }
 
+    @media (max-width: 768px) {
       /* Stats bar */
       .stats { padding: 10px 14px; gap: 8px; }
-      .stat { min-width: 100px; padding: 9px 12px; }
-      .stat .num { font-size: 20px; }
-
-      /* Main nav tabs */
-      .main-tabs { padding: 0 8px; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-      .main-tabs::-webkit-scrollbar { display: none; }
-      .main-tab { padding: 10px 14px; font-size: 12px; white-space: nowrap; }
+      .stat { min-width: 100px; padding: 10px 14px; }
+      .stat .num { font-size: 22px; }
 
       /* Auth card */
       .auth-card { width: 90vw; padding: 28px 20px; }
@@ -353,17 +375,13 @@
 
       /* Photo grid */
       .photo-grid { grid-template-columns: 1fr 1fr; }
-
-      /* Side panel detail */
-      .detail-panel.visible { display: block; }
     }
 
     @media (max-width: 480px) {
       .report-stat-grid { grid-template-columns: 1fr 1fr; }
       .report-stat .rs-val { font-size: 24px; }
-      .main-tab { padding: 10px 12px; font-size: 11px; }
       .stats { padding: 8px 10px; }
-      .stat { min-width: 80px; padding: 7px 10px; }
+      .stat { min-width: 80px; padding: 8px 12px; }
       .stat .num { font-size: 18px; }
       .modal { width: 96vw; }
     }
@@ -408,18 +426,60 @@
 
 <!-- ── App Shell ── -->
 <div id="app-shell" style="display:none">
+<div class="app-layout">
 
-<div class="header">
-  <div class="header-brand" style="cursor:pointer;display:flex;align-items:center;gap:8px" onclick="location.href='/'">
-    <img src="/logo.svg" alt="LinkCrew" style="width:28px;height:28px">
-    Link<span>Crew</span>
+<!-- ── Sidebar ── -->
+<div class="sidebar">
+  <div class="sidebar-brand" onclick="location.href='/'" style="cursor:pointer">
+    <img src="/logo.svg" alt="LinkCrew" style="width:28px;height:28px;flex-shrink:0">
+    <div class="sidebar-logo-text">Link<b>Crew</b></div>
   </div>
-  <div class="header-right">
-    <div class="live-badge"><div class="live-dot"></div> LIVE</div>
-    <button id="invite-crew-btn" class="hdr-btn accent" onclick="goToCrewInvite()" style="display:flex;align-items:center;gap:5px"><i data-lucide="user-plus" style="width:13px;height:13px"></i> Invite Crew</button>
-    <button class="hdr-btn danger" onclick="doLogout()" style="display:flex;align-items:center;gap:5px"><i data-lucide="log-out" style="width:13px;height:13px"></i> Sign Out</button>
+
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Workspace</div>
+    <div class="nav-item active" id="mtab-jobs" onclick="switchMainTab('jobs')">
+      <i data-lucide="briefcase"></i><span>Jobs</span>
+    </div>
+    <div class="nav-item" id="mtab-team" onclick="switchMainTab('team')">
+      <i data-lucide="users"></i><span>Team</span>
+    </div>
+    <div class="nav-item" id="mtab-clients" onclick="switchMainTab('clients')">
+      <i data-lucide="building-2"></i><span>Clients</span>
+    </div>
+    <div class="nav-item" id="mtab-calendar" onclick="switchMainTab('calendar')">
+      <i data-lucide="calendar"></i><span>Calendar</span>
+    </div>
+    <div class="nav-item" id="mtab-timesheets" onclick="switchMainTab('timesheets')">
+      <i data-lucide="clock"></i><span>Timesheets</span>
+    </div>
+    <div class="sidebar-section-label">Business</div>
+    <div class="nav-item" id="mtab-agreements" onclick="switchMainTab('agreements')">
+      <i data-lucide="file-text"></i><span>Agreements</span>
+    </div>
+    <div class="nav-item" id="mtab-reports" onclick="switchMainTab('reports')">
+      <i data-lucide="bar-chart-2"></i><span>Reports</span>
+    </div>
+    <div class="nav-item" id="mtab-settings" onclick="switchMainTab('settings')">
+      <i data-lucide="settings"></i><span>Settings</span>
+    </div>
+    <div class="nav-item" id="mtab-ideas" onclick="switchMainTab('ideas')" style="display:none">
+      <i data-lucide="lightbulb"></i><span>Ideas</span>
+    </div>
+  </nav>
+
+  <div class="sidebar-bottom">
+    <div class="sidebar-live"><div class="live-dot"></div> Live updates on</div>
+    <button id="invite-crew-btn" class="sidebar-action-btn crew" onclick="goToCrewInvite()">
+      <i data-lucide="user-plus" style="width:13px;height:13px"></i> Invite Crew
+    </button>
+    <button class="sidebar-action-btn signout" onclick="doLogout()">
+      <i data-lucide="log-out" style="width:13px;height:13px"></i> Sign Out
+    </button>
   </div>
 </div>
+
+<!-- ── Content area ── -->
+<div class="content-area">
 
 <!-- Admin bar (shown only for super-admin) -->
 <div class="admin-bar" id="admin-bar" style="display:none">
@@ -432,11 +492,21 @@
   <span class="admin-stat" id="admin-stats"></span>
 </div>
 
+<!-- Trial countdown banner -->
+<div id="trial-banner" style="display:none;background:#fefce8;border-bottom:1px solid #fde68a;padding:9px 24px;text-align:center;font-size:13px;color:#92400e;flex-shrink:0">
+  <span id="trial-banner-text"></span>
+  &nbsp;·&nbsp;
+  <a href="/pricing" style="color:#92400e;font-weight:700">View Plans →</a>
+</div>
+
+<!-- Main nav tabs (hidden, kept for JS compat) -->
+<div class="main-tabs" style="display:none"></div>
+
 <div class="stats">
   <div class="stat" id="scard-jobs" onclick="showOverlay('jobs')"><div class="num" id="stat-jobs">—</div><div class="label">Active Jobs</div></div>
   <div class="stat" id="scard-crew" onclick="showOverlay('crew')"><div class="num" id="stat-crew">—</div><div class="label">Crew On Site</div></div>
-  <div class="stat" id="scard-supplies" onclick="showOverlay('supplies')"><div class="num" id="stat-supplies" style="color:#f87171">—</div><div class="label">Supply Requests</div></div>
-  <div class="stat" id="scard-bottlenecks" onclick="showOverlay('bottlenecks')"><div class="num" id="stat-bottlenecks" style="color:#fbbf24">—</div><div class="label">Bottlenecks</div></div>
+  <div class="stat" id="scard-supplies" onclick="showOverlay('supplies')"><div class="num" id="stat-supplies" style="color:#ef4444">—</div><div class="label">Supply Requests</div></div>
+  <div class="stat" id="scard-bottlenecks" onclick="showOverlay('bottlenecks')"><div class="num" id="stat-bottlenecks" style="color:#f59e0b">—</div><div class="label">Bottlenecks</div></div>
 </div>
 
 <!-- Stat overlay -->
@@ -448,19 +518,6 @@
     </div>
     <div class="overlay-body" id="overlay-body"></div>
   </div>
-</div>
-
-<!-- Main nav tabs -->
-<div class="main-tabs">
-  <div class="main-tab active" id="mtab-jobs" onclick="switchMainTab('jobs')"><i data-lucide="briefcase"></i> Jobs</div>
-  <div class="main-tab" id="mtab-team" onclick="switchMainTab('team')"><i data-lucide="users"></i> Team</div>
-  <div class="main-tab" id="mtab-clients" onclick="switchMainTab('clients')"><i data-lucide="building-2"></i> Clients</div>
-  <div class="main-tab" id="mtab-reports" onclick="switchMainTab('reports')"><i data-lucide="bar-chart-2"></i> Reports</div>
-  <div class="main-tab" id="mtab-agreements" onclick="switchMainTab('agreements')"><i data-lucide="file-text"></i> Agreements</div>
-  <div class="main-tab" id="mtab-calendar" onclick="switchMainTab('calendar')"><i data-lucide="calendar"></i> Calendar</div>
-  <div class="main-tab" id="mtab-timesheets" onclick="switchMainTab('timesheets')"><i data-lucide="clock"></i> Timesheets</div>
-  <div class="main-tab" id="mtab-settings" onclick="switchMainTab('settings')"><i data-lucide="settings"></i> Settings</div>
-  <div class="main-tab" id="mtab-ideas" onclick="switchMainTab('ideas')" style="display:none"><i data-lucide="lightbulb"></i> Ideas</div>
 </div>
 
 <!-- Jobs view -->
@@ -1097,6 +1154,8 @@
   </div>
 </div>
 
+</div><!-- end .content-area -->
+</div><!-- end .app-layout -->
 </div><!-- end #app-shell -->
 
 <!-- ── Portal Invite Modal ── -->
@@ -1184,13 +1243,6 @@
     <br>
     <button id="lockout-portal-btn" onclick="openBillingPortal()" style="display:none;background:none;border:none;color:#737475;font-size:13px;cursor:pointer;margin-top:8px;text-decoration:underline">Manage existing subscription</button>
   </div>
-</div>
-
-<!-- ── Trial countdown banner ── -->
-<div id="trial-banner" style="display:none;background:#fefce8;border-bottom:1px solid #fde68a;padding:10px 24px;text-align:center;font-size:13px;color:#92400e">
-  <span id="trial-banner-text"></span>
-  &nbsp;·&nbsp;
-  <a href="/pricing" style="color:#92400e;font-weight:700">View Plans →</a>
 </div>
 
 <!-- ── Admin: All Accounts modal ── -->
@@ -2314,12 +2366,21 @@ function closeOverlay(e) {
 
 // ── Main Tab Navigation ───────────────────────────────────────────────────────
 function switchMainTab(tab) {
+  const scrollableViews = ['team','settings','timesheets','calendar','reports','ideas'];
+  const contentArea = document.querySelector('.content-area');
   ['jobs','team','clients','reports','agreements','calendar','timesheets','settings','ideas'].forEach(t => {
     const view = document.getElementById(`${t}-view`);
     const tabEl = document.getElementById(`mtab-${t}`);
     if (view) view.style.display = t === tab ? 'block' : 'none';
     if (tabEl) tabEl.classList.toggle('active', t === tab);
   });
+  // Let full-height views (crm, ag, jobs) control their own overflow
+  if (contentArea) {
+    contentArea.style.overflowY = ['jobs','clients','agreements'].includes(tab) ? 'hidden' : 'auto';
+  }
+  // Stats bar only relevant on jobs view
+  const statsEl = document.querySelector('.stats');
+  if (statsEl) statsEl.style.display = tab === 'jobs' ? 'flex' : 'none';
   if (tab === 'team') loadTeamInline();
   if (tab === 'clients' && !allClientsData.length) loadClients();
   if (tab === 'reports') loadReports(30);
