@@ -1019,21 +1019,21 @@ async function loadTenants() {
 }
 
 function renderStats(mrrData) {
-  const active = tenants.filter(t => t.subscription_status === 'active').length;
+  const active = tenants.filter(t => isBillableTenant(t)).length;
   const trialing = tenants.filter(t => t.subscription_status === 'trialing').length;
   const sevenDays = new Date(Date.now() - 7 * 86400000);
   const recentlyActive = tenants.filter(t => t.last_seen_at && new Date(t.last_seen_at) > sevenDays).length;
   const atRiskAccounts = tenants.filter(t => t.subscription_status === 'past_due' || t.paused || t.blocked).length;
   const seatLimitAccounts = tenants.filter(t => (t.employee_count ?? 0) >= (t.max_users ?? 1)).length;
   const crewBase = tenants.length || 1;
-  const payingTenants = tenants.filter(t => t.subscription_status === 'active');
+  const payingTenants = tenants.filter(t => isBillableTenant(t));
   const payingBase = payingTenants.length || 1;
   const avgCrew = tenants.reduce((sum, t) => sum + (t.employee_count ?? 0), 0) / crewBase;
   const avgJobs = payingTenants.reduce((sum, t) => sum + (t.job_count ?? 0), 0) / payingBase;
 
   document.getElementById('stats-row').innerHTML = `
     <div class="stats-card"><div class="stats-label">Total Accounts</div><div class="stats-value">${tenants.length}</div><div class="stats-sub">All LinkCrew tenant records currently in the system.</div></div>
-    <div class="stats-card"><div class="stats-label">Paying Accounts</div><div class="stats-value" style="color:#86efac">${active}</div><div class="stats-sub">Tenants with an active paid subscription state.</div></div>
+    <div class="stats-card"><div class="stats-label">Paying Accounts</div><div class="stats-value" style="color:#86efac">${active}</div><div class="stats-sub">Tenants with a live Stripe-backed subscription.</div></div>
     <div class="stats-card"><div class="stats-label">Trials</div><div class="stats-value" style="color:#93c5fd">${trialing}</div><div class="stats-sub">Current trial accounts still within their active window.</div></div>
     <div class="stats-card"><div class="stats-label">Recently Active</div><div class="stats-value" style="color:#a5b4fc">${recentlyActive}</div><div class="stats-sub">Tenants seen in the product during the last 7 days.</div></div>
     <div class="stats-card"><div class="stats-label">At-Risk Accounts</div><div class="stats-value" style="color:#fde68a">${atRiskAccounts}</div><div class="stats-sub">Past due, paused, or blocked tenants needing attention.</div></div>
@@ -1058,7 +1058,7 @@ function renderOverviewBand(mrrData) {
   const inviteUses = invitesCache.reduce((sum, inv) => sum + (inv.use_count || 0), 0);
   const current = mrrData?.current ?? 0;
   const riskRevenue = tenants
-    .filter(t => t.subscription_status === 'past_due' || t.paused || t.blocked)
+    .filter(t => isRevenueRiskTenant(t))
     .reduce((sum, t) => sum + planMRR(t.plan), 0);
 
   document.getElementById('ov-expiring-trials').textContent = expiringTrials;
@@ -1112,6 +1112,7 @@ function timeSince(dateStr) {
 }
 
 function statusLabel(t) {
+  if (isCompedTenant(t)) return 'comped';
   if (t.blocked) return 'blocked';
   if (t.paused) return 'paused';
   return t.subscription_status || 'free';
@@ -1123,6 +1124,7 @@ function statusChip(label) {
 }
 
 function trialLabel(t) {
+  if (isCompedTenant(t)) return 'Comped access';
   if (t.subscription_status === 'active') return 'Paying';
   if (!t.trial_days_left && t.trial_days_left !== 0) return 'No trial data';
   if (t.trial_days_left === 0) return 'Expired';
@@ -1268,7 +1270,7 @@ function renderTenantDetail(tenant) {
 
       <div class="detail-block">
         <h3>Plan Controls</h3>
-        <p>Set a complimentary plan or generate a payment link using the selected plan.</p>
+        <p>Set feature access for beta or comped owners without counting them as revenue. Generate a payment link when you want the account to become billable.</p>
         <select class="field-select" id="plan-select">
           <option value="free" ${tenant.plan === 'free' ? 'selected' : ''}>Free</option>
           <option value="solo" ${tenant.plan === 'solo' ? 'selected' : ''}>Solo - $49</option>
@@ -1277,10 +1279,10 @@ function renderTenantDetail(tenant) {
           <option value="business" ${tenant.plan === 'business' ? 'selected' : ''}>Business - $299</option>
         </select>
         <div class="detail-actions" style="margin-top:12px">
-          <button class="btn-primary" onclick="overridePlan('${tenant.id}')">Set Plan</button>
+          <button class="btn-primary" onclick="overridePlan('${tenant.id}')">Set Access Tier</button>
           <button class="btn-ghost" onclick="generatePaymentLink('${tenant.id}')">Generate Payment Link</button>
         </div>
-        <div class="result-note" id="plan-result"></div>
+        <div class="result-note" id="plan-result">${isCompedTenant(tenant) ? 'This account currently has comped access and is excluded from MRR.' : isBillableTenant(tenant) ? 'This account is currently billable through Stripe.' : ''}</div>
         <div id="payment-link"></div>
       </div>
 
@@ -1695,6 +1697,18 @@ function planMRR(plan) {
     business: 299,
   };
   return pricing[plan || 'free'] || 0;
+}
+
+function isBillableTenant(tenant) {
+  return tenant?.subscription_status === 'active' && !!tenant?.stripe_subscription_id;
+}
+
+function isCompedTenant(tenant) {
+  return tenant?.subscription_status === 'active' && !tenant?.stripe_subscription_id && (tenant?.plan || 'free') !== 'free';
+}
+
+function isRevenueRiskTenant(tenant) {
+  return !!tenant?.stripe_subscription_id && (tenant?.subscription_status === 'past_due' || tenant?.paused || tenant?.blocked);
 }
 </script>
 </body>

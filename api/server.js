@@ -3260,9 +3260,9 @@ app.patch('/api/admin/tenants/:id/plan', auth, async (req, res) => {
 app.get('/api/admin/mrr', auth, async (req, res) => {
   if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
 
-  const { data: tenants } = await supabaseAdmin.from('tenants').select('plan, subscription_status');
+  const { data: tenants } = await supabaseAdmin.from('tenants').select('plan, subscription_status, stripe_subscription_id');
   const currentMRR = (tenants || [])
-    .filter(t => t.subscription_status === 'active')
+    .filter(t => t.subscription_status === 'active' && !!t.stripe_subscription_id)
     .reduce((sum, t) => sum + (PLAN_MRR[t.plan] || 0), 0);
   const trialingCount = (tenants || []).filter(t => t.subscription_status === 'trialing').length;
   const projectedMRR = currentMRR + Math.round(trialingCount * 97 * 0.2); // 20% conversion at avg Team price
@@ -3441,8 +3441,10 @@ cron.schedule('0 18 * * *', async () => {
 const PLAN_MRR = { solo: 49, team: 97, pro: 165, business: 299 };
 async function snapshotMRR() {
   const { data: tenants } = await supabaseAdmin.from('tenants')
-    .select('plan, subscription_status').eq('subscription_status', 'active');
-  const mrr = (tenants || []).reduce((sum, t) => sum + (PLAN_MRR[t.plan] || 0), 0);
+    .select('plan, subscription_status, stripe_subscription_id').eq('subscription_status', 'active');
+  const mrr = (tenants || [])
+    .filter(t => !!t.stripe_subscription_id)
+    .reduce((sum, t) => sum + (PLAN_MRR[t.plan] || 0), 0);
   const month = new Date();
   month.setDate(1); month.setHours(0, 0, 0, 0);
   await supabaseAdmin.from('mrr_snapshots')
