@@ -1184,11 +1184,44 @@ app.post('/api/jobs/:id/send-workorder', auth, async (req, res) => {
 
 app.patch('/api/jobs/:id', auth, async (req, res) => {
   const { id } = req.params;
-  const allowed = ['status', 'client_id'];
+  const allowed = ['status', 'client_id', 'name', 'address', 'description', 'estimate_amount', 'manager_email'];
   const updates = {};
-  allowed.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f] || null; });
+  allowed.forEach(f => {
+    if (req.body[f] === undefined) return;
+    if (f === 'estimate_amount') {
+      updates[f] = req.body[f] === '' || req.body[f] === null ? null : parseFloat(req.body[f]);
+      return;
+    }
+    updates[f] = req.body[f] || null;
+  });
   updates.updated_at = new Date().toISOString();
   const { data } = await supabaseAdmin.from('jobs').update(updates).eq('id', id).select().single();
+  res.json(data);
+});
+
+app.post('/api/jobs/:id/updates', auth, async (req, res) => {
+  const { id } = req.params;
+  const { type, message } = req.body;
+  const allowedTypes = new Set(['note', 'bottleneck']);
+  if (!allowedTypes.has(type)) return res.status(400).json({ error: 'Invalid update type' });
+  if (!message?.trim()) return res.status(400).json({ error: 'Message is required' });
+
+  const { data: job } = await supabaseAdmin
+    .from('jobs').select('id').eq('id', id).eq('tenant_id', req.tenantId).single();
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+
+  const { data, error } = await supabaseAdmin
+    .from('job_updates')
+    .insert({
+      job_id: id,
+      employee_id: req.userId || null,
+      message: message.trim(),
+      type,
+    })
+    .select('*, employees(name)')
+    .single();
+
+  if (error) return res.status(400).json({ error: error.message });
   res.json(data);
 });
 

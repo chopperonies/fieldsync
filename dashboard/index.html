@@ -1432,9 +1432,9 @@
 
       <div class="owner-kpi-grid">
         <div class="owner-kpi-card">
-          <div class="owner-kpi-label">This Week</div>
+          <div class="owner-kpi-label">Visible 4 Weeks</div>
           <div class="owner-kpi-value" id="cal-week-count">—</div>
-          <div class="owner-kpi-meta">Appointments currently scheduled in the visible week.</div>
+          <div class="owner-kpi-meta">Appointments currently scheduled in the visible planning window.</div>
         </div>
         <div class="owner-kpi-card">
           <div class="owner-kpi-label">Today</div>
@@ -1442,9 +1442,9 @@
           <div class="owner-kpi-meta">Appointments happening today across the business.</div>
         </div>
         <div class="owner-kpi-card">
-          <div class="owner-kpi-label">With Clients</div>
-          <div class="owner-kpi-value" id="cal-client-count">—</div>
-          <div class="owner-kpi-meta">Visible appointments already linked to a client record.</div>
+          <div class="owner-kpi-label">Selected Day</div>
+          <div class="owner-kpi-value" id="cal-selected-count">—</div>
+          <div class="owner-kpi-meta">Appointments on the day currently selected in the planner.</div>
         </div>
         <div class="owner-kpi-card">
           <div class="owner-kpi-label">Services</div>
@@ -1476,16 +1476,16 @@
           <div class="owner-card">
             <div class="owner-card-header">
               <div>
-                <div class="owner-card-title">Week View</div>
+                <div class="owner-card-title">4-Week Planner</div>
                 <div class="owner-card-headline" id="cal-week-label">—</div>
-                <div class="owner-card-sub">Review the full week and jump into any day without losing context.</div>
+                <div class="owner-card-sub">Review four stacked weeks at once, then click any day to inspect the agenda without losing the broader schedule.</div>
               </div>
               <div class="owner-card-actions">
-                <button class="owner-mini-btn" onclick="calWeekOffset(-1)">Previous</button>
-                <button class="owner-mini-btn" onclick="calWeekOffset(1)">Next</button>
+                <button class="owner-mini-btn" onclick="calWeekOffset(-1)">Previous Week</button>
+                <button class="owner-mini-btn" onclick="calWeekOffset(1)">Next Week</button>
               </div>
             </div>
-            <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px"></div>
+            <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px"></div>
           </div>
         </div>
 
@@ -1495,10 +1495,28 @@
             <div class="owner-signal-title" id="cal-attention-title">Loading the visible week.</div>
             <div class="owner-signal-copy" id="cal-attention-copy">Once appointments load, this panel will summarize what the owner should know first.</div>
             <div class="owner-inline-list">
-              <div class="owner-inline-row"><span>Visible week</span><strong id="cal-inline-week">—</strong></div>
+              <div class="owner-inline-row"><span>Visible 4 weeks</span><strong id="cal-inline-week">—</strong></div>
               <div class="owner-inline-row"><span>Today</span><strong id="cal-inline-today">—</strong></div>
-              <div class="owner-inline-row"><span>With clients</span><strong id="cal-inline-clients">—</strong></div>
+              <div class="owner-inline-row"><span>Selected day</span><strong id="cal-inline-selected">—</strong></div>
             </div>
+          </div>
+
+          <div class="owner-card">
+            <div class="owner-card-header">
+              <div>
+                <div class="owner-card-title">Day Agenda</div>
+                <div class="owner-card-headline" id="cal-day-title">Select a day from the planner</div>
+                <div class="owner-card-sub" id="cal-day-sub">The agenda panel shows that day’s appointments, notes, and quick actions.</div>
+              </div>
+              <div class="owner-card-actions">
+                <button class="owner-mini-btn" id="cal-day-add-btn" onclick="openApptModal()">+ Add Appointment</button>
+              </div>
+            </div>
+            <div id="cal-day-summary" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid rgba(2,101,220,0.12);background:rgba(2,101,220,0.06);border-radius:14px;margin-bottom:14px">
+              <div style="font-size:13px;color:#345480">Pick a day to review the agenda, client notes, and gaps before you call or dispatch.</div>
+              <strong id="cal-day-count" style="font-size:12px;color:#0265dc">—</strong>
+            </div>
+            <div id="cal-day-agenda" style="display:grid;gap:10px"></div>
           </div>
 
           <div class="owner-card">
@@ -1513,6 +1531,23 @@
               </div>
             </div>
             <div id="services-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px"></div>
+          </div>
+
+          <div class="owner-card">
+            <div class="owner-card-header">
+              <div>
+                <div class="owner-card-title">Calendar Sync</div>
+                <div class="owner-card-headline">Google and Outlook should be staged, not rushed</div>
+                <div class="owner-card-sub">Start with read-in visibility from Google Calendar and Microsoft Outlook, then decide if outbound sync is worth the added conflict complexity.</div>
+              </div>
+            </div>
+            <div style="display:grid;gap:10px">
+              <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,0.72)">
+                <div style="font-size:12px;font-weight:700;color:#17191c;text-transform:uppercase;letter-spacing:0.08em">Recommended Rollout</div>
+                <div style="font-size:13px;color:#4b5563;line-height:1.6;margin-top:6px">1. Connect Google or Microsoft. 2. Import external calendar events as visibility only. 3. Let LinkCrew create outbound events. 4. Add two-way edits only if conflicts are manageable.</div>
+              </div>
+              <div style="font-size:12px;color:#737475">This keeps the web planner stable before mobile apps inherit the same scheduling rules.</div>
+            </div>
           </div>
         </div>
       </div>
@@ -2009,17 +2044,29 @@
 
 <!-- ── Job Detail Modal ── -->
 <div class="modal-overlay" id="job-detail-modal">
-  <div class="modal" style="width:680px;max-width:95vw">
+  <div class="modal" style="width:1040px;max-width:96vw">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
       <h3 style="margin:0;font-size:16px;" id="detail-title">Job Detail</h3>
       <button class="btn-cancel" onclick="closeDetail()" style="padding:4px 10px">✕</button>
     </div>
-    <div id="detail-employees" style="margin-bottom:16px;"></div>
-    <div id="detail-client" style="margin-bottom:16px;"></div>
-    <div id="detail-workorder" style="margin-bottom:16px;"></div>
-    <div id="detail-invoice" style="margin-bottom:16px;"></div>
-    <div class="panel-title">Today's Activity</div>
-    <div id="detail-updates"></div>
+    <div style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,0.9fr);gap:18px">
+      <div style="min-width:0">
+        <div id="detail-overview" style="margin-bottom:16px;"></div>
+        <div id="detail-workorder" style="margin-bottom:16px;"></div>
+        <div id="detail-notes" style="margin-bottom:16px;"></div>
+        <div id="detail-supplies" style="margin-bottom:16px;"></div>
+        <div id="detail-bottlenecks" style="margin-bottom:16px;"></div>
+        <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
+          <div class="panel-title">Recent Activity</div>
+          <div id="detail-updates"></div>
+        </div>
+      </div>
+      <div style="min-width:0">
+        <div id="detail-employees" style="margin-bottom:16px;"></div>
+        <div id="detail-client" style="margin-bottom:16px;"></div>
+        <div id="detail-invoice" style="margin-bottom:16px;"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2717,6 +2764,7 @@ async function updateSupply(id, status) {
   await authFetch(`/api/supplies/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
   if (status === 'delivered') document.getElementById(`supply-item-${id}`)?.remove();
   await loadSupplies();
+  if (selectedJobId) await openDetail(selectedJobId, document.getElementById('detail-title').textContent);
 }
 
 async function openDetail(jobId, jobName) {
@@ -2725,14 +2773,15 @@ async function openDetail(jobId, jobName) {
   document.getElementById('detail-title').textContent = jobName;
 
   const res = await authFetch(`/api/jobs/${jobId}`);
-  const { job, assignments, updates } = await res.json();
-  const today = new Date(); today.setHours(0,0,0,0);
-  const todayUpdates = (updates||[]).filter(u => new Date(u.created_at) >= today);
+  const { job, assignments, supplies, updates } = await res.json();
+  const noteUpdates = (updates || []).filter(u => u.type === 'note');
+  const bottleneckUpdates = (updates || []).filter(u => u.type === 'bottleneck');
 
   const empEl = document.getElementById('detail-employees');
   const assignedIds = new Set((assignments||[]).map(a => a.employee_id));
   const unassigned = (window._allEmployees||[]).filter(e => !assignedIds.has(e.id));
   empEl.innerHTML = `
+    <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
     <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>Crew</span>
       ${unassigned.length ? `
@@ -2762,6 +2811,7 @@ async function openDetail(jobId, jobName) {
           ${!onSite ? `<button onclick="removeCrewAssignment('${job?.id}','${a.employee_id}')" title="Remove" style="background:none;border:none;color:#555;cursor:pointer;font-size:14px;padding:2px 6px" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#555'">✕</button>` : ''}
         </div>`;
     }).join('') : '<div style="font-size:12px;color:#666;padding:8px 0">No crew assigned yet.</div>'}
+    </div>
   `;
 
   // Client selector
@@ -2770,20 +2820,51 @@ async function openDetail(jobId, jobName) {
     `<option value="${c.id}" ${c.id === job?.client_id ? 'selected' : ''}>${c.name}</option>`
   ).join('');
   clientEl.innerHTML = `
+    <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
     <div class="panel-title">Client</div>
     <select onchange="linkJobClient('${job?.id}', this.value)"
       style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 10px;font-size:13px;color:#17191c">
       <option value="">— No client linked —</option>
       ${clientOptions}
     </select>
+    </div>
+  `;
+
+  const overviewEl = document.getElementById('detail-overview');
+  overviewEl.innerHTML = `
+    <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
+      <div class="panel-title">Job Overview</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group" style="margin-bottom:0"><label>Job Name</label><input type="text" id="detail-job-name" value="${job?.name || ''}"></div>
+        <div class="form-group" style="margin-bottom:0"><label>Manager Email</label><input type="email" id="detail-job-email" value="${job?.manager_email || ''}" placeholder="manager@company.com"></div>
+      </div>
+      <div class="form-group" style="margin-top:12px;margin-bottom:0"><label>Address</label><input type="text" id="detail-job-address" value="${job?.address || ''}" placeholder="123 Main St"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Status</label>
+          <select id="detail-job-status">
+            ${['quoted','scheduled','in_progress','active','complete','invoiced','on_hold'].map(status => `<option value="${status}" ${job?.status === status ? 'selected' : ''}>${status.replace('_',' ')}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0"><label>Estimate Amount</label><input type="number" id="detail-job-estimate" value="${job?.estimate_amount || ''}" min="0" step="0.01" placeholder="0.00"></div>
+      </div>
+      <div class="form-group" style="margin-top:12px;margin-bottom:0">
+        <label>Scope / Work Being Done</label>
+        <textarea id="detail-job-description" rows="5" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit">${job?.description || ''}</textarea>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+        <button class="btn-save" onclick="saveJobOverview('${job.id}')">Save Job Details</button>
+        <span id="detail-job-status-msg" style="font-size:12px;color:#4ade80"></span>
+      </div>
+    </div>
   `;
 
   const woEl = document.getElementById('detail-workorder');
   const hasEstimate = job?.estimate_amount > 0;
   const woUrl = `/workorder?job_id=${job?.id}`;
   woEl.innerHTML = `
+    <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
     <div class="panel-title">Work Order / Estimate</div>
-    ${job?.description ? `<div style="font-size:13px;color:#17191c;line-height:1.6;margin-bottom:10px;white-space:pre-wrap">${job.description}</div>` : ''}
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
       ${hasEstimate ? `<span style="font-size:13px;font-weight:600;color:#0265dc">Est: $${parseFloat(job.estimate_amount).toFixed(2)}</span>` : ''}
       <a href="${woUrl}" target="_blank" style="font-size:12px;background:none;border:1px solid #e8e8e8;border-radius:6px;padding:5px 12px;cursor:pointer;color:#737475;text-decoration:none;display:inline-block">View</a>
@@ -2797,12 +2878,14 @@ async function openDetail(jobId, jobName) {
         SMS Client
       </button>
     </div>
+    </div>
   `;
 
   const invEl = document.getElementById('detail-invoice');
   const isPaid = job?.payment_status === 'paid';
   const hasInvoice = job?.invoice_amount > 0;
   invEl.innerHTML = `
+    <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
     <div class="panel-title">Invoice</div>
     ${isPaid
       ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;font-size:13px;color:#166534;font-weight:600;margin-bottom:8px">✅ Paid — $${parseFloat(job.invoice_amount).toFixed(2)}</div>
@@ -2828,12 +2911,74 @@ async function openDetail(jobId, jobName) {
              </button>
            </div>`
     }
+    </div>
+  `;
+
+  const notesEl = document.getElementById('detail-notes');
+  notesEl.innerHTML = `
+    <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
+      <div class="panel-title">Owner Notes</div>
+      <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:14px">
+        <textarea id="detail-note-input" rows="3" placeholder="Add owner notes, scope clarifications, client context, or next steps..." style="flex:1;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit"></textarea>
+        <button class="btn-save" onclick="addJobUpdate('${job.id}','note')">Add Note</button>
+      </div>
+      ${noteUpdates.length ? noteUpdates.map(u => `
+        <div class="update-item">
+          <div class="update-icon ui-update">📝</div>
+          <div class="update-body">
+            <div class="ub-name">${u.employees?.name||'Owner note'}</div>
+            <div class="ub-msg">${u.message||''}</div>
+            <div class="ub-time">${new Date(u.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div>
+          </div>
+        </div>
+      `).join('') : '<div style="font-size:13px;color:#949596;font-style:italic">No owner notes yet.</div>'}
+    </div>
+  `;
+
+  const suppliesEl = document.getElementById('detail-supplies');
+  suppliesEl.innerHTML = `
+    <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
+      <div class="panel-title">Supplies Missing / Requested</div>
+      ${(supplies || []).length ? supplies.map(s => `
+        <div class="supply-item" style="margin-bottom:8px" id="detail-supply-${s.id}">
+          <div class="si-job">${s.urgency ? s.urgency.replace('_',' ').toUpperCase() : 'REQUEST'}${s.status ? ` • ${s.status.toUpperCase()}` : ''}</div>
+          <div class="si-items">${s.items || 'No items listed'}</div>
+          <div class="si-meta">
+            <span class="si-by">👷 ${s.employees?.name || 'Unknown'}</span>
+            <div style="display:flex;gap:5px">
+              ${s.status === 'pending' ? `<button class="status-btn btn-prepare" onclick="updateSupply('${s.id}','preparing')">Preparing</button><button class="status-btn btn-delivered" onclick="updateSupply('${s.id}','delivered')">Delivered ✓</button>` : `<span style="font-size:11px;color:#737475">${s.status || '—'}</span>`}
+            </div>
+          </div>
+        </div>
+      `).join('') : '<div style="font-size:13px;color:#949596;font-style:italic">No supply issues recorded on this job yet.</div>'}
+    </div>
+  `;
+
+  const bottleneckEl = document.getElementById('detail-bottlenecks');
+  bottleneckEl.innerHTML = `
+    <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
+      <div class="panel-title">Bottlenecks / Blockers</div>
+      <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:14px">
+        <textarea id="detail-bottleneck-input" rows="3" placeholder="Log missing materials, access issues, blockers, delays, or anything preventing the job from moving..." style="flex:1;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit"></textarea>
+        <button class="btn-save" onclick="addJobUpdate('${job.id}','bottleneck')">Add Blocker</button>
+      </div>
+      ${bottleneckUpdates.length ? bottleneckUpdates.map(u => `
+        <div class="update-item">
+          <div class="update-icon ui-bottleneck">⚠️</div>
+          <div class="update-body">
+            <div class="ub-name">${u.employees?.name||'Job update'}</div>
+            <div class="ub-msg">${u.message||''}</div>
+            <div class="ub-time">${new Date(u.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div>
+          </div>
+        </div>
+      `).join('') : '<div style="font-size:13px;color:#949596;font-style:italic">No bottlenecks recorded for this job.</div>'}
+    </div>
   `;
 
   const updEl = document.getElementById('detail-updates');
-  updEl.innerHTML = todayUpdates.length ? todayUpdates.map(u => {
+  updEl.innerHTML = (updates||[]).length ? updates.map(u => {
     const ui = updateIcons[u.type] || updateIcons.update;
-    const time = new Date(u.created_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    const time = new Date(u.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
     return `<div class="update-item">
       <div class="update-icon ${ui.cls}">${ui.icon}</div>
       <div class="update-body">
@@ -2843,10 +2988,52 @@ async function openDetail(jobId, jobName) {
         <div class="ub-time">${time}</div>
       </div>
     </div>`;
-  }).join('') : '<div class="empty" style="padding:12px 0">No activity today yet</div>';
+  }).join('') : '<div class="empty" style="padding:12px 0">No activity on this job yet</div>';
 
   document.querySelectorAll('.job-card').forEach(c => c.classList.remove('selected'));
   document.querySelector(`[onclick*="${jobId}"]`)?.classList.add('selected');
+}
+
+async function saveJobOverview(jobId) {
+  const statusEl = document.getElementById('detail-job-status-msg');
+  statusEl.style.color = '#737475';
+  statusEl.textContent = 'Saving...';
+  const payload = {
+    name: document.getElementById('detail-job-name').value.trim(),
+    manager_email: document.getElementById('detail-job-email').value.trim() || null,
+    address: document.getElementById('detail-job-address').value.trim() || null,
+    status: document.getElementById('detail-job-status').value,
+    estimate_amount: document.getElementById('detail-job-estimate').value || null,
+    description: document.getElementById('detail-job-description').value.trim() || null,
+  };
+  const res = await authFetch(`/api/jobs/${jobId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  if (!res.ok) {
+    statusEl.style.color = '#dc2626';
+    statusEl.textContent = 'Error saving';
+    return;
+  }
+  statusEl.style.color = '#4ade80';
+  statusEl.textContent = '✓ Saved';
+  await loadDashboard();
+  await openDetail(jobId, payload.name || document.getElementById('detail-title').textContent);
+}
+
+async function addJobUpdate(jobId, type) {
+  const inputId = type === 'bottleneck' ? 'detail-bottleneck-input' : 'detail-note-input';
+  const input = document.getElementById(inputId);
+  const message = input.value.trim();
+  if (!message) return;
+  const res = await authFetch(`/api/jobs/${jobId}/updates`, {
+    method: 'POST',
+    body: JSON.stringify({ type, message }),
+  });
+  if (!res.ok) {
+    alert('Failed to save update');
+    return;
+  }
+  input.value = '';
+  await loadDashboard();
+  await openDetail(jobId, document.getElementById('detail-title').textContent);
 }
 
 async function linkJobClient(jobId, clientId) {
@@ -3241,31 +3428,44 @@ let calServices = [];
 let editingApptId = null;
 let editingServiceId = null;
 let calInitialized = false;
+let calSelectedDate = null;
+
+function toLocalDateInputValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatCalendarHeaderDate(date) {
+  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+}
 
 function updateCalendarMetrics() {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = toLocalDateInputValue(new Date());
   const todayCount = calAppointments.filter(a => a.start_time.startsWith(todayStr)).length;
-  const clientCount = calAppointments.filter(a => a.clients).length;
+  const selectedDate = calSelectedDate || todayStr;
+  const selectedCount = calAppointments.filter(a => a.start_time.startsWith(selectedDate)).length;
   setText('cal-week-count', calAppointments.length);
   setText('cal-today-count', todayCount);
-  setText('cal-client-count', clientCount);
+  setText('cal-selected-count', selectedCount);
   setText('cal-service-count', calServices.length);
   setText('cal-inline-week', calAppointments.length);
   setText('cal-inline-today', todayCount);
-  setText('cal-inline-clients', clientCount);
+  setText('cal-inline-selected', selectedCount);
 
   if (!calAppointments.length) {
-    setText('cal-attention-title', 'No appointments scheduled in the visible week.');
-    setText('cal-attention-copy', 'The calendar is open. Add appointments or use predefined services to start shaping the week.');
+    setText('cal-attention-title', 'No appointments scheduled in the visible 4-week window.');
+    setText('cal-attention-copy', 'The planner is clear. Add appointments, reuse services, or keep this range open for incoming jobs before mobile starts depending on it.');
     return;
   }
   if (todayCount > 0) {
     setText('cal-attention-title', `${todayCount} appointment${todayCount === 1 ? '' : 's'} scheduled for today.`);
-    setText('cal-attention-copy', 'The immediate focus is today’s schedule. Use the week view for context and the assistant for quick summaries before outreach.');
+    setText('cal-attention-copy', 'The immediate focus is today’s schedule. Use the 4-week planner for context, then click into a day agenda before you call or dispatch.');
     return;
   }
-  setText('cal-attention-title', `${calAppointments.length} appointment${calAppointments.length === 1 ? '' : 's'} scheduled this week.`);
-  setText('cal-attention-copy', 'Today is clear, but the visible week already has work lined up. Review service mix and client-linked appointments before adding more.');
+  setText('cal-attention-title', `${calAppointments.length} appointment${calAppointments.length === 1 ? '' : 's'} scheduled in the visible 4 weeks.`);
+  setText('cal-attention-copy', 'Today is clear, but upcoming work is already lined up. Use the day agenda to check gaps, client notes, and service mix before booking over it.');
 }
 
 function getWeekStart(date) {
@@ -3321,7 +3521,7 @@ function calWeekOffset(dir) {
 async function loadCalendarWeek() {
   const start = new Date(calWeekStart);
   const end = new Date(calWeekStart);
-  end.setDate(end.getDate() + 6);
+  end.setDate(end.getDate() + 27);
   end.setHours(23, 59, 59, 999);
 
   const label = `${start.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${end.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
@@ -3329,8 +3529,19 @@ async function loadCalendarWeek() {
 
   const res = await authFetch(`/api/appointments?start=${start.toISOString()}&end=${end.toISOString()}`);
   calAppointments = await res.json();
+  const visibleDates = [];
+  for (let i = 0; i < 28; i += 1) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    visibleDates.push(toLocalDateInputValue(date));
+  }
+  if (!calSelectedDate || !visibleDates.includes(calSelectedDate)) {
+    const today = toLocalDateInputValue(new Date());
+    calSelectedDate = visibleDates.includes(today) ? today : visibleDates[0];
+  }
   updateCalendarMetrics();
   renderCalendarGrid();
+  renderCalendarAgenda();
 }
 
 function renderCalendarGrid() {
@@ -3338,37 +3549,107 @@ function renderCalendarGrid() {
   const today = new Date(); today.setHours(0,0,0,0);
   const grid = document.getElementById('cal-grid');
 
-  grid.innerHTML = days.map((dayName, i) => {
+  const headerCells = days.map(dayName => `
+    <div style="padding:0 0 8px;font-size:11px;font-weight:700;color:#737475;text-transform:uppercase;letter-spacing:0.12em">${dayName}</div>
+  `).join('');
+
+  const dayCells = Array.from({ length: 28 }, (_, i) => {
     const date = new Date(calWeekStart);
     date.setDate(date.getDate() + i);
     const isToday = date.getTime() === today.getTime();
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = toLocalDateInputValue(date);
+    const isSelected = dateStr === calSelectedDate;
 
     const dayAppts = calAppointments.filter(a => a.start_time.startsWith(dateStr));
     dayAppts.sort((a, b) => a.start_time.localeCompare(b.start_time));
 
     return `
-      <div style="background:#fff;border:1px solid ${isToday ? '#0265dc' : '#e8e8e8'};border-radius:10px;min-height:140px;overflow:hidden">
-        <div style="padding:10px 12px;border-bottom:1px solid #f0f0f0;background:${isToday ? '#e8f0fd' : '#fafafa'};display:flex;justify-content:space-between;align-items:center">
+      <button onclick="selectCalendarDate('${dateStr}')"
+        style="text-align:left;background:${isSelected ? 'rgba(2,101,220,0.08)' : '#fff'};border:1px solid ${isSelected ? '#0265dc' : isToday ? '#7fb2ef' : '#e8e8e8'};border-radius:14px;min-height:160px;overflow:hidden;padding:0;cursor:pointer;display:flex;flex-direction:column;box-shadow:${isSelected ? '0 18px 36px rgba(2,101,220,0.12)' : 'none'}">
+        <div style="padding:10px 12px;border-bottom:1px solid #f0f0f0;background:${isSelected ? 'rgba(2,101,220,0.08)' : isToday ? '#eef5ff' : '#fafafa'};display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
           <div>
-            <div style="font-size:11px;font-weight:700;color:${isToday ? '#0265dc' : '#737475'};text-transform:uppercase">${dayName}</div>
-            <div style="font-size:18px;font-weight:700;color:${isToday ? '#0265dc' : '#17191c'}">${date.getDate()}</div>
+            <div style="font-size:11px;font-weight:700;color:${isSelected || isToday ? '#0265dc' : '#737475'};text-transform:uppercase">${days[i % 7]}</div>
+            <div style="font-size:18px;font-weight:700;color:${isSelected || isToday ? '#0265dc' : '#17191c'}">${date.getDate()}</div>
           </div>
-          <button onclick="openApptModal('${dateStr}')" style="background:none;border:1px solid #e8e8e8;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:16px;line-height:1;color:#737475;display:flex;align-items:center;justify-content:center">+</button>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:${dayAppts.length ? '#0265dc' : '#9ca3af'};font-weight:700">${dayAppts.length || 'No'}${dayAppts.length ? ' appt' + (dayAppts.length === 1 ? '' : 's') : ''}</span>
+            <span onclick="event.stopPropagation();openApptModal('${dateStr}')" style="background:#fff;border:1px solid #e8e8e8;border-radius:999px;width:28px;height:28px;cursor:pointer;font-size:16px;line-height:1;color:#737475;display:flex;align-items:center;justify-content:center;flex:0 0 auto">+</span>
+          </div>
         </div>
-        <div style="padding:8px">
-          ${dayAppts.length ? dayAppts.map(a => {
+        <div style="padding:10px;display:grid;gap:8px;flex:1">
+          ${dayAppts.length ? dayAppts.slice(0, 3).map(a => {
             const t = new Date(a.start_time).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
             return `
-              <div onclick="openApptModal(null,'${a.id}')"
-                style="background:#e8f0fd;border-radius:6px;padding:6px 9px;margin-bottom:6px;cursor:pointer;border-left:3px solid #0265dc">
+              <div onclick="event.stopPropagation();openApptModal(null,'${a.id}')"
+                style="background:${isSelected ? 'rgba(255,255,255,0.94)' : '#eef5ff'};border-radius:10px;padding:8px 9px;cursor:pointer;border-left:3px solid #0265dc">
                 <div style="font-size:12px;font-weight:700;color:#17191c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.title}</div>
                 <div style="font-size:11px;color:#0265dc;margin-top:2px">${t}${a.clients ? ' · ' + a.clients.name : ''}</div>
               </div>`;
-          }).join('') : '<div style="font-size:12px;color:#c0c0c0;padding:4px 2px;text-align:center">—</div>'}
+          }).join('') : '<div style="font-size:12px;color:#c0c0c0;padding:6px 2px">No appointments scheduled.</div>'}
+          ${dayAppts.length > 3 ? `<div style="font-size:11px;color:#737475;font-weight:600;padding-left:2px">+${dayAppts.length - 3} more in agenda</div>` : ''}
         </div>
-      </div>`;
+      </button>`;
   }).join('');
+
+  grid.innerHTML = headerCells + dayCells;
+}
+
+function selectCalendarDate(dateStr) {
+  calSelectedDate = dateStr;
+  updateCalendarMetrics();
+  renderCalendarGrid();
+  renderCalendarAgenda();
+}
+
+function renderCalendarAgenda() {
+  const agendaEl = document.getElementById('cal-day-agenda');
+  const titleEl = document.getElementById('cal-day-title');
+  const subEl = document.getElementById('cal-day-sub');
+  const countEl = document.getElementById('cal-day-count');
+  const addBtn = document.getElementById('cal-day-add-btn');
+
+  if (!calSelectedDate) {
+    titleEl.textContent = 'Select a day from the planner';
+    subEl.textContent = 'The agenda panel shows that day’s appointments, notes, and quick actions.';
+    countEl.textContent = '—';
+    agendaEl.innerHTML = '<div style="font-size:13px;color:#949596;font-style:italic">Select a day to inspect the agenda.</div>';
+    addBtn.setAttribute('onclick', 'openApptModal()');
+    return;
+  }
+
+  const selectedDate = new Date(`${calSelectedDate}T12:00:00`);
+  const dayAppts = calAppointments
+    .filter(a => a.start_time.startsWith(calSelectedDate))
+    .sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+  titleEl.textContent = formatCalendarHeaderDate(selectedDate);
+  subEl.textContent = dayAppts.length
+    ? 'Review the day in order, then edit an appointment or add a new one without leaving the planner.'
+    : 'The day is open. This is a good place to add work, preserve travel gaps, or keep space for inbound jobs.';
+  countEl.textContent = `${dayAppts.length} appointment${dayAppts.length === 1 ? '' : 's'}`;
+  addBtn.setAttribute('onclick', `openApptModal('${calSelectedDate}')`);
+
+  agendaEl.innerHTML = dayAppts.length ? dayAppts.map(a => {
+    const start = new Date(a.start_time);
+    const end = a.end_time ? new Date(a.end_time) : null;
+    const timeLabel = `${start.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}${end ? ' - ' + end.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : ''}`;
+    return `
+      <div onclick="openApptModal(null,'${a.id}')" style="background:#fff;border:1px solid #e8e8e8;border-radius:14px;padding:14px 16px;cursor:pointer;box-shadow:0 10px 30px rgba(15,23,42,0.05)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#0265dc;text-transform:uppercase;letter-spacing:0.08em">${timeLabel}</div>
+            <div style="font-size:15px;font-weight:700;color:#17191c;margin-top:4px">${a.title}</div>
+            <div style="font-size:12px;color:#737475;margin-top:4px">${a.clients ? a.clients.name : 'Internal appointment'}${a.clients?.phone ? ' · ' + a.clients.phone : ''}</div>
+          </div>
+          <div style="font-size:11px;color:#737475;font-weight:600">${(a.service_ids || []).length ? `${a.service_ids.length} service${a.service_ids.length === 1 ? '' : 's'}` : 'No services'}</div>
+        </div>
+        ${a.notes ? `<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:#f8fafc;font-size:12px;color:#475569;line-height:1.6">${a.notes}</div>` : ''}
+      </div>`;
+  }).join('') : `
+    <div style="padding:18px;border:1px dashed #d7e3f5;border-radius:14px;background:rgba(2,101,220,0.03);font-size:13px;color:#52739c;line-height:1.6">
+      No appointments are scheduled for this day. Use the button above to add one, or leave the space open for incoming jobs and travel flexibility.
+    </div>
+  `;
 }
 
 async function loadServices() {
@@ -3420,7 +3701,7 @@ function openApptModal(dateStr, apptId) {
     if (a) {
       const localDate = new Date(a.start_time);
       document.getElementById('appt-title').value = a.title;
-      document.getElementById('appt-date').value = localDate.toISOString().split('T')[0];
+      document.getElementById('appt-date').value = toLocalDateInputValue(localDate);
       document.getElementById('appt-start-time').value = localDate.toTimeString().slice(0,5);
       document.getElementById('appt-end-time').value = a.end_time ? new Date(a.end_time).toTimeString().slice(0,5) : '';
       document.getElementById('appt-client').value = a.client_id || '';
@@ -3433,7 +3714,7 @@ function openApptModal(dateStr, apptId) {
     }
   } else {
     document.getElementById('appt-title').value = '';
-    document.getElementById('appt-date').value = dateStr || new Date().toISOString().split('T')[0];
+    document.getElementById('appt-date').value = dateStr || toLocalDateInputValue(new Date());
     document.getElementById('appt-start-time').value = '09:00';
     document.getElementById('appt-end-time').value = '10:00';
     document.getElementById('appt-client').value = '';
