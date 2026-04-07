@@ -2476,6 +2476,7 @@ async function bootApp() {
 
 let selectedJobId = null;
 let allJobsData = [], allAssignmentsData = [], allSuppliesData = [], allUpdatesData = [];
+let ownerTwilioConfigured = false;
 
 const updateIcons = {
   checkin: { icon: '✅', cls: 'ui-checkin' },
@@ -2490,8 +2491,19 @@ const updateIcons = {
 async function init() {
   const { supabaseUrl, supabaseKey } = await (await fetch('/api/config')).json();
   if (!supabaseClient) supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-  await Promise.all([loadDashboard(), loadSupplies(), loadPhotos(), loadOnboardingBanner(), loadClients(), loadAllEmployees()]);
+  await Promise.all([loadDashboard(), loadSupplies(), loadPhotos(), loadOnboardingBanner(), loadClients(), loadAllEmployees(), loadNotificationCapabilities()]);
   subscribeRealtime();
+}
+
+async function loadNotificationCapabilities() {
+  try {
+    const res = await authFetch('/api/settings');
+    if (!res.ok) return;
+    const data = await res.json();
+    ownerTwilioConfigured = !!(data.twilio_account_sid && data.twilio_phone);
+  } catch (e) {
+    ownerTwilioConfigured = false;
+  }
 }
 
 // ── Onboarding ────────────────────────────────────────────────────────────────
@@ -2803,6 +2815,9 @@ async function openDetail(jobId, jobName) {
         : done
         ? '<span style="font-size:10px;font-weight:700;color:#737475;background:#f5f5f5;padding:2px 6px;border-radius:8px">Done</span>'
         : '<span style="font-size:10px;font-weight:700;color:#0265dc;background:#eff6ff;padding:2px 6px;border-radius:8px">Assigned</span>';
+      const smsDisabled = !ownerTwilioConfigured;
+      const smsDisabledAttrs = smsDisabled ? 'disabled title="Set up the company Twilio number in Settings to enable SMS alerts."' : '';
+      const smsDisabledStyle = smsDisabled ? 'opacity:0.5;cursor:not-allowed;' : 'cursor:pointer;';
       return `
         <div class="emp-item" style="justify-content:space-between">
           <div style="display:flex;align-items:center;gap:8px">
@@ -2818,11 +2833,13 @@ async function openDetail(jobId, jobName) {
               App
             </button>
             <button onclick="notifyCrewAssignment('${job?.id}','${a.employee_id}','sms')"
-              style="font-size:11px;background:#fff7ed;border:1px solid #fed7aa;color:#c2410c;border-radius:999px;padding:5px 9px;cursor:pointer;font-weight:700;white-space:nowrap">
+              ${smsDisabledAttrs}
+              style="font-size:11px;background:#fff7ed;border:1px solid #fed7aa;color:#c2410c;border-radius:999px;padding:5px 9px;${smsDisabledStyle}font-weight:700;white-space:nowrap">
               Text
             </button>
             <button onclick="notifyCrewAssignment('${job?.id}','${a.employee_id}','both')"
-              style="font-size:11px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:999px;padding:5px 9px;cursor:pointer;font-weight:700;white-space:nowrap">
+              ${smsDisabledAttrs}
+              style="font-size:11px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:999px;padding:5px 9px;${smsDisabledStyle}font-weight:700;white-space:nowrap">
               Both
             </button>
             ${!onSite ? `<button onclick="removeCrewAssignment('${job?.id}','${a.employee_id}')" title="Remove" style="background:none;border:none;color:#555;cursor:pointer;font-size:14px;padding:2px 6px" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#555'">✕</button>` : ''}
@@ -4375,6 +4392,7 @@ async function loadSettings() {
   if (settingsLoaded) return;
   const res = await authFetch('/api/settings');
   const data = await res.json();
+  ownerTwilioConfigured = !!(data.twilio_account_sid && data.twilio_phone);
   setText('settings-plan-card', String(currentPlan || 'beta').toUpperCase());
   setText('settings-voice-card', data.voicebot_enabled ? 'Active' : 'Off');
   setText('settings-photo-card', data.photo_expiry_days ? `${data.photo_expiry_days}d` : 'Forever');
@@ -4454,6 +4472,7 @@ async function saveVoicebot() {
   const json = await res.json();
   if (!res.ok) { statusEl.style.color='#f87171'; statusEl.textContent='Error: ' + json.error; return; }
   statusEl.style.color='#4ade80'; statusEl.textContent='✓ Voice bot activated';
+  ownerTwilioConfigured = true;
   document.getElementById('voicebot-status-badge').style.display = 'inline';
   document.getElementById('vb-disable-btn').style.display = 'inline-block';
   setText('settings-voice-card', 'Active');
@@ -4465,6 +4484,7 @@ async function disableVoicebot() {
   if (!confirm('Disable the voice bot? Choppy will stop answering calls on this number.')) return;
   const res = await authFetch('/api/settings/voicebot', { method: 'DELETE' });
   if (res.ok) {
+    ownerTwilioConfigured = false;
     document.getElementById('voicebot-status-badge').style.display = 'none';
     document.getElementById('vb-disable-btn').style.display = 'none';
     document.getElementById('vb-sid').value = '';
