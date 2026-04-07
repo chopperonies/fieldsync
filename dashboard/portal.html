@@ -18,8 +18,10 @@
     .login-screen::before { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.80); }
     .login-screen > * { position: relative; z-index: 1; }
     .login-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 16px; padding: 40px; width: 100%; max-width: 380px; }
-    .login-logo { font-size: 24px; font-weight: 800; color: #17191c; margin-bottom: 4px; }
-    .login-logo span { color: #0265dc; }
+    .login-logo { font-size: 24px; font-weight: 900; color: #17191c; margin-bottom: 4px; letter-spacing: -0.03em; }
+    .login-logo .wordmark-accent { color: #0876d8; }
+    .portal-wordmark { font-size: 24px; font-weight: 900; letter-spacing: -0.03em; color: #17191c; }
+    .portal-wordmark .wordmark-accent { color: #0876d8; }
     .login-sub { font-size: 13px; color: #737475; margin-bottom: 28px; }
     .login-label { font-size: 12px; font-weight: 600; color: #17191c; margin-bottom: 6px; display: block; }
     .login-input { width: 100%; background: #f5f5f5; border: 1px solid #e8e8e8; color: #17191c; padding: 11px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 12px; }
@@ -152,7 +154,7 @@
 <div class="login-screen" id="login-screen">
   <div class="login-card">
     <div class="login-logo" style="display:flex;align-items:center;gap:8px">
-      <img src="/logo.svg" style="width:30px;height:30px"><span>Link<span>Crew</span></span>
+      <img src="/logo.svg" style="width:30px;height:30px"><span>Link<span class="wordmark-accent">Crew</span></span>
     </div>
     <div class="login-sub">Client Portal</div>
 
@@ -188,7 +190,7 @@
     <div>
       <div class="portal-brand" style="cursor:pointer;display:flex;align-items:center;gap:8px" onclick="location.href='/'">
       <img src="/logo.svg" alt="LinkCrew" style="width:28px;height:28px">
-      <span>Link<span>Crew</span></span> <span style="font-size:12px;font-weight:500;color:#737475">Client Portal</span>
+      <span class="portal-wordmark">Link<span class="wordmark-accent">Crew</span></span> <span style="font-size:12px;font-weight:500;color:#737475">Client Portal</span>
     </div>
       <div class="portal-client" id="portal-client-name"></div>
     </div>
