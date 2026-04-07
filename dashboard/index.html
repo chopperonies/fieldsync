@@ -1221,53 +1221,126 @@
 
 <!-- Timesheets view -->
 <div id="timesheets-view" style="display:none">
-  <div style="max-width:1000px;margin:0 auto;padding:24px">
+  <div class="owner-page">
+    <div class="owner-page-shell">
+      <div class="owner-page-header">
+        <div class="owner-page-copy">
+          <div class="owner-page-eyebrow">Timesheets</div>
+          <div class="owner-page-title">Review hours, catch missing punch-outs, and keep payroll clean.</div>
+          <div class="owner-page-subtitle">This page should help the owner verify labor fast: who worked, for how long, and which entries still need attention before payroll or billing.</div>
+        </div>
+        <div class="owner-page-actions">
+          <button class="owner-btn" onclick="printTimesheet()">Print</button>
+          <button class="owner-btn primary" onclick="loadTimesheets()">Refresh Hours</button>
+        </div>
+      </div>
 
-    <!-- Header + filters -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
-      <div style="font-size:18px;font-weight:700;color:#17191c">Timesheets</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <input type="date" id="ts-start" style="background:#fff;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c">
-        <span style="font-size:13px;color:#737475">to</span>
-        <input type="date" id="ts-end" style="background:#fff;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c">
-        <select id="ts-employee" style="background:#fff;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c">
-          <option value="">All crew</option>
-        </select>
-        <button onclick="loadTimesheets()" style="background:#0265dc;color:#fff;border:none;border-radius:7px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">Filter</button>
-        <button onclick="printTimesheet()" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:7px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;color:#17191c">🖨 Print</button>
+      <div class="owner-kpi-grid">
+        <div class="owner-kpi-card">
+          <div class="owner-kpi-label">Entries</div>
+          <div class="owner-kpi-value" id="ts-entry-count">—</div>
+          <div class="owner-kpi-meta">Timesheet rows in the current filtered period.</div>
+        </div>
+        <div class="owner-kpi-card">
+          <div class="owner-kpi-label">Hours Logged</div>
+          <div class="owner-kpi-value" id="ts-hours-count">—</div>
+          <div class="owner-kpi-meta">Tracked labor hours with both punch-in and punch-out.</div>
+        </div>
+        <div class="owner-kpi-card">
+          <div class="owner-kpi-label">Still Clocked In</div>
+          <div class="owner-kpi-value" id="ts-open-count">—</div>
+          <div class="owner-kpi-meta">Entries that are still open and may need follow-up.</div>
+        </div>
+        <div class="owner-kpi-card">
+          <div class="owner-kpi-label">Manual Entries</div>
+          <div class="owner-kpi-value" id="ts-manual-count">—</div>
+          <div class="owner-kpi-meta">Entries created outside the mobile punch flow.</div>
+        </div>
+      </div>
+
+      <div class="owner-ops-layout">
+        <div class="owner-section-stack">
+          <div class="owner-card">
+            <div class="owner-card-header">
+              <div>
+                <div class="owner-card-title">Filters</div>
+                <div class="owner-card-headline">Review period</div>
+                <div class="owner-card-sub">Slice hours by date range and crew member before reviewing payroll or printing a summary.</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <input type="date" id="ts-start" style="background:#fff;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c">
+              <span style="font-size:13px;color:#737475">to</span>
+              <input type="date" id="ts-end" style="background:#fff;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c">
+              <select id="ts-employee" style="background:#fff;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c">
+                <option value="">All crew</option>
+              </select>
+              <button onclick="loadTimesheets()" style="background:#0265dc;color:#fff;border:none;border-radius:7px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">Filter</button>
+            </div>
+          </div>
+
+          <div class="owner-card">
+            <div class="owner-card-header">
+              <div>
+                <div class="owner-card-title">Summary</div>
+                <div class="owner-card-headline">Crew totals</div>
+                <div class="owner-card-sub">A fast read on which team members logged hours in the selected period.</div>
+              </div>
+            </div>
+            <div id="ts-summary" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px"></div>
+          </div>
+
+          <div class="owner-card" style="padding:0;overflow:hidden">
+            <div style="padding:18px 20px 0">
+              <div class="owner-card-title">Entries</div>
+              <div class="owner-card-headline" style="font-size:18px;margin-top:6px">Timesheet table</div>
+              <div class="owner-card-sub">Review punches, GPS markers, hours, and entry type in one place.</div>
+            </div>
+            <div id="ts-table"></div>
+          </div>
+        </div>
+
+        <div class="owner-section-stack">
+          <div class="owner-signal-card">
+            <div class="owner-signal-label">Payroll Snapshot</div>
+            <div class="owner-signal-title" id="ts-attention-title">Loading timesheet period.</div>
+            <div class="owner-signal-copy" id="ts-attention-copy">Once entries load, this panel will summarize what needs review first.</div>
+            <div class="owner-inline-list">
+              <div class="owner-inline-row"><span>Total entries</span><strong id="ts-inline-entries">—</strong></div>
+              <div class="owner-inline-row"><span>Open punches</span><strong id="ts-inline-open">—</strong></div>
+              <div class="owner-inline-row"><span>Manual entries</span><strong id="ts-inline-manual">—</strong></div>
+            </div>
+          </div>
+
+          <div id="ts-punch-panel" class="owner-card" style="margin-bottom:0">
+            <div class="owner-card-header">
+              <div>
+                <div class="owner-card-title">Manual Punch</div>
+                <div class="owner-card-headline">Add or close time manually</div>
+                <div class="owner-card-sub">Keep this available for lower-tier workflows or back-office corrections.</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+              <div>
+                <div style="font-size:11px;font-weight:600;color:#737475;margin-bottom:5px">Crew Member</div>
+                <select id="ts-punch-employee" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c;min-width:160px">
+                  <option value="">Select crew...</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:600;color:#737475;margin-bottom:5px">Job (optional)</div>
+                <select id="ts-punch-job" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c;min-width:160px">
+                  <option value="">No specific job</option>
+                </select>
+              </div>
+              <button onclick="manualPunchIn()" style="background:#166534;color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">Punch In</button>
+              <button onclick="manualPunchOut()" style="background:#dc2626;color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">Punch Out</button>
+              <span id="ts-punch-status" style="font-size:13px;color:#4ade80"></span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-
-    <!-- Manual punch in/out (lower tiers) -->
-    <div id="ts-punch-panel" style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:20px;margin-bottom:20px">
-      <div style="font-size:14px;font-weight:700;color:#17191c;margin-bottom:14px">Manual Punch</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-        <div>
-          <div style="font-size:11px;font-weight:600;color:#737475;margin-bottom:5px">Crew Member</div>
-          <select id="ts-punch-employee" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c;min-width:160px">
-            <option value="">Select crew...</option>
-          </select>
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:600;color:#737475;margin-bottom:5px">Job (optional)</div>
-          <select id="ts-punch-job" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c;min-width:160px">
-            <option value="">No specific job</option>
-          </select>
-        </div>
-        <button onclick="manualPunchIn()" style="background:#166534;color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">Punch In</button>
-        <button onclick="manualPunchOut()" style="background:#dc2626;color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">Punch Out</button>
-        <span id="ts-punch-status" style="font-size:13px;color:#4ade80"></span>
-      </div>
-    </div>
-
-    <!-- Summary cards -->
-    <div id="ts-summary" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px"></div>
-
-    <!-- Entries table -->
-    <div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;overflow:hidden">
-      <div id="ts-table"></div>
-    </div>
-
   </div>
 </div>
 
@@ -3426,8 +3499,44 @@ async function loadTimesheets() {
 
   const res = await authFetch(url);
   const entries = await res.json();
+  updateTimesheetMetrics(entries);
   renderTimesheetSummary(entries);
   renderTimesheetTable(entries);
+}
+
+function updateTimesheetMetrics(entries) {
+  const totalHours = entries.reduce((sum, e) => {
+    if (!e.checked_in_at || !e.checked_out_at) return sum;
+    return sum + ((new Date(e.checked_out_at) - new Date(e.checked_in_at)) / 3600000);
+  }, 0);
+  const openEntries = entries.filter(e => e.checked_in_at && !e.checked_out_at).length;
+  const manualEntries = entries.filter(e => e.manual_punch).length;
+
+  setText('ts-entry-count', entries.length);
+  setText('ts-hours-count', totalHours.toFixed(1));
+  setText('ts-open-count', openEntries);
+  setText('ts-manual-count', manualEntries);
+  setText('ts-inline-entries', entries.length);
+  setText('ts-inline-open', openEntries);
+  setText('ts-inline-manual', manualEntries);
+
+  if (!entries.length) {
+    setText('ts-attention-title', 'No timesheet entries in this period.');
+    setText('ts-attention-copy', 'Adjust the date range or crew filter, or use manual punch controls if back-office corrections are needed.');
+    return;
+  }
+  if (openEntries > 0) {
+    setText('ts-attention-title', `${openEntries} open punch${openEntries === 1 ? '' : 'es'} still need review.`);
+    setText('ts-attention-copy', 'Focus on crew members who appear to still be clocked in before printing or using this period for payroll.');
+    return;
+  }
+  if (manualEntries > 0) {
+    setText('ts-attention-title', `${manualEntries} manual entr${manualEntries === 1 ? 'y needs' : 'ies need'} extra scrutiny.`);
+    setText('ts-attention-copy', 'App punches are clean. Review manual changes next so payroll totals stay defensible.');
+    return;
+  }
+  setText('ts-attention-title', `${totalHours.toFixed(1)} hours logged in the selected period.`);
+  setText('ts-attention-copy', 'The period looks clean. Review totals by crew member and print the report when you are ready.');
 }
 
 function renderTimesheetSummary(entries) {
