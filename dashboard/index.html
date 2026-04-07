@@ -65,6 +65,7 @@
       border: 1px solid rgba(15,23,42,0.08);
       border-radius: 28px;
       overflow: hidden;
+      max-height: calc(100vh - 56px);
       box-shadow: 0 40px 120px rgba(15,23,42,0.14);
       backdrop-filter: blur(18px);
     }
@@ -132,6 +133,7 @@
     .auth-panel {
       padding: 40px;
       background: rgba(255,255,255,0.9);
+      overflow-y: auto;
     }
     .auth-panel-top {
       display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px;
@@ -637,12 +639,15 @@
       .owner-card-header { flex-direction: column; }
 
       /* Auth card */
-      .auth-screen { padding: 16px; }
-      .auth-shell { grid-template-columns: 1fr; }
+      .auth-screen { padding: 16px; overflow-y: auto; align-items: flex-start; }
+      .auth-shell { grid-template-columns: 1fr; max-height: none; overflow: visible; }
       .auth-aside { padding: 30px 24px; }
       .auth-aside h1 { font-size: 32px; max-width: none; }
+      .auth-proof-list, .auth-quote { display: none; }
       .auth-panel { padding: 18px; }
+      .auth-panel-top { flex-direction: column; align-items: flex-start; }
       .auth-card { width: 100%; padding: 24px 20px; }
+      .auth-help-row { flex-direction: column; align-items: flex-start; }
 
       /* Main layout — stack vertically */
       .main { grid-template-columns: 1fr; height: auto; }
@@ -678,6 +683,13 @@
     }
 
     @media (max-width: 480px) {
+      .auth-screen { padding: 12px; }
+      .auth-aside { display: none; }
+      .auth-panel { padding: 12px; }
+      .auth-card { padding: 20px 16px; border-radius: 18px; }
+      .auth-tabs { margin-bottom: 18px; }
+      .auth-tab { font-size: 12px; padding: 10px 8px; }
+      .auth-home-link { width: 100%; text-align: center; }
       .stats { grid-template-columns: 1fr; }
       .report-stat-grid { grid-template-columns: 1fr 1fr; }
       .report-stat .rs-val { font-size: 24px; }
