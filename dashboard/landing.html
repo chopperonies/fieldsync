@@ -182,32 +182,121 @@
     }
     .dash-nav-item.active { background: rgba(14,165,233,0.12); color: var(--accent); border-left: 2px solid var(--accent); }
     .dash-nav-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-    .dash-main { flex: 1; padding: 20px 24px; }
-    .dash-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-    .dash-topbar-title { font-size: 13px; font-weight: 900; color: #fff; }
-    .dash-topbar-btn {
-      background: var(--accent); color: #fff; border: none;
-      padding: 5px 12px; border-radius: 5px; font-size: 10px; font-weight: 700; cursor: default;
+    .dash-main { flex: 1; padding: 18px 20px; background: #f4f8fc; }
+    .dash-owner-header {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+      margin-bottom: 14px;
     }
-    .dash-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 16px; }
-    .dash-stat {
-      background: #1e293b; border-radius: 7px; padding: 10px 12px;
-      border: 1px solid rgba(255,255,255,0.06);
+    .dash-owner-eyebrow {
+      font-size: 9px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;
+      color: #0284c7; margin-bottom: 6px;
     }
-    .dash-stat-val { font-size: 18px; font-weight: 900; color: #fff; line-height: 1; }
-    .dash-stat-lbl { font-size: 9px; color: rgba(255,255,255,0.35); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.04em; }
-    .dash-jobs { display: flex; flex-direction: column; gap: 6px; }
+    .dash-owner-title {
+      font-size: 23px; font-weight: 900; color: #0f172a; line-height: 1.02;
+      letter-spacing: -0.04em; max-width: 320px;
+    }
+    .dash-owner-sub {
+      margin-top: 7px; max-width: 360px;
+      font-size: 10px; line-height: 1.5; color: #64748b;
+    }
+    .dash-owner-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .dash-owner-btn {
+      border-radius: 999px; padding: 7px 11px; font-size: 9px; font-weight: 800;
+      letter-spacing: 0.03em; border: 1px solid #d7e3ef; color: #334155; background: #fff;
+      cursor: default;
+    }
+    .dash-owner-btn.primary {
+      background: var(--accent); color: #fff; border-color: var(--accent);
+      box-shadow: 0 8px 18px rgba(14,165,233,0.18);
+    }
+    .dash-owner-kpis {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;
+    }
+    .dash-owner-kpi {
+      background: #fff; border: 1px solid #dbe6f0; border-radius: 12px; padding: 10px 11px;
+      min-height: 78px;
+    }
+    .dash-owner-kpi-label {
+      font-size: 8px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: #64748b;
+    }
+    .dash-owner-kpi-value {
+      font-size: 20px; font-weight: 900; color: #0f172a; line-height: 1; margin-top: 8px;
+    }
+    .dash-owner-kpi-meta {
+      font-size: 9px; color: #64748b; line-height: 1.4; margin-top: 6px;
+    }
+    .dash-owner-layout {
+      display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 10px;
+    }
+    .dash-panel {
+      background: #fff; border: 1px solid #dbe6f0; border-radius: 14px; padding: 14px;
+    }
+    .dash-panel-header {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px;
+    }
+    .dash-panel-title {
+      font-size: 8px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: #64748b;
+    }
+    .dash-panel-headline {
+      font-size: 14px; font-weight: 900; color: #0f172a; letter-spacing: -0.03em; margin-top: 4px;
+    }
+    .dash-panel-sub {
+      font-size: 9px; color: #64748b; line-height: 1.45; margin-top: 5px; max-width: 250px;
+    }
+    .dash-mini-btn {
+      border: 1px solid #d7e3ef; background: #f8fbfe; color: #334155; border-radius: 999px;
+      padding: 6px 9px; font-size: 8px; font-weight: 800; cursor: default;
+    }
+    .dash-job-list { display: flex; flex-direction: column; gap: 7px; }
     .dash-job {
-      background: #1e293b; border-radius: 7px; padding: 10px 14px;
-      display: flex; align-items: center; gap: 12px;
-      border: 1px solid rgba(255,255,255,0.06);
+      background: #f8fbfe; border: 1px solid #e2ebf3; border-radius: 11px; padding: 10px 11px;
     }
+    .dash-job-top { display: flex; align-items: center; gap: 8px; }
     .dash-job-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .dash-job-name { font-size: 11px; font-weight: 700; color: #fff; flex: 1; }
+    .dash-job-name { font-size: 10px; font-weight: 800; color: #0f172a; flex: 1; }
     .dash-job-status {
-      font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 4px;
+      font-size: 8px; font-weight: 800; padding: 3px 7px; border-radius: 999px;
     }
-    .dash-job-crew { font-size: 9px; color: rgba(255,255,255,0.4); }
+    .dash-job-meta {
+      display: flex; justify-content: space-between; gap: 8px;
+      font-size: 8px; color: #64748b; margin-top: 6px;
+    }
+    .dash-signal {
+      background: linear-gradient(180deg, #0f172a 0%, #17233a 100%);
+      border-color: rgba(255,255,255,0.05);
+      color: #fff;
+    }
+    .dash-signal .dash-panel-title { color: rgba(125,200,255,0.82); }
+    .dash-signal-title {
+      font-size: 14px; font-weight: 900; letter-spacing: -0.03em; color: #fff;
+    }
+    .dash-signal-copy {
+      margin-top: 7px; font-size: 9px; line-height: 1.5; color: rgba(255,255,255,0.65);
+    }
+    .dash-signal-list { display: grid; gap: 8px; margin-top: 12px; }
+    .dash-signal-row {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 9px; color: rgba(255,255,255,0.72);
+      padding-bottom: 7px; border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .dash-signal-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .dash-signal-row strong { color: #fff; font-size: 10px; }
+    .dash-feed-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+    .dash-feed-tab {
+      background: #eef6fb; border: 1px solid #d7e7f2; color: #33526b;
+      padding: 5px 8px; border-radius: 999px; font-size: 8px; font-weight: 800;
+    }
+    .dash-feed-tab.active { background: #dff1fc; color: #0369a1; border-color: #bfe3f8; }
+    .dash-feed-list { display: grid; gap: 7px; }
+    .dash-feed-item {
+      background: #f8fbfe; border: 1px solid #e2ebf3; border-radius: 11px; padding: 9px 10px;
+    }
+    .dash-feed-top {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      font-size: 9px; color: #64748b;
+    }
+    .dash-feed-name { font-size: 10px; font-weight: 800; color: #0f172a; margin-top: 4px; }
+    .dash-feed-note { font-size: 8px; color: #64748b; margin-top: 4px; line-height: 1.4; }
 
     /* ── Stats bar ── */
     .stats-bar {
@@ -621,40 +710,120 @@
           </div>
           <!-- Main -->
           <div class="dash-main">
-            <div class="dash-topbar">
-              <div class="dash-topbar-title">Job Dashboard</div>
-              <div class="dash-topbar-btn">+ New Job</div>
+            <div class="dash-owner-header">
+              <div>
+                <div class="dash-owner-eyebrow">Owner Workspace</div>
+                <div class="dash-owner-title">Run the day without chasing the field.</div>
+                <div class="dash-owner-sub">Active work, crew presence, supply requests, and fresh field updates in one owner view.</div>
+              </div>
+              <div class="dash-owner-actions">
+                <div class="dash-owner-btn">Open Calendar</div>
+                <div class="dash-owner-btn primary">+ Add Job</div>
+              </div>
             </div>
-            <div class="dash-stats">
-              <div class="dash-stat"><div class="dash-stat-val">12</div><div class="dash-stat-lbl">Active Jobs</div></div>
-              <div class="dash-stat"><div class="dash-stat-val">7</div><div class="dash-stat-lbl">On Site Today</div></div>
-              <div class="dash-stat"><div class="dash-stat-val">4</div><div class="dash-stat-lbl">Invoices Out</div></div>
-              <div class="dash-stat"><div class="dash-stat-val" style="color:#0ea5e9">$8.4k</div><div class="dash-stat-lbl">This Month</div></div>
+            <div class="dash-owner-kpis">
+              <div class="dash-owner-kpi">
+                <div class="dash-owner-kpi-label">Active Jobs</div>
+                <div class="dash-owner-kpi-value">12</div>
+                <div class="dash-owner-kpi-meta">Live scheduled and in-progress work across your crew.</div>
+              </div>
+              <div class="dash-owner-kpi">
+                <div class="dash-owner-kpi-label">Crew On Site</div>
+                <div class="dash-owner-kpi-value">7</div>
+                <div class="dash-owner-kpi-meta">Field staff currently checked in at active jobs.</div>
+              </div>
+              <div class="dash-owner-kpi">
+                <div class="dash-owner-kpi-label">Supply Requests</div>
+                <div class="dash-owner-kpi-value">4</div>
+                <div class="dash-owner-kpi-meta">Pending materials waiting on office action.</div>
+              </div>
+              <div class="dash-owner-kpi">
+                <div class="dash-owner-kpi-label">Bottlenecks</div>
+                <div class="dash-owner-kpi-value">2</div>
+                <div class="dash-owner-kpi-meta">Reported blockers from today’s field updates.</div>
+              </div>
             </div>
-            <div class="dash-jobs">
-              <div class="dash-job">
-                <div class="dash-job-dot" style="background:#0ea5e9"></div>
-                <div class="dash-job-name">River Valley Estates — Phase 2</div>
-                <div class="dash-job-crew">3 crew</div>
-                <div class="dash-job-status" style="background:rgba(14,165,233,0.15);color:#0ea5e9">In Progress</div>
+            <div class="dash-owner-layout">
+              <div class="dash-panel">
+                <div class="dash-panel-header">
+                  <div>
+                    <div class="dash-panel-title">Operations Board</div>
+                    <div class="dash-panel-headline">Active jobs</div>
+                    <div class="dash-panel-sub">See status, crew presence, and whether materials are slowing down the work.</div>
+                  </div>
+                  <div class="dash-mini-btn">Quick View</div>
+                </div>
+                <div class="dash-job-list">
+                  <div class="dash-job">
+                    <div class="dash-job-top">
+                      <div class="dash-job-dot" style="background:#0ea5e9"></div>
+                      <div class="dash-job-name">River Valley Estates — Phase 2</div>
+                      <div class="dash-job-status" style="background:rgba(14,165,233,0.14);color:#0284c7">In Progress</div>
+                    </div>
+                    <div class="dash-job-meta">
+                      <span>3 crew on site</span>
+                      <span>Materials cleared</span>
+                    </div>
+                  </div>
+                  <div class="dash-job">
+                    <div class="dash-job-top">
+                      <div class="dash-job-dot" style="background:#f97316"></div>
+                      <div class="dash-job-name">Maple Commons Cleanup</div>
+                      <div class="dash-job-status" style="background:rgba(249,115,22,0.14);color:#ea580c">Needs Quote</div>
+                    </div>
+                    <div class="dash-job-meta">
+                      <span>2 crew assigned</span>
+                      <span>Waiting on approval</span>
+                    </div>
+                  </div>
+                  <div class="dash-job">
+                    <div class="dash-job-top">
+                      <div class="dash-job-dot" style="background:#16a34a"></div>
+                      <div class="dash-job-name">Harrington Roof — Final</div>
+                      <div class="dash-job-status" style="background:rgba(22,163,74,0.14);color:#15803d">Invoiced</div>
+                    </div>
+                    <div class="dash-job-meta">
+                      <span>4 crew wrapped</span>
+                      <span>Client notified</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="dash-job">
-                <div class="dash-job-dot" style="background:#f97316"></div>
-                <div class="dash-job-name">Maple Commons Cleanup</div>
-                <div class="dash-job-crew">2 crew</div>
-                <div class="dash-job-status" style="background:rgba(249,115,22,0.15);color:#f97316">Quoted</div>
-              </div>
-              <div class="dash-job">
-                <div class="dash-job-dot" style="background:#16a34a"></div>
-                <div class="dash-job-name">Harrington Roof — Final</div>
-                <div class="dash-job-crew">4 crew</div>
-                <div class="dash-job-status" style="background:rgba(22,163,74,0.15);color:#16a34a">Invoiced</div>
-              </div>
-              <div class="dash-job">
-                <div class="dash-job-dot" style="background:#7c3aed"></div>
-                <div class="dash-job-name">Westfield Landscape Maintenance</div>
-                <div class="dash-job-crew">1 crew</div>
-                <div class="dash-job-status" style="background:rgba(124,58,237,0.15);color:#7c3aed">Scheduled</div>
+              <div style="display:grid;gap:10px">
+                <div class="dash-panel dash-signal">
+                  <div class="dash-panel-title">Needs Attention</div>
+                  <div class="dash-signal-title">Two supply issues could stall this afternoon.</div>
+                  <div class="dash-signal-copy">Start with the fence repair material hold, then confirm tomorrow’s landscape crew timing before the office gets pulled into callbacks.</div>
+                  <div class="dash-signal-list">
+                    <div class="dash-signal-row"><span>Jobs in motion</span><strong>12</strong></div>
+                    <div class="dash-signal-row"><span>Crew currently on site</span><strong>7</strong></div>
+                    <div class="dash-signal-row"><span>Open supply issues</span><strong>4</strong></div>
+                  </div>
+                </div>
+                <div class="dash-panel">
+                  <div class="dash-panel-header" style="margin-bottom:8px">
+                    <div>
+                      <div class="dash-panel-title">Live Feed</div>
+                      <div class="dash-panel-headline">Supplies and photos</div>
+                    </div>
+                  </div>
+                  <div class="dash-feed-tabs">
+                    <div class="dash-feed-tab active">Supplies</div>
+                    <div class="dash-feed-tab">Photos</div>
+                  </div>
+                  <div class="dash-feed-list">
+                    <div class="dash-feed-item">
+                      <div class="dash-feed-top"><span>Fence repair</span><span>8 min ago</span></div>
+                      <div class="dash-feed-name">Need 12 more cedar boards before 2 PM</div>
+                      <div class="dash-feed-note">River Valley crew flagged material shortage from the field.</div>
+                    </div>
+                    <div class="dash-feed-item">
+                      <div class="dash-feed-top"><span>Site photo</span><span>14 min ago</span></div>
+                      <div class="dash-feed-name">Cleanup complete at Harrington Roof</div>
+                      <div class="dash-feed-note">Final walkthrough photos uploaded and ready for client review.</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -686,7 +855,6 @@
   </section>
   -->
 
-  <!-- Stats bar / metrics strip
   <div class="stats-bar">
     <div class="stat-item">
       <div class="stat-icon">
@@ -725,7 +893,6 @@
       </div>
     </div>
   </div>
-  -->
 
   <!-- Features -->
   <section class="features" id="features">
