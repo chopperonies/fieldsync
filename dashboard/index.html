@@ -1122,45 +1122,61 @@
 
 <!-- Reports view -->
 <div id="reports-view" style="display:none">
-  <div class="reports-view">
-    <div class="reports-header">
-      <div class="reports-title">Reports</div>
-      <div class="period-selector">
-        <button class="period-btn" onclick="loadReports(7)">7 days</button>
-        <button class="period-btn active" id="pbtn-30" onclick="loadReports(30)">30 days</button>
-        <button class="period-btn" onclick="loadReports(90)">90 days</button>
+  <div class="owner-page">
+    <div class="owner-page-shell">
+      <div class="owner-page-header">
+        <div class="owner-page-copy">
+          <div class="owner-page-eyebrow">Reports</div>
+          <div class="owner-page-title">See the health of the operation without reading every row of data.</div>
+          <div class="owner-page-subtitle">This page should help the owner understand work volume, crew utilization, and friction points quickly, then drill into charts only when needed.</div>
+        </div>
+        <div class="owner-page-actions">
+          <div class="period-selector">
+            <button class="period-btn" onclick="loadReports(7)">7 days</button>
+            <button class="period-btn active" id="pbtn-30" onclick="loadReports(30)">30 days</button>
+            <button class="period-btn" onclick="loadReports(90)">90 days</button>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <!-- Stat cards -->
-    <div class="report-stat-grid">
-      <div class="report-stat"><div class="rs-val" id="rs-total">—</div><div class="rs-label">Total Jobs</div></div>
-      <div class="report-stat"><div class="rs-val" id="rs-completed" style="color:#16a34a">—</div><div class="rs-label">Completed</div></div>
-      <div class="report-stat"><div class="rs-val" id="rs-hours" style="color:#0265dc">—</div><div class="rs-label">Crew Hours Logged</div></div>
-      <div class="report-stat"><div class="rs-val" id="rs-bottlenecks" style="color:#dc2626">—</div><div class="rs-label">Bottlenecks</div><div class="rs-sub" id="rs-period-label">last 30 days</div></div>
-    </div>
+      <div class="owner-signal-card" style="margin-bottom:18px">
+        <div class="owner-signal-label">Executive Summary</div>
+        <div class="owner-signal-title" id="reports-summary-title">Loading the latest reporting view.</div>
+        <div class="owner-signal-copy" id="reports-summary-copy">Once report data loads, this summary will translate the period into plain operational language.</div>
+        <div class="owner-inline-list" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+          <div class="owner-inline-row"><span>Jobs in period</span><strong id="reports-inline-total">—</strong></div>
+          <div class="owner-inline-row"><span>Completed</span><strong id="reports-inline-completed">—</strong></div>
+          <div class="owner-inline-row"><span>Bottlenecks</span><strong id="reports-inline-bottlenecks">—</strong></div>
+        </div>
+      </div>
 
-    <!-- Charts row 1 -->
-    <div class="charts-row">
-      <div class="chart-card">
-        <div class="chart-card-title">Jobs by Status</div>
-        <div class="chart-wrap"><canvas id="chart-status"></canvas></div>
+      <div class="report-stat-grid">
+        <div class="report-stat"><div class="rs-val" id="rs-total">—</div><div class="rs-label">Total Jobs</div></div>
+        <div class="report-stat"><div class="rs-val" id="rs-completed" style="color:#16a34a">—</div><div class="rs-label">Completed</div></div>
+        <div class="report-stat"><div class="rs-val" id="rs-hours" style="color:#0265dc">—</div><div class="rs-label">Crew Hours Logged</div></div>
+        <div class="report-stat"><div class="rs-val" id="rs-bottlenecks" style="color:#dc2626">—</div><div class="rs-label">Bottlenecks</div><div class="rs-sub" id="rs-period-label">last 30 days</div></div>
       </div>
-      <div class="chart-card">
-        <div class="chart-card-title">Jobs Completed — Last 6 Months</div>
-        <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
-      </div>
-    </div>
 
-    <!-- Charts row 2 -->
-    <div class="charts-row">
-      <div class="chart-card">
-        <div class="chart-card-title">Crew Hours (period)</div>
-        <div class="chart-wrap"><canvas id="chart-crew"></canvas></div>
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-card-title">Jobs by Status</div>
+          <div class="chart-wrap"><canvas id="chart-status"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Jobs Completed — Last 6 Months</div>
+          <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
+        </div>
       </div>
-      <div class="chart-card">
-        <div class="chart-card-title">Supply Requests (period)</div>
-        <div style="margin-top:16px" id="supply-bars-container"></div>
+
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-card-title">Crew Hours (period)</div>
+          <div class="chart-wrap"><canvas id="chart-crew"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Supply Requests (period)</div>
+          <div style="margin-top:16px" id="supply-bars-container"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -4451,6 +4467,26 @@ async function saveClient() {
 // ── Reports ───────────────────────────────────────────────────────────────────
 let chartStatus = null, chartTrend = null, chartCrew = null;
 
+function updateReportsSummary(d, days) {
+  setText('reports-inline-total', d.totalJobs || 0);
+  setText('reports-inline-completed', d.completedJobs || 0);
+  setText('reports-inline-bottlenecks', d.bottlenecksCount || 0);
+
+  const completionRate = d.totalJobs ? Math.round((d.completedJobs / d.totalJobs) * 100) : 0;
+  if (!d.totalJobs) {
+    setText('reports-summary-title', `No jobs recorded in the last ${days} days.`);
+    setText('reports-summary-copy', 'This period is quiet. Once jobs, crew hours, and supply activity accumulate, this summary will call out operational trends.');
+    return;
+  }
+  if (d.bottlenecksCount > 0) {
+    setText('reports-summary-title', `${d.bottlenecksCount} bottleneck${d.bottlenecksCount === 1 ? '' : 's'} surfaced in the last ${days} days.`);
+    setText('reports-summary-copy', `${d.completedJobs} of ${d.totalJobs} jobs were completed in this period, with ${d.totalCrewHours} crew hours logged. Review blockers before they turn into schedule or margin issues.`);
+    return;
+  }
+  setText('reports-summary-title', `${d.completedJobs} of ${d.totalJobs} jobs completed in the last ${days} days.`);
+  setText('reports-summary-copy', `${d.totalCrewHours} crew hours were logged with a ${completionRate}% completion rate and no reported bottlenecks in this period. Use the charts below for mix, trend, and labor distribution.`);
+}
+
 async function loadReports(days = 30) {
   // Tier gate disabled during beta — all plans have full access
 
@@ -4468,6 +4504,7 @@ async function loadReports(days = 30) {
   document.getElementById('rs-completed').textContent = d.completedJobs;
   document.getElementById('rs-hours').textContent = d.totalCrewHours;
   document.getElementById('rs-bottlenecks').textContent = d.bottlenecksCount;
+  updateReportsSummary(d, days);
 
   renderStatusChart(d.jobsByStatus);
   renderTrendChart(d.trend);
