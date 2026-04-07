@@ -477,6 +477,33 @@
     .product-link { font-size: 13px; font-weight: 600; color: var(--blue); text-decoration: none; }
     .product-link:hover { text-decoration: underline; }
     .product-coming-label { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .ownership-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    .ownership-card {
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 18px;
+      padding: 28px;
+      background: #fff;
+      display: grid;
+      gap: 10px;
+    }
+    .ownership-card strong {
+      font-size: 19px;
+      font-family: var(--font-head);
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+    .ownership-card p {
+      font-size: 14px;
+      color: var(--sub);
+      line-height: 1.7;
+    }
 
     /* ── Outcomes ── */
     .outcomes { padding: 96px 60px; }
@@ -700,6 +727,7 @@
       .section-title { font-size: 30px; }
       .services-grid { grid-template-columns: 1fr; }
       .products-grid { grid-template-columns: 1fr; }
+      .ownership-grid { grid-template-columns: 1fr; }
       .outcomes-grid { grid-template-columns: 1fr; }
       .steps { grid-template-columns: 1fr 1fr; gap: 32px; }
       .steps::before { display: none; }
@@ -978,33 +1006,21 @@
 
   <!-- Products -->
   <section class="products" id="products">
-    <div class="section-eyebrow reveal">Our Products</div>
-    <h2 class="section-title reveal reveal-delay-1">SaaS Built In-House</h2>
-    <p class="section-sub reveal reveal-delay-2">We don't just build for clients — we ship our own products to solve real industry problems.</p>
-    <div class="products-grid">
-      <div class="product-card reveal">
-        <span class="product-badge badge-live">LIVE</span>
-        <div class="product-logo">Link<span class="a1">Crew</span></div>
-        <p>AI-powered field crew management for contractors. Job scheduling, crew check-ins, client invoicing, voice bot, and real-time dashboards — all in one platform.</p>
-        <div class="product-tags">
-          <span class="tag">Field Service</span>
-          <span class="tag">Mobile App</span>
-          <span class="tag">AI Voice Bot</span>
-          <span class="tag">Invoicing</span>
-        </div>
-        <a class="product-link" href="https://linkcrew.io" target="_blank">Visit linkcrew.io →</a>
+    <div class="section-eyebrow reveal">Why It Matters</div>
+    <h2 class="section-title reveal reveal-delay-1">Shipping our own software changes how we build for clients.</h2>
+    <p class="section-sub reveal reveal-delay-2">Owning live products keeps the work grounded in support, iteration, adoption, and the edge cases that show up after launch.</p>
+    <div class="ownership-grid">
+      <div class="ownership-card reveal">
+        <strong>Production Thinking</strong>
+        <p>We design with real users, support load, admin controls, and long-term maintenance in mind instead of stopping at a polished demo.</p>
       </div>
-      <div class="product-card reveal reveal-delay-1">
-        <span class="product-badge badge-soon">COMING SOON</span>
-        <div class="product-logo">Support<span class="a2">IQ</span></div>
-        <p>AI customer support co-pilot for SMBs. Connect your docs, Gmail, and help desk — SupportIQ drafts responses, scores confidence, and keeps your team fast without growing headcount.</p>
-        <div class="product-tags">
-          <span class="tag">Customer Support</span>
-          <span class="tag">AI Co-pilot</span>
-          <span class="tag">Gmail</span>
-          <span class="tag">SMB</span>
-        </div>
-        <span class="product-coming-label">Launching soon — $299/mo</span>
+      <div class="ownership-card reveal reveal-delay-1">
+        <strong>Faster Iteration</strong>
+        <p>Because we actively ship and refine products, we move faster from concept to useful workflow without the usual agency handoff drag.</p>
+      </div>
+      <div class="ownership-card reveal reveal-delay-2">
+        <strong>Real User Feedback</strong>
+        <p>We learn from live adoption, friction, and edge cases in our own systems, which makes the software we build for clients more practical from day one.</p>
       </div>
     </div>
   </section>
