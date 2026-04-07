@@ -2898,6 +2898,8 @@ async function openDetail(jobId, jobName) {
   const woEl = document.getElementById('detail-workorder');
   const hasEstimate = job?.estimate_amount > 0;
   const woUrl = `/workorder?job_id=${job?.id}`;
+  const smsDisabledAttrs = !ownerTwilioConfigured ? 'disabled title="Set up the company Twilio number in Settings to enable SMS client messages."' : '';
+  const smsDisabledStyle = !ownerTwilioConfigured ? 'opacity:0.5;cursor:not-allowed;' : 'cursor:pointer;';
   woEl.innerHTML = `
     <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
     <div class="panel-title">Work Order / Estimate</div>
@@ -2910,7 +2912,8 @@ async function openDetail(jobId, jobName) {
         Email Client
       </button>
       <button id="wo-sms-btn-${job?.id}" onclick="smsWorkOrder('${job?.id}')"
-        style="font-size:12px;background:#16a34a;color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-weight:600">
+        ${smsDisabledAttrs}
+        style="font-size:12px;background:#16a34a;color:#fff;border:none;border-radius:6px;padding:5px 12px;${smsDisabledStyle}font-weight:600">
         SMS Client
       </button>
     </div>
