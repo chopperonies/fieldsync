@@ -654,6 +654,13 @@
             </div>
             <span class="overview-value" id="ov-invite-uses">0</span>
           </button>
+          <button class="overview-item" onclick="applyQuickFilter('past_due')">
+            <div class="overview-copy">
+              <strong>At-Risk Revenue</strong>
+              <span>Accounts likely needing payment recovery or review.</span>
+            </div>
+            <span class="overview-value" id="ov-risk-revenue">$0</span>
+          </button>
         </div>
       </div>
     </div>
@@ -1016,30 +1023,29 @@ function renderStats(mrrData) {
   const trialing = tenants.filter(t => t.subscription_status === 'trialing').length;
   const sevenDays = new Date(Date.now() - 7 * 86400000);
   const recentlyActive = tenants.filter(t => t.last_seen_at && new Date(t.last_seen_at) > sevenDays).length;
-  const paused = tenants.filter(t => t.paused).length;
-  const current = mrrData?.current ?? 0;
-  const lastMonth = mrrData?.last_month;
-  const projected = mrrData?.projected ?? 0;
-  const delta = lastMonth !== null ? current - lastMonth : null;
-  const deltaCopy = delta !== null
-    ? `${delta >= 0 ? 'Up' : 'Down'} $${Math.abs(delta).toLocaleString()} vs last month`
-    : 'No previous month snapshot yet';
+  const atRiskAccounts = tenants.filter(t => t.subscription_status === 'past_due' || t.paused || t.blocked).length;
+  const seatLimitAccounts = tenants.filter(t => (t.employee_count ?? 0) >= (t.max_users ?? 1)).length;
+  const crewBase = tenants.length || 1;
+  const payingTenants = tenants.filter(t => t.subscription_status === 'active');
+  const payingBase = payingTenants.length || 1;
+  const avgCrew = tenants.reduce((sum, t) => sum + (t.employee_count ?? 0), 0) / crewBase;
+  const avgJobs = payingTenants.reduce((sum, t) => sum + (t.job_count ?? 0), 0) / payingBase;
 
   document.getElementById('stats-row').innerHTML = `
     <div class="stats-card"><div class="stats-label">Total Accounts</div><div class="stats-value">${tenants.length}</div><div class="stats-sub">All LinkCrew tenant records currently in the system.</div></div>
     <div class="stats-card"><div class="stats-label">Paying Accounts</div><div class="stats-value" style="color:#86efac">${active}</div><div class="stats-sub">Tenants with an active paid subscription state.</div></div>
     <div class="stats-card"><div class="stats-label">Trials</div><div class="stats-value" style="color:#93c5fd">${trialing}</div><div class="stats-sub">Current trial accounts still within their active window.</div></div>
     <div class="stats-card"><div class="stats-label">Recently Active</div><div class="stats-value" style="color:#a5b4fc">${recentlyActive}</div><div class="stats-sub">Tenants seen in the product during the last 7 days.</div></div>
-    <div class="stats-card"><div class="stats-label">Paused</div><div class="stats-value" style="color:#fde68a">${paused}</div><div class="stats-sub">Accounts currently paused by internal admin action.</div></div>
-    <div class="stats-card"><div class="stats-label">Last Month MRR</div><div class="stats-value" style="color:#dbeafe">$${lastMonth !== null ? lastMonth.toLocaleString() : '—'}</div><div class="stats-sub">Previous saved MRR snapshot.</div></div>
-    <div class="stats-card"><div class="stats-label">Current MRR</div><div class="stats-value" style="color:#7ee0c5">$${current.toLocaleString()}</div><div class="stats-sub">${deltaCopy}</div></div>
-    <div class="stats-card"><div class="stats-label">Projected MRR</div><div class="stats-value" style="color:#c4b5fd">$${projected.toLocaleString()}</div><div class="stats-sub">Projection using current trial-conversion assumption.</div></div>
+    <div class="stats-card"><div class="stats-label">At-Risk Accounts</div><div class="stats-value" style="color:#fde68a">${atRiskAccounts}</div><div class="stats-sub">Past due, paused, or blocked tenants needing attention.</div></div>
+    <div class="stats-card"><div class="stats-label">Average Crew Size</div><div class="stats-value" style="color:#dbeafe">${avgCrew.toFixed(1)}</div><div class="stats-sub">Average employee count across all accounts.</div></div>
+    <div class="stats-card"><div class="stats-label">Avg Jobs Per Paying</div><div class="stats-value" style="color:#7ee0c5">${avgJobs.toFixed(1)}</div><div class="stats-sub">Average job volume across active paid accounts.</div></div>
+    <div class="stats-card"><div class="stats-label">At Seat Limit</div><div class="stats-value" style="color:#c4b5fd">${seatLimitAccounts}</div><div class="stats-sub">Accounts already at or above included crew capacity.</div></div>
   `;
 
   document.getElementById('sb-accounts').textContent = tenants.length;
   document.getElementById('sb-paying').textContent = active;
   document.getElementById('sb-trials').textContent = trialing;
-  document.getElementById('sb-mrr').textContent = `$${current.toLocaleString()}`;
+  document.getElementById('sb-mrr').textContent = `$${(mrrData?.current ?? 0).toLocaleString()}`;
 }
 
 function renderOverviewBand(mrrData) {
@@ -1051,7 +1057,9 @@ function renderOverviewBand(mrrData) {
   const expiredTrials = getUnconvertedTrials().length;
   const inviteUses = invitesCache.reduce((sum, inv) => sum + (inv.use_count || 0), 0);
   const current = mrrData?.current ?? 0;
-  const projected = mrrData?.projected ?? 0;
+  const riskRevenue = tenants
+    .filter(t => t.subscription_status === 'past_due' || t.paused || t.blocked)
+    .reduce((sum, t) => sum + planMRR(t.plan), 0);
 
   document.getElementById('ov-expiring-trials').textContent = expiringTrials;
   document.getElementById('ov-past-due').textContent = pastDue;
@@ -1060,8 +1068,8 @@ function renderOverviewBand(mrrData) {
   document.getElementById('ov-recent-activity').textContent = recentActivity;
   document.getElementById('ov-expired-trials').textContent = expiredTrials;
   document.getElementById('ov-current-mrr').textContent = `$${current.toLocaleString()}`;
-  document.getElementById('ov-projected-mrr').textContent = `$${projected.toLocaleString()}`;
   document.getElementById('ov-invite-uses').textContent = inviteUses;
+  document.getElementById('ov-risk-revenue').textContent = `$${riskRevenue.toLocaleString()}`;
 }
 
 function applyQuickFilter(type) {
@@ -1676,6 +1684,17 @@ function escapeAttr(value) {
 
 function escapeJs(value) {
   return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function planMRR(plan) {
+  const pricing = {
+    free: 0,
+    solo: 49,
+    team: 97,
+    pro: 165,
+    business: 299,
+  };
+  return pricing[plan || 'free'] || 0;
 }
 </script>
 </body>
