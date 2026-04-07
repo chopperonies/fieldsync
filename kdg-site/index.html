@@ -74,19 +74,30 @@
 
     /* ── Hero ── */
     .hero {
-      padding: 100px 60px 0;
-      text-align: center;
+      padding: 78px 60px 0;
       position: relative; overflow: hidden;
       background: #fff7de;
     }
     .hero::before {
       display: none;
     }
+    .hero-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 0.92fr) minmax(420px, 1.08fr);
+      gap: 34px;
+      align-items: start;
+    }
+    .hero-copy {
+      text-align: left;
+      padding-top: 6px;
+    }
     .hero-badge {
       display: inline-flex; align-items: center; gap: 8px;
       background: rgba(255,255,255,0.7); border: 1px solid rgba(0,0,0,0.1);
       padding: 5px 14px 5px 8px; border-radius: 20px;
-      font-size: 12px; font-weight: 700; color: var(--sub); margin-bottom: 32px;
+      font-size: 12px; font-weight: 700; color: var(--sub); margin-bottom: 24px;
     }
     .hero-badge-dot {
       width: 6px; height: 6px; border-radius: 50%;
@@ -98,17 +109,17 @@
     .hero h1 {
       font-family: var(--font-head);
       font-size: 64px; font-weight: 900; line-height: 1.06;
-      max-width: 860px; margin: 0 auto 22px; letter-spacing: -0.02em;
+      max-width: 10ch; margin: 0 0 18px; letter-spacing: -0.02em;
       color: var(--text);
     }
     .hero h1 .grad {
       color: #b8860b;
     }
     .hero-sub {
-      font-size: 18px; color: var(--sub); max-width: 520px;
-      margin: 0 auto 40px; line-height: 1.75; font-weight: 400;
+      font-size: 18px; color: var(--sub); max-width: 34ch;
+      margin: 0 0 28px; line-height: 1.75; font-weight: 400;
     }
-    .hero-ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 72px; }
+    .hero-ctas { display: flex; gap: 12px; justify-content: flex-start; flex-wrap: wrap; margin-bottom: 0; }
     .btn-primary {
       background: var(--accent); color: #111; border: none;
       padding: 14px 30px; border-radius: 8px; font-size: 15px; font-weight: 900;
@@ -123,9 +134,9 @@
     .btn-secondary:hover { border-color: var(--text); transform: translateY(-1px); }
 
     /* ── Hero Product Composition ── */
-    .hero-showcase-wrap { padding: 0 40px; }
+    .hero-showcase-wrap { padding: 0; }
     .hero-showcase {
-      max-width: 1020px; margin: 0 auto;
+      max-width: 100%;
       position: relative;
       display: grid;
       gap: 18px;
@@ -166,6 +177,12 @@
       align-items: center;
       gap: 12px;
     }
+    .product-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
     .product-name {
       font-size: 24px;
       font-weight: 900;
@@ -192,6 +209,24 @@
       background: rgba(34,197,94,0.12);
       color: #15803d;
       border: 1px solid rgba(34,197,94,0.16);
+    }
+    .product-link-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(37,99,235,0.1);
+      color: var(--blue);
+      border: 1px solid rgba(37,99,235,0.16);
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .product-link-btn:hover {
+      background: rgba(37,99,235,0.16);
     }
     .product-summary {
       font-size: 14px;
@@ -739,9 +774,13 @@
     @media (max-width: 960px) {
       nav { padding: 0 20px; }
       .nav-links { display: none; }
-      .hero { padding: 72px 24px 0; }
+      .hero { padding: 62px 24px 0; }
+      .hero-inner { grid-template-columns: 1fr; gap: 26px; }
+      .hero-copy { text-align: center; padding-top: 0; }
       .hero h1 { font-size: 40px; }
-      .hero-sub { font-size: 15px; }
+      .hero h1, .hero-sub { max-width: none; }
+      .hero-sub { font-size: 15px; margin: 0 auto 24px; }
+      .hero-ctas { justify-content: center; }
       .hero-showcase-wrap { padding: 0 16px; }
       .hero-stack { min-height: 500px; }
       .hero-product-main { width: 100%; }
@@ -807,103 +846,110 @@
 
   <!-- Hero -->
   <section class="hero">
-    <div class="hero-badge reveal">
-      <span class="hero-badge-dot"></span>
-      AI Automation &amp; SaaS Development
-    </div>
-    <h1 class="reveal reveal-delay-1">
-      Software That Runs<br />
-      <span class="grad">While You're in the Field</span>
-    </h1>
-    <p class="hero-sub reveal reveal-delay-2">
-      Kingston Data Group builds AI-powered systems and SaaS products for service businesses, contractors, and operators who need real solutions — not demos.
-    </p>
-    <div class="hero-ctas reveal reveal-delay-3">
-      <a class="btn-primary" href="#contact">Start a Project</a>
-      <a class="btn-secondary" href="#products">See Our Products</a>
-    </div>
-
-    <!-- Product Composition -->
-    <div class="hero-showcase-wrap reveal reveal-delay-4">
-      <div class="hero-showcase">
-        <div class="hero-stack">
-          <div class="hero-product-card hero-product-main">
-            <div class="product-shell">
-              <div class="product-topbar">
-                <div>
-                  <div class="product-kicker">Live Product</div>
-                  <div class="product-name">Link<span>Crew</span></div>
-                </div>
-                <div class="product-pill">In Production</div>
-              </div>
-              <p class="product-summary">Field crew management, scheduling, invoicing, client visibility, and operational dashboards built into one working system for contractors and service businesses.</p>
-              <div class="product-kpis">
-                <div class="product-kpi">
-                  <strong>Jobs</strong>
-                  <span>Scheduling, assignment, completion, and operational review in one place.</span>
-                </div>
-                <div class="product-kpi">
-                  <strong>Clients</strong>
-                  <span>Invoices, work orders, reminders, and recurring billing flows.</span>
-                </div>
-                <div class="product-kpi">
-                  <strong>Crew</strong>
-                  <span>Field updates, photos, timesheets, and mobile workflow visibility.</span>
-                </div>
-              </div>
-              <div class="product-lines">
-                <div class="product-line">
-                  <div class="product-line-bar"></div>
-                  <div class="product-line-bar short"></div>
-                  <div class="product-line-chip">Owner Ops</div>
-                </div>
-                <div class="product-line">
-                  <div class="product-line-bar"></div>
-                  <div class="product-line-bar short"></div>
-                  <div class="product-line-chip blue">Crew Flow</div>
-                </div>
-                <div class="product-line">
-                  <div class="product-line-bar"></div>
-                  <div class="product-line-bar short"></div>
-                  <div class="product-line-chip">Client Layer</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="hero-product-card hero-product-side">
-            <div class="product-shell">
-              <div>
-                <div class="product-kicker" style="color:rgba(241,245,249,0.6)">Next Product</div>
-                <div class="product-side-name">Support<span>IQ</span></div>
-              </div>
-              <p class="product-side-copy">AI customer support software that drafts responses, works from your docs and inbox context, and helps small teams support more customers without growing headcount.</p>
-              <div class="supportiq-list">
-                <div class="supportiq-item">
-                  <strong>Draft Faster</strong>
-                  <span>Generate response drafts from support context and connected knowledge.</span>
-                </div>
-                <div class="supportiq-item">
-                  <strong>Stay Consistent</strong>
-                  <span>Use the same tone, policy logic, and reference material across the team.</span>
-                </div>
-              </div>
-            </div>
-          </div>
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <div class="hero-badge reveal">
+          <span class="hero-badge-dot"></span>
+          AI Automation &amp; SaaS Development
         </div>
+        <h1 class="reveal reveal-delay-1">
+          Software That Runs<br />
+          <span class="grad">While You're in the Field</span>
+        </h1>
+        <p class="hero-sub reveal reveal-delay-2">
+          Kingston Data Group builds AI-powered systems and SaaS products for service businesses, contractors, and operators who need real solutions, not demos.
+        </p>
+        <div class="hero-ctas reveal reveal-delay-3">
+          <a class="btn-primary" href="#contact">Start a Project</a>
+          <a class="btn-secondary" href="#services">See What We Do</a>
+        </div>
+      </div>
 
-        <div class="capability-strip">
-          <div class="capability-card">
-            <strong>AI Automation</strong>
-            <span>Reduce repetitive manual work in live business workflows.</span>
+      <!-- Product Composition -->
+      <div class="hero-showcase-wrap reveal reveal-delay-4">
+        <div class="hero-showcase">
+          <div class="hero-stack">
+            <div class="hero-product-card hero-product-main">
+              <div class="product-shell">
+                <div class="product-topbar">
+                  <div>
+                    <div class="product-kicker">Live Product</div>
+                    <div class="product-name">Link<span>Crew</span></div>
+                  </div>
+                  <div class="product-actions">
+                    <a class="product-link-btn" href="https://linkcrew.io" target="_blank">View Product</a>
+                    <div class="product-pill">In Production</div>
+                  </div>
+                </div>
+                <p class="product-summary">Field crew management, scheduling, invoicing, client visibility, and operational dashboards built into one working system for contractors and service businesses.</p>
+                <div class="product-kpis">
+                  <div class="product-kpi">
+                    <strong>Jobs</strong>
+                    <span>Scheduling, assignment, completion, and operational review in one place.</span>
+                  </div>
+                  <div class="product-kpi">
+                    <strong>Clients</strong>
+                    <span>Invoices, work orders, reminders, and recurring billing flows.</span>
+                  </div>
+                  <div class="product-kpi">
+                    <strong>Crew</strong>
+                    <span>Field updates, photos, timesheets, and mobile workflow visibility.</span>
+                  </div>
+                </div>
+                <div class="product-lines">
+                  <div class="product-line">
+                    <div class="product-line-bar"></div>
+                    <div class="product-line-bar short"></div>
+                    <div class="product-line-chip">Owner Ops</div>
+                  </div>
+                  <div class="product-line">
+                    <div class="product-line-bar"></div>
+                    <div class="product-line-bar short"></div>
+                    <div class="product-line-chip blue">Crew Flow</div>
+                  </div>
+                  <div class="product-line">
+                    <div class="product-line-bar"></div>
+                    <div class="product-line-bar short"></div>
+                    <div class="product-line-chip">Client Layer</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="hero-product-card hero-product-side">
+              <div class="product-shell">
+                <div>
+                  <div class="product-kicker" style="color:rgba(241,245,249,0.6)">Next Product</div>
+                  <div class="product-side-name">Support<span>IQ</span></div>
+                </div>
+                <p class="product-side-copy">AI customer support software that drafts responses, works from your docs and inbox context, and helps small teams support more customers without growing headcount.</p>
+                <div class="supportiq-list">
+                  <div class="supportiq-item">
+                    <strong>Draft Faster</strong>
+                    <span>Generate response drafts from support context and connected knowledge.</span>
+                  </div>
+                  <div class="supportiq-item">
+                    <strong>Stay Consistent</strong>
+                    <span>Use the same tone, policy logic, and reference material across the team.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="capability-card">
-            <strong>Voice Systems</strong>
-            <span>Capture requests, qualify intent, and route work automatically.</span>
-          </div>
-          <div class="capability-card">
-            <strong>Custom SaaS</strong>
-            <span>Build the operating layer when patched tools stop fitting.</span>
+
+          <div class="capability-strip">
+            <div class="capability-card">
+              <strong>AI Automation</strong>
+              <span>Reduce repetitive manual work in live business workflows.</span>
+            </div>
+            <div class="capability-card">
+              <strong>Voice Systems</strong>
+              <span>Capture requests, qualify intent, and route work automatically.</span>
+            </div>
+            <div class="capability-card">
+              <strong>Custom SaaS</strong>
+              <span>Build the operating layer when patched tools stop fitting.</span>
+            </div>
           </div>
         </div>
       </div>
