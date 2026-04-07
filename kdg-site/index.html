@@ -122,84 +122,205 @@
     }
     .btn-secondary:hover { border-color: var(--text); transform: translateY(-1px); }
 
-    /* ── Browser Mockup ── */
-    .hero-mockup-wrap { padding: 0 40px; }
-    .hero-mockup {
-      max-width: 1000px; margin: 0 auto;
-      border-radius: 14px 14px 0 0; overflow: hidden;
-      border: 1px solid rgba(0,0,0,0.18); border-bottom: none;
-      box-shadow: 0 -4px 40px rgba(255,193,7,0.15), 0 20px 60px rgba(0,0,0,0.2);
-      transform: perspective(1400px) rotateX(8deg);
-      transform-origin: bottom center;
+    /* ── Hero Product Composition ── */
+    .hero-showcase-wrap { padding: 0 40px; }
+    .hero-showcase {
+      max-width: 1020px; margin: 0 auto;
+      position: relative;
+      display: grid;
+      gap: 18px;
     }
-    .mockup-bar {
-      background: #141619; padding: 10px 16px;
-      display: flex; align-items: center; gap: 10px;
-      border-bottom: 1px solid var(--border);
+    .hero-stack {
+      position: relative;
+      min-height: 410px;
     }
-    .mockup-dots { display: flex; gap: 6px; }
-    .mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
-    .mockup-dot:nth-child(1) { background: #ff5f57; }
-    .mockup-dot:nth-child(2) { background: #ffbd2e; }
-    .mockup-dot:nth-child(3) { background: #28c840; }
-    .mockup-url {
-      flex: 1; background: var(--bg); border-radius: 5px;
-      padding: 4px 12px; font-size: 11px; color: var(--muted);
-      text-align: center; font-family: monospace;
+    .hero-product-card {
+      position: absolute;
+      border-radius: 22px;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.12);
+      box-shadow: 0 26px 70px rgba(0,0,0,0.16);
     }
-    .mockup-body {
-      display: grid; grid-template-columns: 180px 1fr;
-      height: 380px; background: var(--surface);
+    .hero-product-main {
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(760px, 100%);
+      background: linear-gradient(180deg, #fbfdff 0%, #f3f7ff 100%);
     }
-    .mockup-sidebar {
-      background: var(--bg); border-right: 1px solid var(--border);
-      padding: 16px 12px; display: flex; flex-direction: column; gap: 3px;
+    .hero-product-side {
+      right: 30px;
+      bottom: 18px;
+      width: min(300px, 42vw);
+      background: linear-gradient(180deg, #0f172a 0%, #18263f 100%);
+      color: #f8fafc;
+      box-shadow: 0 20px 60px rgba(15,23,42,0.28);
     }
-    .mockup-brand {
-      display: flex; align-items: center; gap: 8px;
-      padding: 6px 8px 14px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
+    .product-shell {
+      padding: 22px;
+      display: grid;
+      gap: 18px;
     }
-    .mockup-brand-icon {
-      width: 24px; height: 24px; background: var(--accent); border-radius: 5px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 900; color: #fff;
+    .product-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
     }
-    .mockup-brand-text { font-size: 12px; font-weight: 700; color: var(--text); font-family: var(--font-head); }
-    .mockup-nav-item {
-      display: flex; align-items: center; gap: 9px;
-      padding: 7px 10px; border-radius: 6px; font-size: 11.5px; color: var(--sub);
+    .product-name {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      font-family: var(--font-head);
+      color: var(--text);
     }
-    .mockup-nav-item.active { background: var(--surface2); color: var(--text); }
-    .mockup-nav-dot { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
-    .mockup-nav-label { width: 72px; height: 7px; border-radius: 3px; background: currentColor; opacity: 0.55; }
-    .mockup-main { padding: 20px; overflow: hidden; }
-    .mockup-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .mockup-page-title { width: 80px; height: 10px; border-radius: 4px; background: var(--text); opacity: 0.75; }
-    .mockup-topbar-right { display: flex; gap: 8px; }
-    .mockup-btn-sm { height: 26px; border-radius: 5px; border: 1px solid var(--border2); }
-    .mockup-btn-sm:nth-child(1) { width: 60px; background: transparent; }
-    .mockup-btn-sm:nth-child(2) { width: 80px; background: var(--accent); border-color: transparent; }
-    .mockup-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
-    .mockup-stat-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
-    .mockup-stat-label { width: 50px; height: 6px; border-radius: 3px; background: var(--muted); margin-bottom: 10px; }
-    .mockup-stat-value { font-size: 20px; font-weight: 800; font-family: var(--font-head); color: var(--text); }
-    .mockup-stat-sub { font-size: 9px; color: var(--green); margin-top: 4px; }
-    .mockup-table { width: 100%; }
-    .mockup-table-head { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 6px 10px; margin-bottom: 6px; }
-    .mockup-th { width: 40px; height: 6px; background: var(--muted); border-radius: 3px; opacity: 0.4; }
-    .mockup-row {
-      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
-      padding: 9px 10px; border-radius: 6px; align-items: center;
-      border-bottom: 1px solid var(--border);
+    .product-name span { color: var(--blue); }
+    .product-kicker {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
     }
-    .mockup-row:last-child { border-bottom: none; }
-    .mockup-row-name { display: flex; align-items: center; gap: 8px; }
-    .mockup-avatar { width: 20px; height: 20px; border-radius: 4px; flex-shrink: 0; }
-    .mockup-text-bar { height: 7px; border-radius: 3px; background: var(--sub); opacity: 0.45; }
-    .mockup-badge { display: inline-flex; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 600; }
-    .mockup-badge.green { background: rgba(34,197,94,0.15); color: #22c55e; }
-    .mockup-badge.blue  { background: rgba(59,130,246,0.15); color: #60a5fa; }
-    .mockup-badge.amber { background: rgba(251,191,36,0.15);  color: #fbbf24; }
+    .product-pill {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(34,197,94,0.12);
+      color: #15803d;
+      border: 1px solid rgba(34,197,94,0.16);
+    }
+    .product-summary {
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--sub);
+      max-width: 54ch;
+    }
+    .product-kpis {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .product-kpi {
+      padding: 14px;
+      border-radius: 14px;
+      background: #ffffff;
+      border: 1px solid rgba(0,0,0,0.08);
+      display: grid;
+      gap: 6px;
+      text-align: left;
+    }
+    .product-kpi strong {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+    .product-kpi span {
+      font-size: 12px;
+      color: var(--sub);
+      line-height: 1.45;
+    }
+    .product-lines {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(37, 99, 235, 0.06);
+      border: 1px solid rgba(37,99,235,0.12);
+    }
+    .product-line {
+      display: grid;
+      grid-template-columns: 1.4fr 0.9fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .product-line-bar {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.14);
+    }
+    .product-line-bar.short { width: 70%; }
+    .product-line-chip {
+      justify-self: start;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: rgba(249,115,22,0.14);
+      color: #c2410c;
+    }
+    .product-line-chip.blue {
+      background: rgba(59,130,246,0.14);
+      color: #2563eb;
+    }
+    .product-side-name {
+      font-size: 23px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: #f8fafc;
+      font-family: var(--font-head);
+    }
+    .product-side-name span { color: #fbbf24; }
+    .product-side-copy {
+      font-size: 13px;
+      line-height: 1.7;
+      color: rgba(241,245,249,0.76);
+    }
+    .supportiq-list {
+      display: grid;
+      gap: 10px;
+    }
+    .supportiq-item {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      display: grid;
+      gap: 4px;
+    }
+    .supportiq-item strong {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #fbbf24;
+    }
+    .supportiq-item span {
+      font-size: 12px;
+      line-height: 1.55;
+      color: rgba(241,245,249,0.8);
+    }
+    .capability-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .capability-card {
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid rgba(0,0,0,0.08);
+      text-align: left;
+      display: grid;
+      gap: 4px;
+    }
+    .capability-card strong {
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .capability-card span {
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--sub);
+    }
 
     /* ── Trust Strip ── */
     .trust-strip {
@@ -563,9 +684,16 @@
       .hero { padding: 72px 24px 0; }
       .hero h1 { font-size: 40px; }
       .hero-sub { font-size: 15px; }
-      .hero-mockup-wrap { padding: 0 16px; }
-      .mockup-body { grid-template-columns: 140px 1fr; height: 260px; }
-      .mockup-stat-value { font-size: 15px; }
+      .hero-showcase-wrap { padding: 0 16px; }
+      .hero-stack { min-height: 500px; }
+      .hero-product-main { width: 100%; }
+      .hero-product-side {
+        position: relative;
+        right: auto;
+        bottom: auto;
+        width: min(320px, 88%);
+        margin: -34px 0 0 auto;
+      }
       .trust-strip { padding: 36px 24px; }
       .trust-logos { gap: 28px; }
       .services, .products, .outcomes, .testimonial, .process, .contact { padding: 64px 24px; }
@@ -581,9 +709,19 @@
     }
     @media (max-width: 600px) {
       .hero h1 { font-size: 32px; }
-      .mockup-sidebar { display: none; }
-      .mockup-body { grid-template-columns: 1fr; }
-      .mockup-stats { grid-template-columns: repeat(2, 1fr); }
+      .hero-stack { min-height: auto; }
+      .hero-product-card { position: relative; }
+      .hero-product-main,
+      .hero-product-side {
+        left: auto;
+        right: auto;
+        bottom: auto;
+        transform: none;
+        width: 100%;
+        margin: 0;
+      }
+      .product-kpis, .capability-strip { grid-template-columns: 1fr; }
+      .product-line { grid-template-columns: 1fr; }
       .steps { grid-template-columns: 1fr; }
     }
   </style>
@@ -626,122 +764,87 @@
       <a class="btn-secondary" href="#products">See Our Products</a>
     </div>
 
-    <!-- Browser Mockup -->
-    <div class="hero-mockup-wrap reveal reveal-delay-4">
-      <div class="hero-mockup">
-        <div class="mockup-bar">
-          <div class="mockup-dots">
-            <div class="mockup-dot"></div>
-            <div class="mockup-dot"></div>
-            <div class="mockup-dot"></div>
+    <!-- Product Composition -->
+    <div class="hero-showcase-wrap reveal reveal-delay-4">
+      <div class="hero-showcase">
+        <div class="hero-stack">
+          <div class="hero-product-card hero-product-main">
+            <div class="product-shell">
+              <div class="product-topbar">
+                <div>
+                  <div class="product-kicker">Live Product</div>
+                  <div class="product-name">Link<span>Crew</span></div>
+                </div>
+                <div class="product-pill">In Production</div>
+              </div>
+              <p class="product-summary">Field crew management, scheduling, invoicing, client visibility, and operational dashboards built into one working system for contractors and service businesses.</p>
+              <div class="product-kpis">
+                <div class="product-kpi">
+                  <strong>Jobs</strong>
+                  <span>Scheduling, assignment, completion, and operational review in one place.</span>
+                </div>
+                <div class="product-kpi">
+                  <strong>Clients</strong>
+                  <span>Invoices, work orders, reminders, and recurring billing flows.</span>
+                </div>
+                <div class="product-kpi">
+                  <strong>Crew</strong>
+                  <span>Field updates, photos, timesheets, and mobile workflow visibility.</span>
+                </div>
+              </div>
+              <div class="product-lines">
+                <div class="product-line">
+                  <div class="product-line-bar"></div>
+                  <div class="product-line-bar short"></div>
+                  <div class="product-line-chip">Owner Ops</div>
+                </div>
+                <div class="product-line">
+                  <div class="product-line-bar"></div>
+                  <div class="product-line-bar short"></div>
+                  <div class="product-line-chip blue">Crew Flow</div>
+                </div>
+                <div class="product-line">
+                  <div class="product-line-bar"></div>
+                  <div class="product-line-bar short"></div>
+                  <div class="product-line-chip">Client Layer</div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="mockup-url">app.linkcrew.io/dashboard</div>
+
+          <div class="hero-product-card hero-product-side">
+            <div class="product-shell">
+              <div>
+                <div class="product-kicker" style="color:rgba(241,245,249,0.6)">Next Product</div>
+                <div class="product-side-name">Support<span>IQ</span></div>
+              </div>
+              <p class="product-side-copy">AI customer support software that drafts responses, works from your docs and inbox context, and helps small teams support more customers without growing headcount.</p>
+              <div class="supportiq-list">
+                <div class="supportiq-item">
+                  <strong>Draft Faster</strong>
+                  <span>Generate response drafts from support context and connected knowledge.</span>
+                </div>
+                <div class="supportiq-item">
+                  <strong>Stay Consistent</strong>
+                  <span>Use the same tone, policy logic, and reference material across the team.</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="mockup-body">
-          <div class="mockup-sidebar">
-            <div class="mockup-brand">
-              <div class="mockup-brand-icon">L</div>
-              <span class="mockup-brand-text">LinkCrew</span>
-            </div>
-            <div class="mockup-nav-item active">
-              <div class="mockup-nav-dot" style="background:#f97316"></div>
-              <div class="mockup-nav-label"></div>
-            </div>
-            <div class="mockup-nav-item">
-              <div class="mockup-nav-dot" style="background:#3b82f6"></div>
-              <div class="mockup-nav-label"></div>
-            </div>
-            <div class="mockup-nav-item">
-              <div class="mockup-nav-dot" style="background:#22c55e"></div>
-              <div class="mockup-nav-label"></div>
-            </div>
-            <div class="mockup-nav-item">
-              <div class="mockup-nav-dot" style="background:#a855f7"></div>
-              <div class="mockup-nav-label"></div>
-            </div>
-            <div class="mockup-nav-item">
-              <div class="mockup-nav-dot" style="background:#52525b"></div>
-              <div class="mockup-nav-label"></div>
-            </div>
-            <div class="mockup-nav-item">
-              <div class="mockup-nav-dot" style="background:#52525b"></div>
-              <div class="mockup-nav-label"></div>
-            </div>
+
+        <div class="capability-strip">
+          <div class="capability-card">
+            <strong>AI Automation</strong>
+            <span>Reduce repetitive manual work in live business workflows.</span>
           </div>
-          <div class="mockup-main">
-            <div class="mockup-topbar">
-              <div class="mockup-page-title"></div>
-              <div class="mockup-topbar-right">
-                <div class="mockup-btn-sm"></div>
-                <div class="mockup-btn-sm"></div>
-              </div>
-            </div>
-            <div class="mockup-stats">
-              <div class="mockup-stat-card">
-                <div class="mockup-stat-label"></div>
-                <div class="mockup-stat-value">12</div>
-                <div class="mockup-stat-sub">↑ 3 today</div>
-              </div>
-              <div class="mockup-stat-card">
-                <div class="mockup-stat-label"></div>
-                <div class="mockup-stat-value">8</div>
-                <div class="mockup-stat-sub">on-site now</div>
-              </div>
-              <div class="mockup-stat-card">
-                <div class="mockup-stat-label"></div>
-                <div class="mockup-stat-value">$4.2k</div>
-                <div class="mockup-stat-sub">invoices due</div>
-              </div>
-              <div class="mockup-stat-card">
-                <div class="mockup-stat-label"></div>
-                <div class="mockup-stat-value">$1.8k</div>
-                <div class="mockup-stat-sub">↑ today</div>
-              </div>
-            </div>
-            <div class="mockup-table">
-              <div class="mockup-table-head">
-                <div class="mockup-th"></div>
-                <div class="mockup-th" style="width:30px"></div>
-                <div class="mockup-th" style="width:35px"></div>
-                <div class="mockup-th" style="width:28px"></div>
-              </div>
-              <div class="mockup-row">
-                <div class="mockup-row-name">
-                  <div class="mockup-avatar" style="background:#1d4ed8"></div>
-                  <div class="mockup-text-bar" style="width:90px"></div>
-                </div>
-                <div class="mockup-text-bar" style="width:50px"></div>
-                <div><span class="mockup-badge green">Active</span></div>
-                <div class="mockup-text-bar" style="width:40px"></div>
-              </div>
-              <div class="mockup-row">
-                <div class="mockup-row-name">
-                  <div class="mockup-avatar" style="background:#7e22ce"></div>
-                  <div class="mockup-text-bar" style="width:110px"></div>
-                </div>
-                <div class="mockup-text-bar" style="width:45px"></div>
-                <div><span class="mockup-badge blue">In Transit</span></div>
-                <div class="mockup-text-bar" style="width:36px"></div>
-              </div>
-              <div class="mockup-row">
-                <div class="mockup-row-name">
-                  <div class="mockup-avatar" style="background:#047857"></div>
-                  <div class="mockup-text-bar" style="width:80px"></div>
-                </div>
-                <div class="mockup-text-bar" style="width:55px"></div>
-                <div><span class="mockup-badge amber">Pending</span></div>
-                <div class="mockup-text-bar" style="width:42px"></div>
-              </div>
-              <div class="mockup-row">
-                <div class="mockup-row-name">
-                  <div class="mockup-avatar" style="background:#b45309"></div>
-                  <div class="mockup-text-bar" style="width:100px"></div>
-                </div>
-                <div class="mockup-text-bar" style="width:48px"></div>
-                <div><span class="mockup-badge green">Active</span></div>
-                <div class="mockup-text-bar" style="width:38px"></div>
-              </div>
-            </div>
+          <div class="capability-card">
+            <strong>Voice Systems</strong>
+            <span>Capture requests, qualify intent, and route work automatically.</span>
+          </div>
+          <div class="capability-card">
+            <strong>Custom SaaS</strong>
+            <span>Build the operating layer when patched tools stop fitting.</span>
           </div>
         </div>
       </div>
