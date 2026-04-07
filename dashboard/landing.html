@@ -332,44 +332,44 @@
     /* ── Features ── */
     .features { padding: 96px 60px; background: var(--bg); }
     .features-header { text-align: center; margin-bottom: 56px; }
-    .feature-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; max-width: 980px; margin: 0 auto; }
+    .feature-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; max-width: 1180px; margin: 0 auto; }
     .feature-card {
       background: var(--surface); border: 1px solid var(--border2);
-      border-radius: 14px; padding: 20px 18px;
+      border-radius: 14px; padding: 16px 15px;
       transition: border-color 0.2s, transform 0.2s;
     }
     .feature-card:hover { border-color: var(--accent); transform: translateY(-2px); }
     .feature-icon {
-      width: 38px; height: 38px; border-radius: 9px;
+      width: 34px; height: 34px; border-radius: 8px;
       background: var(--accent-dim); display: flex; align-items: center; justify-content: center;
-      margin-bottom: 12px; flex-shrink: 0;
+      margin-bottom: 10px; flex-shrink: 0;
     }
-    .feature-card h3 { font-size: 15px; font-weight: 900; color: var(--text); margin-bottom: 6px; }
-    .feature-card p { font-size: 12px; color: var(--sub); line-height: 1.55; }
+    .feature-card h3 { font-size: 14px; font-weight: 900; color: var(--text); margin-bottom: 5px; }
+    .feature-card p { font-size: 11px; color: var(--sub); line-height: 1.48; }
 
     /* ── How it works ── */
     .how {
-      padding: 64px 60px;
+      padding: 40px 60px;
       background: #0d1117;
     }
     .how .section-eyebrow { text-align: center; }
     .how .section-title { text-align: center; color: #fff; }
-    .how .section-sub { text-align: center; color: rgba(255,255,255,0.5); margin: 0 auto 52px; }
-    .steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; max-width: 960px; margin: 0 auto; }
+    .how .section-sub { text-align: center; color: rgba(255,255,255,0.5); margin: 0 auto 26px; }
+    .steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; max-width: 860px; margin: 0 auto; }
     .step {
       background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 14px; padding: 32px 24px; text-align: center;
+      border-radius: 12px; padding: 20px 16px; text-align: center;
     }
     .step-num {
-      width: 48px; height: 48px; border-radius: 50%;
+      width: 38px; height: 38px; border-radius: 50%;
       background: rgba(14,165,233,0.15); border: 2px solid rgba(14,165,233,0.5);
-      color: var(--accent); font-size: 18px; font-weight: 900;
+      color: var(--accent); font-size: 14px; font-weight: 900;
       display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 20px;
-      box-shadow: 0 0 18px rgba(14,165,233,0.2);
+      margin: 0 auto 14px;
+      box-shadow: 0 0 14px rgba(14,165,233,0.16);
     }
-    .step h3 { font-size: 15px; font-weight: 900; color: #fff; margin-bottom: 10px; }
-    .step p { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.65; }
+    .step h3 { font-size: 14px; font-weight: 900; color: #fff; margin-bottom: 7px; }
+    .step p { font-size: 11px; color: rgba(255,255,255,0.58); line-height: 1.5; }
 
     /* ── Pricing teaser ── */
     .proof-strip {
@@ -617,7 +617,7 @@
       .how { padding: 44px 24px; }
       .proof-strip { padding: 24px; }
       .proof-strip-inner { grid-template-columns: 1fr 1fr; }
-      .feature-grid { grid-template-columns: 1fr; }
+      .feature-grid { grid-template-columns: repeat(2,1fr); }
       .steps { grid-template-columns: 1fr; }
       .who-grid { grid-template-columns: 1fr; }
       .testimonial-grid { grid-template-columns: 1fr; }
@@ -982,7 +982,7 @@
       <div class="step reveal reveal-delay-2">
         <div class="step-num">2</div>
         <h3>Crew downloads the app</h3>
-        <p>Your crew logs in with their phone number. No passwords, no onboarding headaches.</p>
+        <p>Your crew logs in with their phone number. Quick and easy.</p>
       </div>
       <div class="step reveal reveal-delay-3">
         <div class="step-num">3</div>
