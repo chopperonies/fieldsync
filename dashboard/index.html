@@ -2519,6 +2519,12 @@ function writeDashboardState(patch) {
   localStorage.setItem(DASHBOARD_STATE_KEY, JSON.stringify(next));
 }
 
+function getTabFromLocationHash() {
+  const raw = window.location.hash.replace(/^#/, '').trim();
+  const allowed = new Set(['jobs','team','clients','reports','agreements','calendar','timesheets','settings','ideas']);
+  return allowed.has(raw) ? raw : null;
+}
+
 async function init() {
   const { supabaseUrl, supabaseKey } = await (await fetch('/api/config')).json();
   if (!supabaseClient) supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
@@ -2526,8 +2532,9 @@ async function init() {
   const state = readDashboardState();
   if (state.calendarWeekStart) calWeekStart = new Date(state.calendarWeekStart);
   if (state.calendarSelectedDate) calSelectedDate = state.calendarSelectedDate;
-  switchMainTab(state.mainTab || 'jobs');
-  if ((state.mainTab || 'jobs') === 'clients') {
+  const restoredTab = getTabFromLocationHash() || state.mainTab || 'jobs';
+  switchMainTab(restoredTab);
+  if (restoredTab === 'clients') {
     switchClientsTab(state.clientsSubtab || 'all');
   }
   subscribeRealtime();
@@ -3469,6 +3476,7 @@ function switchMainTab(tab) {
   const scrollableViews = ['team','settings','timesheets','calendar','reports','ideas'];
   const contentArea = document.querySelector('.content-area');
   writeDashboardState({ mainTab: tab });
+  history.replaceState(null, '', `#${tab}`);
   ['jobs','team','clients','reports','agreements','calendar','timesheets','settings','ideas'].forEach(t => {
     const view = document.getElementById(`${t}-view`);
     const tabEl = document.getElementById(`mtab-${t}`);
