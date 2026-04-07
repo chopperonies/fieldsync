@@ -2805,7 +2805,7 @@ async function openDetail(jobId, jobName) {
         </select>` : ''}
     </div>
     <div style="font-size:11px;color:#737475;line-height:1.5;margin:-4px 0 10px">
-      `App` sends a LinkCrew push notification. `Text` uses the company Twilio number in Settings, so SMS only works if Twilio is configured.
+      <strong>App</strong> sends a LinkCrew push notification. <strong>Text</strong> uses the company Twilio number in Settings, so SMS only works if Twilio is configured.
     </div>
     ${(assignments||[]).length ? assignments.map(a => {
       const onSite = a.checked_in_at && !a.checked_out_at;

@@ -1906,8 +1906,9 @@ app.post('/api/jobs/:id/assign', auth, async (req, res) => {
 });
 
 app.post('/api/jobs/:id/notify-assignment', auth, async (req, res) => {
-  const { employee_id } = req.body;
+  const { employee_id, method = 'both' } = req.body;
   if (!employee_id) return res.status(400).json({ error: 'employee_id required' });
+  if (!['app', 'sms', 'both'].includes(method)) return res.status(400).json({ error: 'Invalid notification method' });
 
   const { data: job } = await supabaseAdmin
     .from('jobs')
@@ -1934,7 +1935,10 @@ app.post('/api/jobs/:id/notify-assignment', auth, async (req, res) => {
   let push_sent = false;
   let sms_sent = false;
 
-  if (employee.push_token) {
+  const wantsPush = method === 'app' || method === 'both';
+  const wantsSms = method === 'sms' || method === 'both';
+
+  if (wantsPush && employee.push_token) {
     try {
       const pushRes = await fetch('https://exp.host/--/api/v2/push/send', {
         method: 'POST',
@@ -1957,7 +1961,7 @@ app.post('/api/jobs/:id/notify-assignment', auth, async (req, res) => {
     }
   }
 
-  if (employee.phone && tenant?.twilio_account_sid && tenant?.twilio_phone) {
+  if (wantsSms && employee.phone && tenant?.twilio_account_sid && tenant?.twilio_phone) {
     try {
       const twilioClient = twilio(tenant.twilio_account_sid, tenant.twilio_auth_token);
       await twilioClient.messages.create({
@@ -1975,7 +1979,7 @@ app.post('/api/jobs/:id/notify-assignment', auth, async (req, res) => {
     job_id: job.id,
     employee_id: employee.id,
     type: 'assignment',
-    message: `Assignment reminder sent to ${employee.name}.${push_sent || sms_sent ? ` ${push_sent ? 'App alert' : ''}${push_sent && sms_sent ? ' and ' : ''}${sms_sent ? 'text message' : ''} delivered.` : ' No delivery channel was available.'}`,
+    message: `Assignment reminder sent to ${employee.name} via ${method === 'both' ? 'app/text' : method}.${push_sent || sms_sent ? ` ${push_sent ? 'App alert' : ''}${push_sent && sms_sent ? ' and ' : ''}${sms_sent ? 'text message' : ''} delivered.` : ' No delivery channel was available.'}`,
   });
 
   res.json({ ok: true, push_sent, sms_sent });
