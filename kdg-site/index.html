@@ -3,1103 +3,1247 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kingston Data Group — AI Systems & Software For Real Operations</title>
-  <meta name="description" content="Kingston Data Group builds AI systems, automation workflows, and SaaS platforms for service businesses and operators who need software that works in production." />
+  <title>Kingston Data Group — AI Automation & SaaS Development</title>
+  <meta name="description" content="We design and build AI-powered SaaS solutions that automate your business operations." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #071019;
-      --bg-soft: #0b1623;
-      --surface: rgba(10, 22, 36, 0.88);
-      --surface-strong: rgba(13, 28, 46, 0.96);
-      --surface-soft: rgba(255, 255, 255, 0.03);
-      --border: rgba(145, 176, 215, 0.14);
-      --border-strong: rgba(145, 176, 215, 0.24);
-      --text: #eef4fb;
-      --text-soft: #c8d7ea;
-      --muted: #8ea4bf;
-      --muted-2: #667a93;
-      --accent: #f59e0b;
-      --accent-2: #39a0ff;
-      --accent-3: #7ee0c5;
-      --danger: #f97316;
-      --shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
-      --radius: 24px;
-      --radius-sm: 16px;
-      --font-head: "Lato", "Segoe UI", sans-serif;
-      --font-body: "Lato", "Segoe UI", sans-serif;
+      --bg:           #ffffff;
+      --surface:      #f9f7f0;
+      --surface2:     #efecea;
+      --border:       rgba(0,0,0,0.08);
+      --border2:      rgba(0,0,0,0.14);
+      --accent:       #ffc107;
+      --accent-dim:   rgba(255,193,7,0.15);
+      --accent-hover: #e6ac00;
+      --blue:         #2563eb;
+      --green:        #16a34a;
+      --text:         #1a1a1a;
+      --sub:          #555555;
+      --muted:        #999999;
+      --font-head:    'Lato', sans-serif;
+      --font-body:    'Lato', sans-serif;
     }
 
     html { scroll-behavior: smooth; }
     body {
       font-family: var(--font-body);
-      background:
-        radial-gradient(circle at top left, rgba(57, 160, 255, 0.12), transparent 30%),
-        radial-gradient(circle at top right, rgba(245, 158, 11, 0.11), transparent 24%),
-        linear-gradient(180deg, #071019 0%, #08131f 34%, #06101a 100%);
+      background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
-    a { color: inherit; }
-    img { display: block; max-width: 100%; }
 
+    /* ── Nav ── */
     nav {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 18px 48px;
-      background: rgba(6, 13, 23, 0.76);
-      backdrop-filter: blur(16px);
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 60px; height: 68px;
+      background: rgba(255,255,255,0.95); backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 0 rgba(0,0,0,0.06);
     }
-    .nav-logo {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      text-decoration: none;
-    }
-    .nav-logo img {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      object-fit: contain;
-      filter: drop-shadow(0 0 22px rgba(245, 158, 11, 0.16));
-    }
-    .nav-logo-copy {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .nav-logo-name {
-      font-size: 16px;
-      font-weight: 900;
-      letter-spacing: -0.04em;
-      color: var(--text);
-    }
-    .nav-logo-sub {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 24px;
-    }
-    .nav-links a {
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--muted);
-      transition: color 0.18s ease;
-    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo img { width: 44px; height: 44px; object-fit: contain; }
+    .nav-logo-wordmark { display: flex; flex-direction: column; gap: 1px; }
+    .nav-logo-name { font-size: 15px; font-weight: 900; color: var(--text); font-family: var(--font-head); line-height: 1.1; letter-spacing: -0.01em; }
+    .nav-logo-sub { font-size: 10px; font-weight: 700; color: var(--muted); font-family: var(--font-head); letter-spacing: 0.04em; text-transform: uppercase; }
+    .nav-links { display: flex; align-items: center; gap: 28px; }
+    .nav-links a { color: var(--sub); font-size: 14px; font-weight: 700; text-decoration: none; transition: color 0.2s; }
     .nav-links a:hover { color: var(--text); }
-    .nav-cta, .btn-primary, .btn-secondary, .btn-tertiary {
-      border-radius: 999px;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      font-weight: 800;
-      transition: 0.18s ease;
+    .nav-cta {
+      background: var(--accent); color: #111; border: none;
+      padding: 9px 20px; border-radius: 8px; font-size: 14px; font-weight: 900;
+      cursor: pointer; text-decoration: none; transition: background 0.2s; font-family: var(--font-body);
     }
-    .nav-cta, .btn-primary {
-      background: linear-gradient(135deg, #f59e0b, #f97316);
-      color: #111827;
-      border: 1px solid rgba(255,255,255,0.08);
-      padding: 12px 22px;
-      box-shadow: 0 16px 36px rgba(249, 115, 22, 0.22);
-    }
-    .nav-cta:hover, .btn-primary:hover { filter: brightness(1.04); transform: translateY(-1px); }
-    .btn-secondary {
-      padding: 12px 22px;
-      color: var(--text);
-      border: 1px solid var(--border-strong);
-      background: rgba(255, 255, 255, 0.03);
-    }
-    .btn-secondary:hover, .btn-tertiary:hover {
-      border-color: rgba(57, 160, 255, 0.4);
-      background: rgba(57, 160, 255, 0.1);
-    }
-    .btn-tertiary {
-      padding: 10px 16px;
-      color: var(--text);
-      border: 1px solid var(--border);
-      background: transparent;
-    }
+    .nav-cta:hover { background: var(--accent-hover); }
 
+    /* ── Scroll reveal ── */
+    .reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.55s ease, transform 0.55s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+    .reveal-delay-1 { transition-delay: 0.08s; }
+    .reveal-delay-2 { transition-delay: 0.16s; }
+    .reveal-delay-3 { transition-delay: 0.24s; }
+    .reveal-delay-4 { transition-delay: 0.32s; }
+    .reveal-delay-5 { transition-delay: 0.40s; }
+
+    /* ── Hero ── */
     .hero {
-      padding: 82px 48px 52px;
-      position: relative;
-      overflow: hidden;
+      padding: 100px 60px 0;
+      text-align: center;
+      position: relative; overflow: hidden;
+      background: #fff7de;
     }
-    .hero-grid {
-      max-width: 980px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 20px;
-      align-items: stretch;
+    .hero::before {
+      display: none;
     }
-    .hero-copy {
-      padding: 18px 0 6px;
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.7); border: 1px solid rgba(0,0,0,0.1);
+      padding: 5px 14px 5px 8px; border-radius: 20px;
+      font-size: 12px; font-weight: 700; color: var(--sub); margin-bottom: 32px;
     }
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 14px;
-      border-radius: 999px;
-      background: rgba(57, 160, 255, 0.08);
-      border: 1px solid rgba(57, 160, 255, 0.18);
-      color: #bee2ff;
-      font-size: 12px;
-      font-weight: 900;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      margin-bottom: 18px;
+    .hero-badge-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green); box-shadow: 0 0 8px rgba(34,197,94,0.6);
+      animation: pulse-dot 2s infinite;
     }
-    .eyebrow::before {
-      content: "";
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent-3);
-      box-shadow: 0 0 0 5px rgba(126, 224, 197, 0.12);
-    }
+    @keyframes pulse-dot { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
+
     .hero h1 {
       font-family: var(--font-head);
-      font-size: clamp(42px, 7vw, 74px);
-      line-height: 0.98;
-      letter-spacing: -0.055em;
-      margin-bottom: 22px;
-      max-width: 11ch;
+      font-size: 64px; font-weight: 900; line-height: 1.06;
+      max-width: 860px; margin: 0 auto 22px; letter-spacing: -0.02em;
+      color: var(--text);
     }
-    .hero h1 span { color: var(--accent); }
+    .hero h1 .grad {
+      color: #b8860b;
+    }
     .hero-sub {
-      font-size: 18px;
-      line-height: 1.75;
-      color: var(--text-soft);
-      max-width: 60ch;
-      margin-bottom: 28px;
+      font-size: 18px; color: var(--sub); max-width: 520px;
+      margin: 0 auto 40px; line-height: 1.75; font-weight: 400;
     }
-    .hero-points {
-      display: grid;
-      gap: 10px;
-      margin-bottom: 30px;
+    .hero-ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 72px; }
+    .btn-primary {
+      background: var(--accent); color: #111; border: none;
+      padding: 14px 30px; border-radius: 8px; font-size: 15px; font-weight: 900;
+      cursor: pointer; text-decoration: none; transition: background 0.2s, transform 0.15s; font-family: var(--font-body);
     }
-    .hero-point {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      color: var(--text-soft);
-      font-size: 15px;
-      line-height: 1.55;
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .btn-secondary {
+      background: #fff; color: var(--text); border: 1.5px solid rgba(0,0,0,0.2);
+      padding: 14px 30px; border-radius: 8px; font-size: 15px; font-weight: 700;
+      cursor: pointer; text-decoration: none; transition: border-color 0.2s, transform 0.15s; font-family: var(--font-body);
     }
-    .hero-point strong { color: var(--text); }
-    .hero-point::before {
-      content: "";
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent);
-      margin-top: 8px;
-      flex-shrink: 0;
-    }
-    .hero-ctas {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .hero-meta {
-      display: grid;
-      gap: 14px;
-    }
-    .meta-card, .proof-card, .signal-card, .section-card, .case-card, .offer-card, .process-card, .contact-shell {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(16px);
-    }
-    .meta-card {
-      padding: 22px;
-      display: grid;
-      gap: 16px;
-      min-height: 100%;
-      background:
-        radial-gradient(circle at top right, rgba(245, 158, 11, 0.13), transparent 28%),
-        linear-gradient(160deg, rgba(57, 160, 255, 0.08), rgba(10, 22, 36, 0.96));
-    }
-    .meta-card h2 {
-      font-size: 18px;
-      line-height: 1.35;
-      letter-spacing: -0.03em;
-      max-width: 18ch;
-    }
-    .meta-card p {
-      color: var(--muted);
-      line-height: 1.65;
-      font-size: 14px;
-    }
-    .meta-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-    .signal-card {
-      padding: 16px;
-      background: rgba(255,255,255,0.03);
-      border-radius: 18px;
-      box-shadow: none;
-    }
-    .signal-label {
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-    .signal-value {
-      margin-top: 10px;
-      font-size: 26px;
-      font-weight: 900;
-      letter-spacing: -0.05em;
-      color: var(--text);
-    }
-    .signal-note {
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.45;
-      margin-top: 8px;
-    }
+    .btn-secondary:hover { border-color: var(--text); transform: translateY(-1px); }
 
-    .hero-support {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-      margin-top: 10px;
+    /* ── Browser Mockup ── */
+    .hero-mockup-wrap { padding: 0 40px; }
+    .hero-mockup {
+      max-width: 1000px; margin: 0 auto;
+      border-radius: 14px 14px 0 0; overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.18); border-bottom: none;
+      box-shadow: 0 -4px 40px rgba(255,193,7,0.15), 0 20px 60px rgba(0,0,0,0.2);
+      transform: perspective(1400px) rotateX(8deg);
+      transform-origin: bottom center;
     }
-    .hero-support-card {
-      padding: 16px 18px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      display: grid;
-      gap: 6px;
+    .mockup-bar {
+      background: #141619; padding: 10px 16px;
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid var(--border);
     }
-    .hero-support-label {
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--accent-3);
+    .mockup-dots { display: flex; gap: 6px; }
+    .mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .mockup-dot:nth-child(1) { background: #ff5f57; }
+    .mockup-dot:nth-child(2) { background: #ffbd2e; }
+    .mockup-dot:nth-child(3) { background: #28c840; }
+    .mockup-url {
+      flex: 1; background: var(--bg); border-radius: 5px;
+      padding: 4px 12px; font-size: 11px; color: var(--muted);
+      text-align: center; font-family: monospace;
     }
-    .hero-support-title {
-      font-size: 20px;
-      font-weight: 900;
-      letter-spacing: -0.03em;
+    .mockup-body {
+      display: grid; grid-template-columns: 180px 1fr;
+      height: 380px; background: var(--surface);
     }
-    .hero-support-copy {
-      font-size: 14px;
-      line-height: 1.6;
-      color: var(--muted);
+    .mockup-sidebar {
+      background: var(--bg); border-right: 1px solid var(--border);
+      padding: 16px 12px; display: flex; flex-direction: column; gap: 3px;
     }
-    .customer-strip {
-      padding: 8px 48px 0;
+    .mockup-brand {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px 14px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
     }
-    .customer-shell {
-      max-width: 1240px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 14px;
-      align-items: start;
+    .mockup-brand-icon {
+      width: 24px; height: 24px; background: var(--accent); border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 900; color: #fff;
     }
-    .customer-intro {
-      display: grid;
-      gap: 10px;
+    .mockup-brand-text { font-size: 12px; font-weight: 700; color: var(--text); font-family: var(--font-head); }
+    .mockup-nav-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 7px 10px; border-radius: 6px; font-size: 11.5px; color: var(--sub);
     }
-    .customer-label {
-      font-size: 12px;
-      font-weight: 900;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--accent);
+    .mockup-nav-item.active { background: var(--surface2); color: var(--text); }
+    .mockup-nav-dot { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    .mockup-nav-label { width: 72px; height: 7px; border-radius: 3px; background: currentColor; opacity: 0.55; }
+    .mockup-main { padding: 20px; overflow: hidden; }
+    .mockup-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .mockup-page-title { width: 80px; height: 10px; border-radius: 4px; background: var(--text); opacity: 0.75; }
+    .mockup-topbar-right { display: flex; gap: 8px; }
+    .mockup-btn-sm { height: 26px; border-radius: 5px; border: 1px solid var(--border2); }
+    .mockup-btn-sm:nth-child(1) { width: 60px; background: transparent; }
+    .mockup-btn-sm:nth-child(2) { width: 80px; background: var(--accent); border-color: transparent; }
+    .mockup-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+    .mockup-stat-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+    .mockup-stat-label { width: 50px; height: 6px; border-radius: 3px; background: var(--muted); margin-bottom: 10px; }
+    .mockup-stat-value { font-size: 20px; font-weight: 800; font-family: var(--font-head); color: var(--text); }
+    .mockup-stat-sub { font-size: 9px; color: var(--green); margin-top: 4px; }
+    .mockup-table { width: 100%; }
+    .mockup-table-head { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 6px 10px; margin-bottom: 6px; }
+    .mockup-th { width: 40px; height: 6px; background: var(--muted); border-radius: 3px; opacity: 0.4; }
+    .mockup-row {
+      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+      padding: 9px 10px; border-radius: 6px; align-items: center;
+      border-bottom: 1px solid var(--border);
     }
-    .customer-intro h2 {
-      font-size: clamp(24px, 3.4vw, 38px);
-      line-height: 1.04;
-      letter-spacing: -0.04em;
-    }
-    .customer-intro p {
-      color: var(--muted);
-      line-height: 1.7;
-      font-size: 15px;
-      max-width: 44ch;
-    }
-    .customer-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-    .customer-card {
-      padding: 18px 20px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      box-shadow: var(--shadow);
-      display: grid;
-      gap: 8px;
-    }
-    .customer-name {
-      font-size: 18px;
-      font-weight: 900;
-      letter-spacing: -0.03em;
-      color: var(--text);
-    }
-    .customer-role {
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--accent-3);
-    }
-    .customer-note {
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.65;
-    }
+    .mockup-row:last-child { border-bottom: none; }
+    .mockup-row-name { display: flex; align-items: center; gap: 8px; }
+    .mockup-avatar { width: 20px; height: 20px; border-radius: 4px; flex-shrink: 0; }
+    .mockup-text-bar { height: 7px; border-radius: 3px; background: var(--sub); opacity: 0.45; }
+    .mockup-badge { display: inline-flex; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 600; }
+    .mockup-badge.green { background: rgba(34,197,94,0.15); color: #22c55e; }
+    .mockup-badge.blue  { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .mockup-badge.amber { background: rgba(251,191,36,0.15);  color: #fbbf24; }
 
-    section {
-      padding: 78px 48px;
+    /* ── Trust Strip ── */
+    .trust-strip {
+      padding: 48px 60px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
     }
-    .section-shell {
-      max-width: 1240px;
-      margin: 0 auto;
+    .trust-label {
+      text-align: center; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--muted); margin-bottom: 28px;
     }
-    .section-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 18px;
-      align-items: flex-end;
-      flex-wrap: wrap;
-      margin-bottom: 34px;
+    .trust-logos { display: flex; align-items: center; justify-content: center; gap: 48px; flex-wrap: wrap; }
+    .trust-logo {
+      font-size: 15px; font-weight: 900; color: #bbb;
+      font-family: var(--font-head); letter-spacing: -0.01em;
+      transition: color 0.2s;
     }
-    .section-kicker {
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 10px;
+    .trust-logo:hover { color: var(--sub); }
+    .trust-logo-svg {
+      height: 26px; width: auto; display: block;
+      color: #bbb; opacity: 1; transition: color 0.2s;
+    }
+    .trust-logo-svg:hover { color: var(--sub); }
+
+    /* ── Section shared ── */
+    .section-eyebrow {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 12px; text-align: center;
     }
     .section-title {
-      font-size: clamp(30px, 5vw, 48px);
-      font-weight: 900;
-      letter-spacing: -0.05em;
-      line-height: 1.02;
-      max-width: 14ch;
+      font-family: var(--font-head); font-size: 40px; font-weight: 800; color: var(--text);
+      text-align: center; margin-bottom: 14px; letter-spacing: -0.025em; line-height: 1.1;
     }
     .section-sub {
-      max-width: 56ch;
-      color: var(--muted);
-      font-size: 16px;
-      line-height: 1.7;
-    }
-    .offer-grid.compact {
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }
-    .offer-row {
-      padding: 18px 20px;
-      background: var(--surface-strong);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      display: grid;
-      gap: 6px;
-    }
-    .offer-row strong {
-      font-size: 18px;
-      letter-spacing: -0.02em;
-    }
-    .offer-row p {
-      font-size: 14px;
-      color: var(--muted);
-      line-height: 1.65;
+      font-size: 16px; color: var(--sub); text-align: center;
+      max-width: 520px; margin: 0 auto 56px; line-height: 1.7;
     }
 
-    .offer-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 18px;
+    /* ── Services ── */
+    .services { padding: 96px 60px; }
+    .services-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1px; max-width: 1100px; margin: 0 auto;
+      background: rgba(0,0,0,0.07); border-radius: 16px; overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.07);
     }
-    .offer-card {
-      padding: 26px;
-      background: var(--surface-strong);
+    .service-card {
+      background: #fff; padding: 28px 28px 32px;
+      transition: background 0.2s; position: relative;
     }
-    .offer-eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 14px;
+    .service-card::after {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at top left, rgba(255,193,7,0.08), transparent 70%);
+      opacity: 0; transition: opacity 0.3s; pointer-events: none;
     }
-    .offer-eyebrow::before {
-      content: "";
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent-2);
+    .service-card:hover { background: #fffbee; }
+    .service-card:hover::after { opacity: 1; }
+    .svc-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: rgba(255,193,7,0.13);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px; flex-shrink: 0;
+      transition: background 0.2s;
     }
-    .offer-card h3 {
-      font-size: 22px;
-      letter-spacing: -0.03em;
-      margin-bottom: 10px;
+    .service-card:hover .svc-icon { background: rgba(255,193,7,0.22); }
+    .svc-icon svg { width: 22px; height: 22px; stroke: #a07000; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .service-card h3 { font-family: var(--font-head); font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+    .service-card p { font-size: 13.5px; color: var(--sub); line-height: 1.7; }
+
+    /* ── Data Center Section ── */
+    .dc-section {
+      padding: 96px 60px;
+      background: #0d0f12;
+      border-top: 1px solid rgba(0,0,0,0.08);
     }
-    .offer-card p {
-      font-size: 15px;
-      line-height: 1.7;
-      color: var(--muted);
-      margin-bottom: 16px;
+    .dc-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 400px; gap: 80px; align-items: start;
     }
-    .offer-list {
-      display: grid;
-      gap: 10px;
+    .dc-eyebrow {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 12px;
     }
-    .offer-list div {
-      font-size: 14px;
-      line-height: 1.5;
-      color: var(--text-soft);
-      padding-top: 10px;
-      border-top: 1px solid rgba(255,255,255,0.06);
+    .dc-title {
+      font-family: var(--font-head); font-size: 36px; font-weight: 900;
+      color: #f4f4f5; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 18px;
+    }
+    .dc-sub { font-size: 16px; color: #71717a; line-height: 1.75; margin-bottom: 40px; }
+    .dc-caps {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+    .dc-cap {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; padding: 12px 14px;
+    }
+    .dc-cap svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+    .dc-cap span { font-size: 13px; font-weight: 700; color: #d4d4d8; font-family: var(--font-head); }
+    .dc-client-card {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px; padding: 32px;
+    }
+    .dc-client-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      color: #52525b; margin-bottom: 20px;
+    }
+    .dc-client-logo { margin-bottom: 20px; }
+    .dc-client-logo svg { height: 32px; width: auto; color: #a1a1aa; }
+    .dc-client-quote {
+      font-size: 14px; color: #71717a; line-height: 1.7; border-top: 1px solid rgba(255,255,255,0.07);
+      padding-top: 20px; margin-top: 4px;
+    }
+    .dc-client-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 16px; }
+    .dc-tag {
+      font-size: 11px; font-weight: 600; color: #52525b;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      padding: 3px 10px; border-radius: 20px;
+    }
+    @media (max-width: 960px) {
+      .dc-inner { grid-template-columns: 1fr; gap: 40px; }
+      .dc-section { padding: 64px 24px; }
+    }
+    @media (max-width: 600px) {
+      .dc-caps { grid-template-columns: 1fr; }
     }
 
-    .cases-grid {
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 18px;
+    /* ── Products ── */
+    .products {
+      padding: 96px 60px;
+      background: var(--surface);
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
     }
-    .case-card {
-      padding: 28px;
-      background: var(--surface-strong);
+    .products-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 900px; margin: 0 auto; }
+    .product-card {
+      border: 1px solid rgba(0,0,0,0.1); border-radius: 20px; padding: 32px;
+      background: #fff; position: relative; overflow: hidden;
+      transition: border-color 0.25s, box-shadow 0.25s;
     }
-    .case-top {
-      display: flex;
-      justify-content: space-between;
-      gap: 14px;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      margin-bottom: 18px;
+    .product-card:hover { border-color: var(--accent); box-shadow: 0 4px 24px rgba(255,193,7,0.15); }
+    .product-badge {
+      position: absolute; top: 16px; right: 16px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+      padding: 3px 10px; border-radius: 20px;
     }
-    .case-badge {
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      border: 1px solid var(--border-strong);
-      color: var(--text-soft);
-      background: rgba(255,255,255,0.03);
-    }
-    .case-title {
-      font-size: 30px;
-      font-weight: 900;
-      letter-spacing: -0.05em;
-      line-height: 1;
-    }
-    .case-title span { color: var(--accent-2); }
-    .case-desc {
-      font-size: 15px;
-      line-height: 1.72;
-      color: var(--muted);
-      max-width: 58ch;
-    }
-    .case-metrics {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      margin: 20px 0;
-    }
-    .case-metric {
-      padding: 16px;
-      border-radius: 16px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
-    }
-    .case-metric strong {
-      display: block;
-      font-size: 22px;
-      letter-spacing: -0.04em;
-      margin-bottom: 6px;
-    }
-    .case-metric span {
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.45;
-    }
-    .case-list {
-      display: grid;
-      gap: 10px;
-      margin-top: 16px;
-    }
-    .case-list div {
-      font-size: 14px;
-      line-height: 1.55;
-      color: var(--text-soft);
-      padding: 12px 0 0;
-      border-top: 1px solid rgba(255,255,255,0.06);
-    }
-    .mini-cases {
-      display: grid;
-      gap: 18px;
-    }
-    .mini-case {
-      padding: 22px;
-      border-radius: 20px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
-    }
-    .mini-case h3 {
-      font-size: 18px;
-      margin-bottom: 8px;
-      letter-spacing: -0.03em;
-    }
-    .mini-case p {
-      font-size: 14px;
-      line-height: 1.65;
-      color: var(--muted);
-      margin-bottom: 12px;
-    }
-    .mini-tags {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .mini-tags span {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--text-soft);
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.03);
-      padding: 6px 10px;
-      border-radius: 999px;
-    }
+    .badge-live { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.25); }
+    .badge-soon { background: rgba(249,115,22,0.10); color: var(--accent); border: 1px solid rgba(249,115,22,0.2); }
+    .product-logo { font-family: var(--font-head); font-size: 24px; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.02em; }
+    .product-logo .a1 { color: var(--blue); }
+    .product-logo .a2 { color: var(--accent); }
+    .product-card p { font-size: 14px; color: var(--sub); line-height: 1.7; margin-bottom: 20px; }
+    .product-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 22px; }
+    .tag { font-size: 11px; font-weight: 500; color: var(--muted); background: var(--surface); border: 1px solid var(--border); padding: 3px 10px; border-radius: 20px; }
+    .product-link { font-size: 13px; font-weight: 600; color: var(--blue); text-decoration: none; }
+    .product-link:hover { text-decoration: underline; }
+    .product-coming-label { font-size: 13px; color: var(--muted); font-weight: 500; }
 
-    .reason-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 16px;
+    /* ── Outcomes ── */
+    .outcomes { padding: 96px 60px; }
+    .outcomes-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; max-width: 900px; margin: 0 auto; }
+    .outcome-card {
+      background: #fff; border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 16px; padding: 30px; position: relative; overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
     }
-    .section-card {
-      padding: 24px;
-      background: var(--surface-strong);
+    .outcome-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), #ffe066);
     }
-    .reason-stat {
-      font-size: 34px;
-      font-weight: 900;
-      color: var(--accent);
-      letter-spacing: -0.05em;
-      margin-bottom: 10px;
+    .outcome-number {
+      font-family: var(--font-head); font-size: 48px; font-weight: 900;
+      color: var(--text); letter-spacing: -0.03em; line-height: 1; margin-bottom: 10px;
     }
-    .reason-card h3 {
-      font-size: 17px;
-      margin-bottom: 8px;
-      letter-spacing: -0.03em;
-    }
-    .reason-card p {
-      font-size: 14px;
-      line-height: 1.6;
-      color: var(--muted);
-    }
+    .outcome-number .unit { font-size: 22px; color: #b8860b; }
+    .outcome-title { font-family: var(--font-head); font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .outcome-desc { font-size: 13px; color: var(--sub); line-height: 1.68; }
 
-    .process-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 16px;
+    /* ── Testimonial ── */
+    .testimonial {
+      padding: 96px 60px;
+      background: var(--surface);
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
     }
-    .process-card {
-      padding: 24px;
-      background: var(--surface-strong);
-      position: relative;
+    .testimonial-inner { max-width: 720px; margin: 0 auto; text-align: center; }
+    .quote-mark { font-size: 80px; line-height: 0.6; color: var(--accent); opacity: 0.7; font-family: Georgia, serif; margin-bottom: 24px; display: block; }
+    .quote-text {
+      font-family: var(--font-head); font-size: 22px; font-weight: 400; font-style: italic;
+      color: var(--text); line-height: 1.7; margin-bottom: 36px; letter-spacing: -0.01em;
     }
-    .process-num {
-      font-size: 12px;
-      font-weight: 900;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 14px;
+    .quote-author { display: flex; align-items: center; justify-content: center; gap: 14px; }
+    .quote-avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
+      flex-shrink: 0;
     }
-    .process-card h3 {
-      font-size: 18px;
-      margin-bottom: 8px;
-      letter-spacing: -0.03em;
-    }
-    .process-card p {
-      font-size: 14px;
-      line-height: 1.65;
-      color: var(--muted);
-    }
+    .quote-name { font-size: 14px; font-weight: 600; color: var(--text); text-align: left; }
+    .quote-role { font-size: 12px; color: var(--muted); text-align: left; }
 
-    .contact-shell {
-      max-width: 1240px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
-      gap: 18px;
-      padding: 28px;
-      background:
-        radial-gradient(circle at top right, rgba(57, 160, 255, 0.11), transparent 30%),
-        linear-gradient(160deg, rgba(245, 158, 11, 0.09), rgba(8, 16, 26, 0.96));
+    /* ── Process ── */
+    .process { padding: 96px 60px; }
+    .steps {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+      max-width: 1100px; margin: 0 auto; position: relative;
     }
-    .contact-copy {
-      padding: 10px 8px 10px 6px;
+    .steps::before {
+      content: ''; position: absolute; top: 19px; left: 6%; right: 6%; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border2) 20%, var(--border2) 80%, transparent);
     }
-    .contact-copy h2 {
-      font-size: clamp(30px, 4vw, 44px);
-      line-height: 1.02;
-      letter-spacing: -0.05em;
-      max-width: 11ch;
-      margin-bottom: 18px;
+    .step { padding-right: 28px; }
+    .step-num-wrap {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--accent); border: none;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 900; color: #111; font-family: var(--font-head);
+      margin-bottom: 22px; position: relative; z-index: 1;
     }
-    .contact-copy p {
-      font-size: 16px;
-      line-height: 1.75;
-      color: var(--text-soft);
-      max-width: 48ch;
-      margin-bottom: 18px;
-    }
-    .contact-notes {
-      display: grid;
-      gap: 12px;
-      margin-top: 22px;
-    }
-    .contact-notes div {
-      font-size: 14px;
-      line-height: 1.55;
-      color: var(--text-soft);
-      padding: 12px 14px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.03);
-    }
-    .contact-form-wrap {
-      background: rgba(7, 15, 24, 0.7);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: var(--radius);
-      padding: 24px;
-    }
-    .contact-form {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
+    .step h3 { font-family: var(--font-head); font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 9px; }
+    .step p { font-size: 13px; color: var(--sub); line-height: 1.7; }
+
+    /* ── Contact ── */
+    .contact { padding: 96px 60px; border-top: 1px solid var(--border); }
+    .contact-inner { max-width: 600px; margin: 0 auto; }
+    .contact-form { display: flex; flex-direction: column; gap: 12px; margin-top: 40px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .contact-form input,
     .contact-form select,
     .contact-form textarea {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      color: var(--text);
-      padding: 14px 16px;
-      border-radius: 14px;
-      font-size: 14px;
-      font-family: inherit;
-      transition: border-color 0.18s ease, background 0.18s ease;
+      background: #fff; border: 1.5px solid rgba(0,0,0,0.14); color: var(--text);
+      padding: 12px 16px; border-radius: 9px; font-size: 14px; font-family: var(--font-body);
+      transition: border-color 0.2s;
     }
     .contact-form input:focus,
     .contact-form select:focus,
-    .contact-form textarea:focus {
-      outline: none;
-      border-color: rgba(57, 160, 255, 0.46);
-      background: rgba(57, 160, 255, 0.08);
-    }
+    .contact-form textarea:focus { outline: none; border-color: var(--accent); }
     .contact-form input::placeholder,
-    .contact-form textarea::placeholder {
-      color: var(--muted);
-    }
-    .contact-form select option {
-      background: #0a1420;
-      color: var(--text);
-    }
-    .contact-form textarea {
-      min-height: 132px;
-      resize: vertical;
-    }
+    .contact-form textarea::placeholder { color: var(--muted); }
+    .contact-form select { color: var(--sub); }
+    .contact-form select option { background: #fff; color: var(--text); }
+    .contact-form textarea { height: 120px; resize: vertical; }
     .contact-form button {
-      margin-top: 4px;
-      background: linear-gradient(135deg, #f59e0b, #f97316);
-      color: #111827;
-      border: none;
-      padding: 15px 18px;
-      border-radius: 14px;
-      font-size: 15px;
-      font-weight: 900;
-      cursor: pointer;
-      transition: filter 0.18s ease, transform 0.18s ease;
+      background: var(--accent); color: #111; border: none;
+      padding: 14px; border-radius: 9px; font-size: 15px; font-weight: 900;
+      cursor: pointer; transition: background 0.2s; font-family: var(--font-body);
     }
-    .contact-form button:hover { filter: brightness(1.04); transform: translateY(-1px); }
-    .contact-form button:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+    .contact-form button:hover { background: var(--accent-hover); }
+    .contact-form button:disabled { opacity: 0.6; cursor: not-allowed; }
     .form-success {
-      display: none;
-      text-align: left;
-      padding: 28px;
-      background: rgba(126, 224, 197, 0.08);
-      border: 1px solid rgba(126, 224, 197, 0.22);
-      border-radius: 20px;
+      display: none; text-align: center; padding: 32px;
+      background: var(--surface); border: 1px solid rgba(34,197,94,0.25); border-radius: 12px;
     }
-    .form-success h3 {
-      color: #bff9ea;
-      font-size: 20px;
-      margin-bottom: 8px;
-      letter-spacing: -0.03em;
+    .form-success h3 { color: #22c55e; font-size: 18px; margin-bottom: 8px; font-family: var(--font-head); }
+    .form-success p { color: var(--sub); font-size: 14px; }
+
+    /* ── Chat Widget ── */
+    .chat-bubble {
+      position: fixed; bottom: 28px; right: 28px; z-index: 1000;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--accent); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 24px rgba(249,115,22,0.45);
+      transition: transform 0.2s, background 0.2s;
     }
-    .form-success p {
-      color: var(--text-soft);
-      font-size: 14px;
-      line-height: 1.65;
+    .chat-bubble:hover { transform: scale(1.08); background: var(--accent-hover); }
+    .chat-bubble svg { width: 26px; height: 26px; fill: #fff; }
+    .chat-close { display: none; }
+    .chat-bubble.open .chat-icon { display: none; }
+    .chat-bubble.open .chat-close { display: flex; }
+
+    .chat-panel {
+      position: fixed; bottom: 96px; right: 28px; z-index: 999;
+      width: 360px; max-height: 520px;
+      background: #fff; border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 20px; display: flex; flex-direction: column;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+      transform: scale(0.92) translateY(12px); opacity: 0;
+      pointer-events: none; transition: all 0.2s ease;
+      transform-origin: bottom right;
+    }
+    .chat-panel.open { transform: scale(1) translateY(0); opacity: 1; pointer-events: all; }
+
+    .chat-header {
+      padding: 16px 20px; border-bottom: 1px solid rgba(0,0,0,0.08);
+      display: flex; align-items: center; gap: 12px; border-radius: 20px 20px 0 0;
+      background: #fffbf0;
+    }
+    .chat-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .chat-header-name { font-size: 14px; font-weight: 700; color: var(--text); font-family: var(--font-head); }
+    .chat-header-status { font-size: 11px; color: var(--green); display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+    .chat-header-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; }
+
+    .chat-messages {
+      flex: 1; overflow-y: auto; padding: 16px;
+      display: flex; flex-direction: column; gap: 12px; min-height: 200px; max-height: 340px;
+    }
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .chat-msg { display: flex; gap: 8px; max-width: 88%; }
+    .chat-msg.user { align-self: flex-end; flex-direction: row-reverse; }
+    .chat-msg-bubble { padding: 10px 14px; border-radius: 16px; font-size: 13px; line-height: 1.6; }
+    .chat-msg.bot .chat-msg-bubble { background: #f4f4f4; color: var(--text); border-radius: 4px 16px 16px 16px; }
+    .chat-msg.user .chat-msg-bubble { background: var(--accent); color: #fff; border-radius: 16px 4px 16px 16px; }
+    .chat-msg-avatar {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; align-self: flex-end;
+    }
+    .chat-typing { display: flex; gap: 4px; padding: 10px 14px; align-items: center; }
+    .chat-typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: bounce 1.2s infinite; }
+    .chat-typing span:nth-child(2) { animation-delay: 0.2s; }
+    .chat-typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+    .chat-input-row {
+      padding: 12px 16px; border-top: 1px solid var(--border);
+      display: flex; gap: 8px; align-items: center;
+    }
+    .chat-input {
+      flex: 1; background: #f4f4f4; border: 1px solid rgba(0,0,0,0.1);
+      color: var(--text); padding: 9px 14px; border-radius: 20px;
+      font-size: 13px; font-family: var(--font-body); outline: none; transition: border-color 0.2s;
+    }
+    .chat-input:focus { border-color: var(--accent); }
+    .chat-input::placeholder { color: var(--muted); }
+    .chat-send {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--accent); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background 0.2s;
+    }
+    .chat-send:hover { background: var(--accent-hover); }
+    .chat-send svg { width: 16px; height: 16px; fill: #fff; }
+    @media (max-width: 420px) {
+      .chat-panel { width: calc(100vw - 32px); right: 16px; }
+      .chat-bubble { right: 16px; bottom: 16px; }
     }
 
+    /* ── Footer ── */
     footer {
-      padding: 34px 48px 44px;
-      border-top: 1px solid var(--border);
+      padding: 36px 60px; border-top: 1px solid rgba(0,0,0,0.08);
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface);
     }
-    .footer-inner {
-      max-width: 1240px;
-      margin: 0 auto;
-      display: flex;
-      justify-content: space-between;
-      gap: 18px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    .footer-logo {
-      font-size: 16px;
-      font-weight: 900;
-      letter-spacing: -0.04em;
-    }
+    .footer-logo { font-size: 14px; font-weight: 800; color: var(--text); font-family: var(--font-head); }
     .footer-logo span { color: var(--accent); }
-    .footer-links {
-      display: flex;
-      gap: 22px;
-      flex-wrap: wrap;
-    }
-    .footer-links a {
-      font-size: 13px;
-      color: var(--muted);
-      text-decoration: none;
-    }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
     .footer-links a:hover { color: var(--text); }
-    .footer-right {
-      font-size: 12px;
-      color: var(--muted);
-    }
+    .footer-right { font-size: 12px; color: var(--muted); }
 
-    @media (max-width: 1080px) {
-      nav { padding: 16px 22px; }
-      .hero, .customer-strip, section, footer { padding-left: 22px; padding-right: 22px; }
-      .hero-grid, .cases-grid, .contact-shell, .customer-shell { grid-template-columns: 1fr; }
-      .offer-grid { grid-template-columns: 1fr; }
-      .reason-grid, .process-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    @media (max-width: 760px) {
+    /* ── Responsive ── */
+    @media (max-width: 960px) {
+      nav { padding: 0 20px; }
       .nav-links { display: none; }
-      .hero { padding-top: 62px; }
-      .hero h1 { max-width: none; }
-      .hero-support, .meta-grid, .case-metrics, .reason-grid, .process-grid, .form-row, .customer-grid { grid-template-columns: 1fr; }
-      .contact-shell { padding: 18px; }
-      .contact-form-wrap { padding: 18px; }
-      .footer-inner { flex-direction: column; align-items: flex-start; }
+      .hero { padding: 72px 24px 0; }
+      .hero h1 { font-size: 40px; }
+      .hero-sub { font-size: 15px; }
+      .hero-mockup-wrap { padding: 0 16px; }
+      .mockup-body { grid-template-columns: 140px 1fr; height: 260px; }
+      .mockup-stat-value { font-size: 15px; }
+      .trust-strip { padding: 36px 24px; }
+      .trust-logos { gap: 28px; }
+      .services, .products, .outcomes, .testimonial, .process, .contact { padding: 64px 24px; }
+      .section-title { font-size: 30px; }
+      .services-grid { grid-template-columns: 1fr; }
+      .products-grid { grid-template-columns: 1fr; }
+      .outcomes-grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr 1fr; gap: 32px; }
+      .steps::before { display: none; }
+      .form-row { grid-template-columns: 1fr; }
+      footer { flex-direction: column; gap: 16px; text-align: center; padding: 28px 24px; }
+      .footer-links { flex-wrap: wrap; justify-content: center; }
+    }
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 32px; }
+      .mockup-sidebar { display: none; }
+      .mockup-body { grid-template-columns: 1fr; }
+      .mockup-stats { grid-template-columns: repeat(2, 1fr); }
+      .steps { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
 
+  <!-- Nav -->
   <nav>
     <a class="nav-logo" href="#">
-      <img src="https://img1.wsimg.com/isteam/ip/c5f5ffee-4efb-4d10-a9a1-f04c8bfcbb7f/Orange%20Minimalist%20Connection%20Technology%20Logo-3.png/:/rs=w:200,h:200,cg:true,m/cr=w:200,h:200/qt=q:95" alt="KDG" />
-      <div class="nav-logo-copy">
+      <img src="https://img1.wsimg.com/isteam/ip/c5f5ffee-4efb-4d10-a9a1-f04c8bfcbb7f/Orange%20Minimalist%20Connection%20Technology%20Logo-3.png/:/rs=w:200,h:200,cg:true,m/cr=w:200,h:200/qt=q:95" alt="KDG Logo" />
+      <div class="nav-logo-wordmark">
         <span class="nav-logo-name">Kingston Data Group</span>
-        <span class="nav-logo-sub">AI Systems & SaaS Studio</span>
+        <span class="nav-logo-sub">AI Automation &amp; SaaS Solutions</span>
       </div>
     </a>
     <div class="nav-links">
-      <a href="#offerings">Offerings</a>
-      <a href="#work">Work</a>
-      <a href="#approach">Approach</a>
+      <a href="#services">Services</a>
+      <a href="#products">Products</a>
+      <a href="#process">How It Works</a>
       <a href="#contact">Contact</a>
     </div>
-    <a class="nav-cta" href="#contact">Book a Strategy Call</a>
+    <a class="nav-cta" href="#contact">Start a Project</a>
   </nav>
 
+  <!-- Hero -->
   <section class="hero">
-    <div class="hero-grid">
-      <div class="hero-copy">
-        <div class="eyebrow">AI Automation And Software For Real Operations</div>
-        <h1>We build <span>AI systems</span> and software that remove manual work from live businesses.</h1>
-        <p class="hero-sub">Kingston Data Group designs internal tools, voice agents, workflow automation, and SaaS platforms for operators who need systems that work in production, not just in demos.</p>
-        <div class="hero-points">
-          <div class="hero-point"><strong>For service businesses and ops teams:</strong> dispatching, scheduling, quoting, reporting, call handling, and internal workflow automation.</div>
-          <div class="hero-point"><strong>From zero to live:</strong> strategy, engineering, deployment, and iteration after launch.</div>
-        </div>
-        <div class="hero-ctas">
-          <a class="btn-primary" href="#contact">Start a Project</a>
-          <a class="btn-secondary" href="#work">See Live Examples</a>
-        </div>
-        <div class="hero-support">
-          <div class="hero-support-card">
-            <div class="hero-support-label">Current Support</div>
-            <div class="hero-support-title">Cerebras</div>
-            <div class="hero-support-copy">Supporting Cerebras.ai across data center and lab environments.</div>
+    <div class="hero-badge reveal">
+      <span class="hero-badge-dot"></span>
+      AI Automation &amp; SaaS Development
+    </div>
+    <h1 class="reveal reveal-delay-1">
+      Software That Runs<br />
+      <span class="grad">While You're in the Field</span>
+    </h1>
+    <p class="hero-sub reveal reveal-delay-2">
+      Kingston Data Group builds AI-powered systems and SaaS products for service businesses, contractors, and operators who need real solutions — not demos.
+    </p>
+    <div class="hero-ctas reveal reveal-delay-3">
+      <a class="btn-primary" href="#contact">Start a Project</a>
+      <a class="btn-secondary" href="#products">See Our Products</a>
+    </div>
+
+    <!-- Browser Mockup -->
+    <div class="hero-mockup-wrap reveal reveal-delay-4">
+      <div class="hero-mockup">
+        <div class="mockup-bar">
+          <div class="mockup-dots">
+            <div class="mockup-dot"></div>
+            <div class="mockup-dot"></div>
+            <div class="mockup-dot"></div>
           </div>
-          <div class="hero-support-card">
-            <div class="hero-support-label">Owned Product</div>
-            <div class="hero-support-title">LinkCrew</div>
-            <div class="hero-support-copy">A live field-operations platform built and maintained by the same team.</div>
+          <div class="mockup-url">app.linkcrew.io/dashboard</div>
+        </div>
+        <div class="mockup-body">
+          <div class="mockup-sidebar">
+            <div class="mockup-brand">
+              <div class="mockup-brand-icon">L</div>
+              <span class="mockup-brand-text">LinkCrew</span>
+            </div>
+            <div class="mockup-nav-item active">
+              <div class="mockup-nav-dot" style="background:#f97316"></div>
+              <div class="mockup-nav-label"></div>
+            </div>
+            <div class="mockup-nav-item">
+              <div class="mockup-nav-dot" style="background:#3b82f6"></div>
+              <div class="mockup-nav-label"></div>
+            </div>
+            <div class="mockup-nav-item">
+              <div class="mockup-nav-dot" style="background:#22c55e"></div>
+              <div class="mockup-nav-label"></div>
+            </div>
+            <div class="mockup-nav-item">
+              <div class="mockup-nav-dot" style="background:#a855f7"></div>
+              <div class="mockup-nav-label"></div>
+            </div>
+            <div class="mockup-nav-item">
+              <div class="mockup-nav-dot" style="background:#52525b"></div>
+              <div class="mockup-nav-label"></div>
+            </div>
+            <div class="mockup-nav-item">
+              <div class="mockup-nav-dot" style="background:#52525b"></div>
+              <div class="mockup-nav-label"></div>
+            </div>
+          </div>
+          <div class="mockup-main">
+            <div class="mockup-topbar">
+              <div class="mockup-page-title"></div>
+              <div class="mockup-topbar-right">
+                <div class="mockup-btn-sm"></div>
+                <div class="mockup-btn-sm"></div>
+              </div>
+            </div>
+            <div class="mockup-stats">
+              <div class="mockup-stat-card">
+                <div class="mockup-stat-label"></div>
+                <div class="mockup-stat-value">12</div>
+                <div class="mockup-stat-sub">↑ 3 today</div>
+              </div>
+              <div class="mockup-stat-card">
+                <div class="mockup-stat-label"></div>
+                <div class="mockup-stat-value">8</div>
+                <div class="mockup-stat-sub">on-site now</div>
+              </div>
+              <div class="mockup-stat-card">
+                <div class="mockup-stat-label"></div>
+                <div class="mockup-stat-value">$4.2k</div>
+                <div class="mockup-stat-sub">invoices due</div>
+              </div>
+              <div class="mockup-stat-card">
+                <div class="mockup-stat-label"></div>
+                <div class="mockup-stat-value">$1.8k</div>
+                <div class="mockup-stat-sub">↑ today</div>
+              </div>
+            </div>
+            <div class="mockup-table">
+              <div class="mockup-table-head">
+                <div class="mockup-th"></div>
+                <div class="mockup-th" style="width:30px"></div>
+                <div class="mockup-th" style="width:35px"></div>
+                <div class="mockup-th" style="width:28px"></div>
+              </div>
+              <div class="mockup-row">
+                <div class="mockup-row-name">
+                  <div class="mockup-avatar" style="background:#1d4ed8"></div>
+                  <div class="mockup-text-bar" style="width:90px"></div>
+                </div>
+                <div class="mockup-text-bar" style="width:50px"></div>
+                <div><span class="mockup-badge green">Active</span></div>
+                <div class="mockup-text-bar" style="width:40px"></div>
+              </div>
+              <div class="mockup-row">
+                <div class="mockup-row-name">
+                  <div class="mockup-avatar" style="background:#7e22ce"></div>
+                  <div class="mockup-text-bar" style="width:110px"></div>
+                </div>
+                <div class="mockup-text-bar" style="width:45px"></div>
+                <div><span class="mockup-badge blue">In Transit</span></div>
+                <div class="mockup-text-bar" style="width:36px"></div>
+              </div>
+              <div class="mockup-row">
+                <div class="mockup-row-name">
+                  <div class="mockup-avatar" style="background:#047857"></div>
+                  <div class="mockup-text-bar" style="width:80px"></div>
+                </div>
+                <div class="mockup-text-bar" style="width:55px"></div>
+                <div><span class="mockup-badge amber">Pending</span></div>
+                <div class="mockup-text-bar" style="width:42px"></div>
+              </div>
+              <div class="mockup-row">
+                <div class="mockup-row-name">
+                  <div class="mockup-avatar" style="background:#b45309"></div>
+                  <div class="mockup-text-bar" style="width:100px"></div>
+                </div>
+                <div class="mockup-text-bar" style="width:48px"></div>
+                <div><span class="mockup-badge green">Active</span></div>
+                <div class="mockup-text-bar" style="width:38px"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <div class="customer-strip">
-    <div class="customer-shell">
-      <div class="customer-intro">
-        <div class="customer-label">Build Focus</div>
-        <h2>AI automation, voice systems, and custom software for operators.</h2>
-        <p>The work is strongest when there is real operational complexity: live teams, repeated requests, fragmented tools, and too much manual coordination.</p>
+  <!-- Trust Strip -->
+  <section class="trust-strip">
+    <div class="trust-label reveal">Integrates with the tools you already use</div>
+    <div class="trust-logos reveal reveal-delay-1">
+      <span class="trust-logo">Stripe</span>
+      <span class="trust-logo">Twilio</span>
+      <span class="trust-logo">Supabase</span>
+      <span class="trust-logo">OpenAI</span>
+      <span class="trust-logo">Zapier</span>
+      <span class="trust-logo">Google Workspace</span>
+      <span class="trust-logo">Resend</span>
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section class="services" id="services">
+    <div class="section-eyebrow reveal">What We Do</div>
+    <h2 class="section-title reveal reveal-delay-1">End-to-End AI Solutions</h2>
+    <p class="section-sub reveal reveal-delay-2">From strategy to deployment, we build intelligent systems tailored to your industry and workflow.</p>
+    <div class="services-grid">
+      <div class="service-card reveal">
+        <div class="svc-icon">
+          <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <h3>AI Automation</h3>
+        <p>We automate repetitive, time-consuming workflows — from scheduling and dispatching to reporting, invoicing, and customer communication.</p>
       </div>
+      <div class="service-card reveal reveal-delay-1">
+        <div class="svc-icon">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        </div>
+        <h3>SaaS Product Development</h3>
+        <p>Have an idea for a software product? We take it from concept to live — full-stack development, mobile apps, and cloud infrastructure included.</p>
+      </div>
+      <div class="service-card reveal reveal-delay-2">
+        <div class="svc-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </div>
+        <h3>AI Voice &amp; Chat Agents</h3>
+        <p>Deploy intelligent voice bots and chat assistants that handle inbound calls and route requests — 24/7, no staff required.</p>
+      </div>
+      <div class="service-card reveal reveal-delay-3">
+        <div class="svc-icon">
+          <svg viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>
+        </div>
+        <h3>System Integration</h3>
+        <p>We connect your existing tools — CRMs, ERPs, accounting software, field apps — into a unified automated pipeline that eliminates manual data entry.</p>
+      </div>
+      <div class="service-card reveal reveal-delay-4">
+        <div class="svc-icon">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <h3>Dashboards &amp; Reporting</h3>
+        <p>Real-time visibility into your operations. Custom dashboards that surface the metrics that matter and trigger alerts when things need attention.</p>
+      </div>
+      <div class="service-card reveal reveal-delay-5">
+        <div class="svc-icon">
+          <svg viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+        </div>
+        <h3>Cloud &amp; Infrastructure</h3>
+        <p>Secure, scalable cloud architecture built for growth. We handle the infrastructure so you can focus on running your business.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Data Center & Physical Infrastructure -->
+  <section class="dc-section" id="datacenter">
+    <div class="dc-inner">
+      <div class="reveal">
+        <div class="dc-eyebrow">Physical Infrastructure</div>
+        <h2 class="dc-title">Data Center &amp; Lab Services</h2>
+        <p class="dc-sub">Beyond software — we have 15+ years in data centers, server rooms, and enterprise labs. From rack-and-stack deployments to full lab buildouts, we work where the hardware lives.</p>
+        <div class="dc-caps">
+          <div class="dc-cap">
+            <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+            <span>Rack &amp; Stack</span>
+          </div>
+          <div class="dc-cap">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+            <span>Server Configuration</span>
+          </div>
+          <div class="dc-cap">
+            <svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
+            <span>Lab Management</span>
+          </div>
+          <div class="dc-cap">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            <span>Structured Cabling</span>
+          </div>
+          <div class="dc-cap">
+            <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            <span>Hardware Procurement</span>
+          </div>
+          <div class="dc-cap">
+            <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <span>Remote Hands Support</span>
+          </div>
+          <div class="dc-cap">
+            <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            <span>BIOS &amp; Firmware Setup</span>
+          </div>
+          <div class="dc-cap">
+            <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/><line x1="10" y1="6" x2="14" y2="6"/></svg>
+            <span>Network Configuration</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal reveal-delay-2">
+        <div class="dc-client-card">
+          <div class="dc-client-label">Featured Client</div>
+          <div class="dc-client-logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 48" fill="none" aria-label="Cerebras"><path stroke="#F15A29" stroke-miterlimit="10" stroke-width="3.085" d="M24 46C11.85 46 2 36.15 2 24S11.85 2 24 2M12.666 37.596c-7.497-6.29-8.474-17.465-2.184-24.962S27.948 4.16 35.445 10.45m-17.78 25.44c-6.562-3.464-9.074-11.594-5.61-18.156 3.465-6.564 11.593-9.075 18.157-5.61M24 33.157a9.156 9.156 0 0 1 0-18.313"></path><path fill="currentColor" d="M26.829 21.44a4.934 4.934 0 0 0-1.122-.9 2.388 2.388 0 0 0-1.198-.335c-.56 0-1.062.103-1.503.308-.443.207-.82.48-1.135.824a3.477 3.477 0 0 0-.715 1.183 4.06 4.06 0 0 0-.242 1.388c0 .48.081.944.242 1.389.163.446.4.84.715 1.183.315.343.693.617 1.135.824.441.205.943.308 1.503.308.476 0 .918-.1 1.326-.296a2.887 2.887 0 0 0 1.045-.862l2.04 2.212c-.306.308-.66.575-1.059.798a7.408 7.408 0 0 1-2.383.835c-.374.06-.697.09-.969.09a7.293 7.293 0 0 1-2.6-.462 6.217 6.217 0 0 1-2.115-1.313 6.19 6.19 0 0 1-1.415-2.044c-.349-.798-.524-1.684-.524-2.662 0-.976.175-1.864.524-2.661a6.189 6.189 0 0 1 1.415-2.045 6.238 6.238 0 0 1 2.115-1.312 7.295 7.295 0 0 1 2.6-.463c.781 0 1.568.151 2.358.45a5.36 5.36 0 0 1 2.078 1.428l-2.116 2.135Z"></path><path fill="currentColor" d="M37.943 22.674c-.016-.91-.298-1.624-.842-2.148-.544-.522-1.299-.784-2.267-.784-.918 0-1.646.266-2.18.797-.536.532-.863 1.243-.982 2.135h6.271Zm-6.271 2.314c.101.926.459 1.646 1.071 2.16.611.515 1.35.773 2.217.773.765 0 1.406-.159 1.925-.477a5.326 5.326 0 0 0 1.364-1.195l2.193 1.672c-.714.89-1.514 1.526-2.397 1.902a7.014 7.014 0 0 1-2.78.566 7.306 7.306 0 0 1-2.6-.463 6.21 6.21 0 0 1-2.115-1.312 6.224 6.224 0 0 1-1.415-2.044c-.348-.797-.522-1.684-.522-2.662 0-.977.174-1.864.523-2.662a6.23 6.23 0 0 1 1.414-2.044 6.247 6.247 0 0 1 2.116-1.312 7.304 7.304 0 0 1 2.6-.463c.85 0 1.628.15 2.332.45.706.3 1.31.734 1.81 1.3.502.565.893 1.263 1.173 2.095.281.833.42 1.787.42 2.867v.85h-9.329ZM42.328 17.736h3.059v1.954h.05c.34-.72.826-1.276 1.455-1.672.627-.394 1.35-.59 2.166-.59.186 0 .37.016.548.05.178.034.36.078.548.13v2.982a8.578 8.578 0 0 0-.752-.167 4.203 4.203 0 0 0-.727-.065c-.713 0-1.286.133-1.72.4-.433.266-.764.57-.994.912-.23.344-.383.686-.459 1.03-.077.342-.115.6-.115.77v6.61h-3.059V17.736ZM59.482 22.674c-.018-.91-.298-1.624-.842-2.148-.543-.522-1.299-.784-2.267-.784-.918 0-1.646.266-2.18.797-.536.532-.863 1.243-.982 2.135h6.271Zm-6.27 2.314c.1.926.458 1.646 1.07 2.16.611.515 1.35.773 2.217.773.765 0 1.406-.159 1.925-.477a5.33 5.33 0 0 0 1.364-1.195l2.193 1.672c-.714.89-1.514 1.526-2.397 1.902a7.014 7.014 0 0 1-2.78.566 7.3 7.3 0 0 1-2.599-.463 6.21 6.21 0 0 1-2.116-1.312 6.223 6.223 0 0 1-1.414-2.044c-.349-.797-.523-1.684-.523-2.662 0-.977.174-1.864.523-2.662.348-.797.82-1.479 1.414-2.044a6.246 6.246 0 0 1 2.116-1.312 7.298 7.298 0 0 1 2.6-.463c.85 0 1.628.15 2.332.45.706.3 1.31.734 1.81 1.3.501.565.893 1.263 1.173 2.095.282.833.421 1.787.421 2.867v.85h-9.33ZM73.506 23.908c0-.48-.081-.943-.242-1.388-.163-.447-.4-.84-.714-1.184a3.582 3.582 0 0 0-1.135-.823c-.442-.205-.943-.308-1.504-.308-.56 0-1.061.103-1.504.308a3.49 3.49 0 0 0-1.848 2.007 4.024 4.024 0 0 0-.242 1.388c0 .48.08.943.242 1.39a3.483 3.483 0 0 0 1.848 2.005c.443.205.943.309 1.504.309a3.53 3.53 0 0 0 1.504-.31 3.502 3.502 0 0 0 1.848-2.005c.162-.446.243-.909.243-1.39Zm-10.147-13.27h3.06v8.666h.077c.152-.205.347-.414.585-.629.239-.214.528-.416.867-.604.34-.19.73-.344 1.173-.463.441-.12.952-.18 1.53-.18.866 0 1.664.166 2.396.5a5.61 5.61 0 0 1 1.873 1.376c.519.583.922 1.27 1.21 2.059.29.788.434 1.636.434 2.545s-.135 1.758-.408 2.547a5.881 5.881 0 0 1-1.198 2.057 5.643 5.643 0 0 1-1.911 1.376c-.748.334-1.59.502-2.524.502a5.746 5.746 0 0 1-2.421-.515c-.75-.343-1.344-.891-1.785-1.647h-.05v1.852h-2.908V10.638ZM77.887 17.736h3.058v1.954h.051c.34-.72.826-1.276 1.454-1.672.628-.394 1.352-.59 2.167-.59.186 0 .37.016.547.05.179.034.361.078.55.13v2.982a8.578 8.578 0 0 0-.754-.167 4.203 4.203 0 0 0-.726-.065c-.714 0-1.287.133-1.72.4-.434.266-.765.57-.994.912-.23.344-.383.686-.46 1.03-.076.342-.114.6-.114.77v6.61h-3.06V17.736ZM93.742 24.551h-.637c-.425 0-.9.018-1.428.052a7.437 7.437 0 0 0-1.49.244c-.468.13-.864.318-1.186.566-.323.249-.485.596-.485 1.041 0 .292.064.536.191.733.128.198.294.365.497.502.204.137.434.236.689.295.256.061.51.09.765.09 1.054 0 1.83-.252 2.333-.758.5-.506.751-1.197.751-2.07v-.695Zm.18 3.833h-.078c-.441.703-1.003 1.213-1.682 1.53a5.241 5.241 0 0 1-2.243.475 5.95 5.95 0 0 1-1.645-.23 4.464 4.464 0 0 1-1.428-.695 3.556 3.556 0 0 1-1.006-1.158c-.255-.462-.383-1.003-.383-1.62 0-.67.12-1.238.358-1.71a3.51 3.51 0 0 1 .955-1.184c.4-.317.862-.57 1.39-.758a9.481 9.481 0 0 1 1.644-.425c.569-.093 1.143-.154 1.72-.18a37.43 37.43 0 0 1 1.633-.038h.764v-.334c0-.772-.264-1.35-.791-1.736-.526-.386-1.198-.579-2.013-.579a4.684 4.684 0 0 0-3.263 1.287l-1.606-1.622a5.937 5.937 0 0 1 2.383-1.517 8.72 8.72 0 0 1 2.817-.463c.867 0 1.597.1 2.193.296.594.198 1.086.451 1.478.759.39.308.692.664.905 1.067.212.404.365.81.46 1.222.092.411.147.81.164 1.196.018.385.026.725.026 1.015v7.099h-2.753v-1.697ZM104.962 21.156c-.594-.84-1.394-1.26-2.396-1.26-.408 0-.807.103-1.198.308-.391.207-.586.54-.586 1.003 0 .378.161.653.484.824.323.171.73.317 1.223.437.493.12 1.024.244 1.594.373.569.128 1.1.326 1.593.59.493.267.901.63 1.223 1.095.323.462.484 1.096.484 1.902 0 .738-.157 1.36-.471 1.865a3.734 3.734 0 0 1-1.223 1.222 5.404 5.404 0 0 1-1.695.668 8.85 8.85 0 0 1-1.887.206c-.951 0-1.827-.137-2.626-.411-.799-.275-1.512-.772-2.141-1.492l2.04-1.93c.39.447.811.81 1.261 1.095.45.282.999.423 1.644.423.222 0 .451-.025.688-.077.239-.051.459-.137.663-.258.204-.119.37-.268.497-.448.128-.18.192-.39.192-.632 0-.427-.161-.745-.485-.95-.323-.206-.73-.373-1.223-.503a27.126 27.126 0 0 0-1.593-.36 6.142 6.142 0 0 1-1.594-.54 3.348 3.348 0 0 1-1.223-1.04c-.323-.446-.484-1.064-.484-1.852 0-.686.139-1.282.42-1.788.28-.506.65-.921 1.108-1.247a4.759 4.759 0 0 1 1.581-.72 7.162 7.162 0 0 1 1.81-.232c.815 0 1.623.142 2.422.425a3.963 3.963 0 0 1 1.938 1.452l-2.04 1.852Z"></path></svg>
+          </div>
+          <p class="dc-client-quote">AI compute infrastructure deployment and lab management for one of the fastest AI chip companies in the world.</p>
+          <div class="dc-client-tags">
+            <span class="dc-tag">Rack &amp; Stack</span>
+            <span class="dc-tag">Lab Buildout</span>
+            <span class="dc-tag">Server Config</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Products -->
+  <section class="products" id="products">
+    <div class="section-eyebrow reveal">Our Products</div>
+    <h2 class="section-title reveal reveal-delay-1">SaaS Built In-House</h2>
+    <p class="section-sub reveal reveal-delay-2">We don't just build for clients — we ship our own products to solve real industry problems.</p>
+    <div class="products-grid">
+      <div class="product-card reveal">
+        <span class="product-badge badge-live">LIVE</span>
+        <div class="product-logo">Link<span class="a1">Crew</span></div>
+        <p>AI-powered field crew management for contractors. Job scheduling, crew check-ins, client invoicing, voice bot, and real-time dashboards — all in one platform.</p>
+        <div class="product-tags">
+          <span class="tag">Field Service</span>
+          <span class="tag">Mobile App</span>
+          <span class="tag">AI Voice Bot</span>
+          <span class="tag">Invoicing</span>
+        </div>
+        <a class="product-link" href="https://linkcrew.io" target="_blank">Visit linkcrew.io →</a>
+      </div>
+      <div class="product-card reveal reveal-delay-1">
+        <span class="product-badge badge-soon">COMING SOON</span>
+        <div class="product-logo">Support<span class="a2">IQ</span></div>
+        <p>AI customer support co-pilot for SMBs. Connect your docs, Gmail, and help desk — SupportIQ drafts responses, scores confidence, and keeps your team fast without growing headcount.</p>
+        <div class="product-tags">
+          <span class="tag">Customer Support</span>
+          <span class="tag">AI Co-pilot</span>
+          <span class="tag">Gmail</span>
+          <span class="tag">SMB</span>
+        </div>
+        <span class="product-coming-label">Launching soon — $299/mo</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Outcomes -->
+  <section class="outcomes" id="why">
+    <div class="section-eyebrow reveal">Real Results</div>
+    <h2 class="section-title reveal reveal-delay-1">Built by Engineers,<br>Measured in Outcomes</h2>
+    <p class="section-sub reveal reveal-delay-2">We combine deep IT infrastructure experience with modern AI to deliver systems that work in production — not just in demos.</p>
+    <div class="outcomes-grid">
+      <div class="outcome-card reveal">
+        <div class="outcome-number"><span class="unit">4hr </span>→<span class="unit"> 8min</span></div>
+        <div class="outcome-title">Invoicing time cut</div>
+        <div class="outcome-desc">LinkCrew customers replaced manual invoice creation with one-click automation. What used to take hours is now done before the job site clears.</div>
+      </div>
+      <div class="outcome-card reveal reveal-delay-1">
+        <div class="outcome-number">24<span class="unit">/7</span></div>
+        <div class="outcome-title">Inbound coverage, zero staff</div>
+        <div class="outcome-desc">Our AI voice agents handle inbound calls, answer questions, and route leads around the clock — no after-hours missed calls or missed revenue.</div>
+      </div>
+      <div class="outcome-card reveal reveal-delay-2">
+        <div class="outcome-number">6<span class="unit"> wks</span></div>
+        <div class="outcome-title">Concept to live product</div>
+        <div class="outcome-desc">Our focused build process takes you from idea to deployed, real users in weeks — not the months typical agency engagements drag on.</div>
+      </div>
+      <div class="outcome-card reveal reveal-delay-3">
+        <div class="outcome-number">15<span class="unit">+</span></div>
+        <div class="outcome-title">Years of infrastructure depth</div>
+        <div class="outcome-desc">Deep IT and data center experience means the systems we build don't just look good in demos — they're engineered to stay up and scale when it counts.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonial -->
+  <section class="testimonial">
+    <div class="testimonial-inner">
+      <span class="quote-mark reveal">"</span>
+      <p class="quote-text reveal reveal-delay-1">
+        Before LinkCrew, I was managing jobs through text threads and spreadsheets. Now I can see where every crew member is, send an invoice in seconds, and my clients have their own portal. It changed how I run the business.
+      </p>
+      <div class="quote-author reveal reveal-delay-2">
+        <div class="quote-avatar"></div>
+        <div>
+          <div class="quote-name">Beta Customer</div>
+          <div class="quote-role">General Contractor — LinkCrew Early Access</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Process -->
+  <section class="process" id="process">
+    <div class="section-eyebrow reveal">How It Works</div>
+    <h2 class="section-title reveal reveal-delay-1">From Idea to Deployed in Weeks</h2>
+    <p class="section-sub reveal reveal-delay-2">A straightforward process with no surprises.</p>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num-wrap">01</div>
+        <h3>Discovery Call</h3>
+        <p>We learn about your business, your pain points, and what you want to automate or build. No obligation.</p>
+      </div>
+      <div class="step reveal reveal-delay-1">
+        <div class="step-num-wrap">02</div>
+        <h3>Proposal &amp; Scope</h3>
+        <p>We send a clear proposal with timeline, cost, and deliverables. No vague estimates or moving goalposts.</p>
+      </div>
+      <div class="step reveal reveal-delay-2">
+        <div class="step-num-wrap">03</div>
+        <h3>Build &amp; Iterate</h3>
+        <p>We build fast, share progress weekly, and incorporate your feedback at every step of the way.</p>
+      </div>
+      <div class="step reveal reveal-delay-3">
+        <div class="step-num-wrap">04</div>
+        <h3>Launch &amp; Support</h3>
+        <p>We deploy to production, train your team, and provide ongoing support and improvements.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section class="contact" id="contact">
+    <div class="contact-inner">
+      <div class="section-eyebrow reveal" style="text-align:left">Get In Touch</div>
+      <h2 class="section-title reveal reveal-delay-1" style="text-align:left;font-size:34px">Let's Build Something Together</h2>
+      <p class="section-sub reveal reveal-delay-2" style="text-align:left;margin:10px 0 0">Tell us about your project and we'll get back to you within one business day.</p>
+      <p class="reveal reveal-delay-3" style="text-align:left;margin:18px 0 0;font-size:14px;color:var(--sub)">Prefer to talk? Call <a href="tel:+12605446900" style="color:var(--text);font-weight:700;text-decoration:none">(260) 544-6900</a> — our AI answers 24/7.</p>
+      <form class="contact-form reveal reveal-delay-3" id="contactForm" onsubmit="submitForm(event)">
+        <div class="form-row">
+          <input type="text" id="fname" placeholder="Your name" required />
+          <input type="text" id="fcompany" placeholder="Company" />
+        </div>
+        <input type="email" id="femail" placeholder="Email address" required />
+        <input type="tel" id="fphone" placeholder="Phone number (optional)" />
+        <select id="fservice">
+          <option value="" disabled selected>What are you looking to build?</option>
+          <option value="ai-automation">AI Automation</option>
+          <option value="saas">SaaS Product Development</option>
+          <option value="voice-agent">AI Voice / Chat Agent</option>
+          <option value="integration">System Integration</option>
+          <option value="dashboard">Dashboard &amp; Reporting</option>
+          <option value="infrastructure">Cloud &amp; Infrastructure</option>
+          <option value="other">Other / Not Sure Yet</option>
+        </select>
+        <textarea id="fmessage" placeholder="Describe what you're trying to automate or build..." required></textarea>
+        <button type="submit" id="submitBtn">Send Message</button>
+      </form>
+      <div class="form-success" id="formSuccess">
+        <h3>Message Received</h3>
+        <p>Thanks for reaching out. We'll be in touch within one business day.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-logo">Kingston <span>Data</span> Group</div>
+    <div class="footer-links">
+      <a href="#services">Services</a>
+      <a href="#products">Products</a>
+      <a href="https://linkcrew.io" target="_blank">LinkCrew</a>
+      <a href="tel:+12605446900">(260) 544-6900</a>
+      <a href="mailto:sales@kingstondatagroup.com">sales@kingstondatagroup.com</a>
+    </div>
+    <div class="footer-right">© 2024 Kingston Data Group</div>
+  </footer>
+
+  <!-- Chat Widget -->
+  <button class="chat-bubble" id="chatBubble" onclick="toggleChat()" aria-label="Chat with us">
+    <svg class="chat-icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 10H6V10h12v2zm0-3H6V7h12v2z"/></svg>
+    <svg class="chat-close" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+  </button>
+
+  <div class="chat-panel" id="chatPanel">
+    <div class="chat-header">
+      <div class="chat-avatar">🤖</div>
+      <div>
+        <div class="chat-header-name">KDG Assistant</div>
+        <div class="chat-header-status">Online — AI powered</div>
+      </div>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-msg bot">
+        <div class="chat-msg-avatar">🤖</div>
+        <div class="chat-msg-bubble">Hi! I'm the KDG AI assistant. I can answer questions about AI automation, SaaS development, our services, and more. What are you looking to build?</div>
+      </div>
+    </div>
+    <div class="chat-input-row">
+      <input class="chat-input" id="chatInput" type="text" placeholder="Ask anything..." onkeydown="if(event.key==='Enter')sendChat()" />
+      <button class="chat-send" onclick="sendChat()">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
     </div>
   </div>
 
-  <section id="offerings">
-    <div class="section-shell">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">What We Build</div>
-          <h2 class="section-title">Three delivery tracks, one operating mindset.</h2>
-        </div>
-        <p class="section-sub">We focus on operationally real problems: too many handoffs, too much manual work, or a workflow generic software does not fit cleanly.</p>
-      </div>
-
-      <div class="offer-grid compact">
-        <div class="offer-row">
-          <strong>Automation Systems</strong>
-          <p>Automate intake, dispatching, reporting, follow-up, and the glue work your team keeps doing manually.</p>
-        </div>
-        <div class="offer-row">
-          <strong>Voice And Agent Systems</strong>
-          <p>AI reception, intake, qualification, and routing that move requests into action instead of voicemail or inbox clutter.</p>
-        </div>
-        <div class="offer-row">
-          <strong>Custom Software</strong>
-          <p>Dashboards, mobile workflows, reporting, and customer-facing tools built around your actual process.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="work">
-    <div class="section-shell">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">Live Work</div>
-          <h2 class="section-title">What this looks like when it leaves the whiteboard.</h2>
-        </div>
-        <p class="section-sub">We build and operate our own software, which keeps the work grounded in what survives production, users, support, and iteration.</p>
-      </div>
-
-      <div class="cases-grid" style="grid-template-columns: 1fr;">
-        <div class="case-card">
-          <div class="case-top">
-            <div>
-              <div class="case-title">Link<span>Crew</span></div>
-              <div class="case-badge">Live Product</div>
-            </div>
-            <a class="btn-tertiary" href="https://linkcrew.io" target="_blank">Visit Product</a>
-          </div>
-          <p class="case-desc">Field-operations software for contractors and service crews. Built to replace scattered texts, callback loops, paper schedules, and disconnected admin work with one operating layer.</p>
-          <div class="case-metrics">
-            <div class="case-metric">
-              <strong>Owner Ops</strong>
-              <span>Jobs, clients, agreements, invoices, scheduling, and operational review in one place.</span>
-            </div>
-            <div class="case-metric">
-              <strong>Crew Flow</strong>
-              <span>Assignments, job updates, check-ins, timesheets, photos, and field reporting.</span>
-            </div>
-            <div class="case-metric">
-              <strong>Client Layer</strong>
-              <span>Invoices, work orders, portal visibility, reminders, and communication.</span>
-            </div>
-          </div>
-          <div class="case-list">
-            <div>AI voice reception, scheduling, recurring billing, and field reporting feed the same business workflow.</div>
-            <div>Mission Control, owner dashboard, and admin surfaces are maintained as product-grade systems.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="approach">
-    <div class="section-shell">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">Why KDG</div>
-          <h2 class="section-title">Why teams bring us in instead of buying one more tool.</h2>
-        </div>
-        <p class="section-sub">The sweet spot is when a business already feels the pain clearly: missed handoffs, manual re-entry, too many disconnected tools, or a process that nobody off the shelf has modeled correctly.</p>
-      </div>
-
-      <div class="offer-grid compact">
-        <div class="offer-row">
-          <strong>Operational Bias</strong>
-          <p>We optimize for day-to-day execution, not just feature lists.</p>
-        </div>
-        <div class="offer-row">
-          <strong>Product-Build Mindset</strong>
-          <p>We can move from concept into a working system without needing three separate firms.</p>
-        </div>
-        <div class="offer-row">
-          <strong>Production Realism</strong>
-          <p>Owning and evolving our own product work keeps the thinking grounded in live usage.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="section-shell">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">How We Work</div>
-          <h2 class="section-title">Straight path from problem to deployed system.</h2>
-        </div>
-        <p class="section-sub">No long consulting theater. We scope the right problem, define the first usable system, build it, and keep it grounded in what your team can actually adopt.</p>
-      </div>
-
-      <div class="process-grid">
-        <div class="process-card">
-          <div class="process-num">01 Audit</div>
-          <h3>Clarify the real workflow</h3>
-          <p>We map the current process, bottlenecks, handoffs, and where manual work is costing time, speed, or accuracy.</p>
-        </div>
-        <div class="process-card">
-          <div class="process-num">02 Scope</div>
-          <h3>Define the first useful version</h3>
-          <p>We cut through vague “AI ideas” and outline the first production-worthy workflow, dashboard, agent, or platform slice.</p>
-        </div>
-        <div class="process-card">
-          <div class="process-num">03 Build</div>
-          <h3>Ship the operating layer</h3>
-          <p>We build the interface, backend logic, integrations, and supporting workflows needed to make the system usable by real people.</p>
-        </div>
-        <div class="process-card">
-          <div class="process-num">04 Iterate</div>
-          <h3>Tighten after real usage</h3>
-          <p>We improve the system from live feedback, not hypothetical perfect-scope assumptions. That is where the real leverage shows up.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="contact">
-    <div class="contact-shell">
-      <div class="contact-copy">
-        <div class="section-kicker">Start Here</div>
-        <h2>Tell us what is breaking in the workflow.</h2>
-        <p>If you already know what you want to automate or build, great. If not, that is fine too. The best first conversation is usually about where the current process is leaking time, speed, or visibility.</p>
-        <div class="contact-notes">
-          <div>Good fit: service businesses, ops-heavy workflows, internal tool builds, AI intake systems, and custom SaaS around real process complexity.</div>
-          <div>Best first step: describe the workflow, what is manual today, and what outcome you want the system to own.</div>
-          <div>Response window: typically within one business day.</div>
-        </div>
-      </div>
-
-      <div class="contact-form-wrap">
-        <form class="contact-form" id="contactForm" onsubmit="submitForm(event)">
-          <div class="form-row">
-            <input type="text" id="fname" placeholder="Your name" required />
-            <input type="text" id="fcompany" placeholder="Company" />
-          </div>
-          <div class="form-row">
-            <input type="email" id="femail" placeholder="Email address" required />
-            <input type="tel" id="fphone" placeholder="Phone number (optional)" />
-          </div>
-          <select id="fservice" required>
-            <option value="" disabled selected>What are you looking to build or automate?</option>
-            <option value="automation">Workflow automation</option>
-            <option value="saas">Custom SaaS or internal platform</option>
-            <option value="voice-agent">AI voice / chat agent</option>
-            <option value="dashboard">Dashboard or reporting system</option>
-            <option value="integration">System integration</option>
-            <option value="other">Not sure yet</option>
-          </select>
-          <textarea id="fmessage" placeholder="Describe the workflow, the bottleneck, and what outcome you want the system to handle..." required></textarea>
-          <button type="submit" id="submitBtn">Send Project Details</button>
-        </form>
-
-        <div class="form-success" id="formSuccess">
-          <h3>Message received.</h3>
-          <p>Thanks for reaching out. We will review the project details and get back to you within one business day.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <footer>
-    <div class="footer-inner">
-      <div class="footer-logo">Kingston <span>Data</span> Group</div>
-      <div class="footer-links">
-        <a href="#offerings">Offerings</a>
-        <a href="#work">Work</a>
-        <a href="#approach">Approach</a>
-        <a href="https://linkcrew.io" target="_blank">LinkCrew</a>
-        <a href="mailto:sales@kingstondatagroup.com">sales@kingstondatagroup.com</a>
-      </div>
-      <div class="footer-right">© 2026 Kingston Data Group</div>
-    </div>
-  </footer>
-
   <script>
+    // ── Chat state ──
+    let chatSessionId = null;
+    let chatMode      = 'support';   // 'support' | 'demo_collecting' | 'demo_running'
+    let demoData      = {};          // { industry, company, city }
+    let demoStep      = 0;           // 0=industry 1=company 2=city
+    let demoTurns     = 0;
+
+    const DEMO_QUESTIONS = [
+      { key: 'industry', q: 'What industry is your business in? (e.g. real estate, dental, landscaping)' },
+      { key: 'company',  q: 'What\'s your company name?' },
+      { key: 'city',     q: 'What city are you based in?' },
+    ];
+
+    function toggleChat() {
+      document.getElementById('chatBubble').classList.toggle('open');
+      const panel = document.getElementById('chatPanel');
+      panel.classList.toggle('open');
+      if (panel.classList.contains('open')) document.getElementById('chatInput').focus();
+    }
+
+    function renderText(text) {
+      return text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/\[([^\]]+)\]\((mailto:[^)]+|tel:[^)]+|https?:[^)]+)\)/g, '<a href="$2" style="color:var(--accent);text-decoration:underline" target="_blank">$1</a>')
+        .replace(/\n/g, '<br>');
+    }
+
+    function appendMsg(role, text) {
+      const msgs = document.getElementById('chatMessages');
+      const wrap = document.createElement('div');
+      wrap.className = `chat-msg ${role}`;
+      wrap.innerHTML = role === 'bot'
+        ? `<div class="chat-msg-avatar">🤖</div><div class="chat-msg-bubble">${renderText(text)}</div>`
+        : `<div class="chat-msg-bubble">${renderText(text)}</div>`;
+      msgs.appendChild(wrap);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function showTyping() {
+      const msgs = document.getElementById('chatMessages');
+      const wrap = document.createElement('div');
+      wrap.className = 'chat-msg bot'; wrap.id = 'typingIndicator';
+      wrap.innerHTML = `<div class="chat-msg-avatar">🤖</div><div class="chat-msg-bubble chat-typing"><span></span><span></span><span></span></div>`;
+      msgs.appendChild(wrap);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function removeTyping() { document.getElementById('typingIndicator')?.remove(); }
+
+    // ── Demo: start collecting phase ──
+    function startDemoCollecting() {
+      chatMode  = 'demo_collecting';
+      demoData  = {};
+      demoStep  = 0;
+      demoTurns = 0;
+      appendMsg('bot', 'I\'d love to show you a quick demo of how an AI voice assistant can work for *your* business specifically. Just a few quick questions first:');
+      setTimeout(() => appendMsg('bot', DEMO_QUESTIONS[0].q), 600);
+    }
+
+    // ── Demo: handle collecting answers ──
+    function handleDemoCollecting(answer) {
+      const step = DEMO_QUESTIONS[demoStep];
+      demoData[step.key] = answer;
+      demoStep++;
+
+      if (demoStep < DEMO_QUESTIONS.length) {
+        appendMsg('bot', DEMO_QUESTIONS[demoStep].q);
+      } else {
+        // All data collected — kick off the demo
+        chatMode = 'demo_running';
+        demoTurns = 0;
+        const { industry, company, city } = demoData;
+        appendMsg('bot', `Perfect! I'm now going to act as the AI receptionist for **${company}** — a ${industry} business in ${city}. Go ahead and call in as a customer. Say anything a real customer might say!`);
+        updateChatPlaceholder('Say something a customer might say...');
+      }
+    }
+
+    // ── Demo: call API in running mode ──
+    async function handleDemoRunning(msg) {
+      showTyping();
+      try {
+        const res = await fetch('https://linkcrew.io/api/chat-kdg', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message:   msg,
+            sessionId: chatSessionId,
+            demoMode:  true,
+            demoData:  demoData,
+            demoTurns: demoTurns,
+          }),
+        });
+        const data = await res.json();
+        removeTyping();
+        if (data.reply) {
+          chatSessionId = data.sessionId;
+          appendMsg('bot', data.reply);
+          demoTurns++;
+
+          if (data.demoEnd) {
+            chatMode = 'support';
+            demoData = {};
+            updateChatPlaceholder('Ask anything...');
+            setTimeout(() => {
+              appendMsg('bot', 'That\'s the demo! Imagine that answering every call for your business — 24/7, no hold times, no missed leads.\n\nWant to set one up? Fill out the form below or just keep chatting — I\'m happy to answer any questions.');
+            }, 800);
+          }
+        } else {
+          appendMsg('bot', 'Sorry, something went wrong. Please email sales@kingstondatagroup.com.');
+        }
+      } catch {
+        removeTyping();
+        appendMsg('bot', 'Sorry, I couldn\'t connect. Please email sales@kingstondatagroup.com.');
+      }
+    }
+
+    function updateChatPlaceholder(text) {
+      document.getElementById('chatInput').placeholder = text;
+    }
+
+    // ── Main send handler ──
+    async function sendChat() {
+      const input = document.getElementById('chatInput');
+      const msg = input.value.trim();
+      if (!msg) return;
+      input.value = '';
+      appendMsg('user', msg);
+
+      if (chatMode === 'demo_collecting') {
+        handleDemoCollecting(msg);
+        return;
+      }
+
+      if (chatMode === 'demo_running') {
+        await handleDemoRunning(msg);
+        return;
+      }
+
+      // ── Support mode ──
+      showTyping();
+      try {
+        const res = await fetch('https://linkcrew.io/api/chat-kdg', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: msg, sessionId: chatSessionId }),
+        });
+        const data = await res.json();
+        removeTyping();
+        if (data.reply) {
+          chatSessionId = data.sessionId;
+          appendMsg('bot', data.reply);
+          if (data.triggerDemo) {
+            setTimeout(() => startDemoCollecting(), 1000);
+          }
+        } else {
+          appendMsg('bot', 'Sorry, something went wrong. Please email sales@kingstondatagroup.com.');
+        }
+      } catch {
+        removeTyping();
+        appendMsg('bot', 'Sorry, I couldn\'t connect. Please email sales@kingstondatagroup.com.');
+      }
+    }
+
+    // Scroll reveal
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+      });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Contact form
     async function submitForm(e) {
       e.preventDefault();
       const btn = document.getElementById('submitBtn');
-      btn.disabled = true;
-      btn.textContent = 'Sending...';
-
+      btn.disabled = true; btn.textContent = 'Sending...';
       const payload = {
-        name: document.getElementById('fname').value,
+        name:    document.getElementById('fname').value,
         company: document.getElementById('fcompany').value,
-        email: document.getElementById('femail').value,
-        phone: document.getElementById('fphone').value,
+        email:   document.getElementById('femail').value,
+        phone:   document.getElementById('fphone').value,
         service: document.getElementById('fservice').value,
         message: document.getElementById('fmessage').value,
       };
-
       try {
         const res = await fetch('https://linkcrew.io/api/contact-kdg', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
         if (res.ok) {
@@ -1108,14 +1252,10 @@
           return;
         }
       } catch (_) {}
-
       const subject = encodeURIComponent(`Project Inquiry from ${payload.name}`);
-      const body = encodeURIComponent(
-        `Name: ${payload.name}\nCompany: ${payload.company}\nEmail: ${payload.email}\nPhone: ${payload.phone}\nService: ${payload.service}\n\n${payload.message}`
-      );
+      const body    = encodeURIComponent(`Name: ${payload.name}\nCompany: ${payload.company}\nEmail: ${payload.email}\nPhone: ${payload.phone}\nService: ${payload.service}\n\n${payload.message}`);
       window.location.href = `mailto:sales@kingstondatagroup.com?subject=${subject}&body=${body}`;
-      btn.disabled = false;
-      btn.textContent = 'Send Project Details';
+      btn.disabled = false; btn.textContent = 'Send Message';
     }
   </script>
 
