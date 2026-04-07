@@ -370,6 +370,10 @@
   .status-chip.past_due { color: #fed7aa; border-color: rgba(251, 146, 60, 0.24); background: rgba(251, 146, 60, 0.1); }
   .status-chip.canceled, .status-chip.blocked { color: #fecaca; border-color: rgba(248, 113, 113, 0.24); background: rgba(248, 113, 113, 0.1); }
   .status-chip.paused { color: #fde68a; border-color: rgba(251, 191, 36, 0.24); background: rgba(251, 191, 36, 0.1); }
+  .status-chip.invite-active { color: #bbf7d0; border-color: rgba(74, 222, 128, 0.24); background: rgba(74, 222, 128, 0.1); }
+  .status-chip.invite-used { color: #bfdbfe; border-color: rgba(96, 165, 250, 0.24); background: rgba(96, 165, 250, 0.1); }
+  .status-chip.invite-exhausted { color: #fde68a; border-color: rgba(251, 191, 36, 0.24); background: rgba(251, 191, 36, 0.1); }
+  .status-chip.invite-expired { color: #fecaca; border-color: rgba(248, 113, 113, 0.24); background: rgba(248, 113, 113, 0.1); }
   .workspace-card { padding: 22px; min-height: 640px; }
   .workspace-card.empty {
     display: grid;
@@ -414,6 +418,7 @@
   }
   .table-shell { overflow: hidden; }
   .table-wrap { overflow: auto; }
+  .is-dimmed { opacity: 0.58; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { text-align: left; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: middle; }
   th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-2); }
@@ -830,12 +835,28 @@
             <div class="card-sub">Shareable onboarding links with usage and expiry visibility.</div>
           </div>
         </div>
+        <div class="toolbar" style="margin-bottom:14px">
+          <div class="toolbar-left">
+            <div class="search-wrap">
+              <input class="field" id="invite-search" placeholder="Search by label or code" oninput="renderInvites(invitesCache)" />
+            </div>
+            <select class="field-select" id="invite-status-filter" onchange="renderInvites(invitesCache)">
+              <option value="all">All invite states</option>
+              <option value="active">Active</option>
+              <option value="used">Used</option>
+              <option value="exhausted">Exhausted</option>
+              <option value="expired">Expired</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+        </div>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>Label</th>
                 <th>Code</th>
+                <th>Status</th>
                 <th>Tier</th>
                 <th>Trial</th>
                 <th>Uses</th>
@@ -1538,21 +1559,33 @@ function renderInvites(invites) {
   document.getElementById('invites-unlimited-count').textContent = unlimited;
   document.getElementById('invites-expiring-count').textContent = expiringSoon.length;
 
-  if (!invites.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="empty">No invite links yet.</td></tr>`;
+  const q = (document.getElementById('invite-search')?.value || '').trim().toLowerCase();
+  const stateFilter = document.getElementById('invite-status-filter')?.value || 'all';
+  const filtered = invites.filter(inv => {
+    const matchesText = !q || (inv.label || '').toLowerCase().includes(q) || (inv.code || '').toLowerCase().includes(q);
+    const state = getInviteStatus(inv);
+    const matchesState = stateFilter === 'all' || state === stateFilter || (stateFilter === 'archived' && ['exhausted', 'expired'].includes(state));
+    return matchesText && matchesState;
+  });
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="9" class="empty">No invite links in the current view.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = invites.map(inv => {
+  tbody.innerHTML = filtered.map(inv => {
     const selectedPlan = getInviteAccessPlan(inv.code);
     const link = buildInviteLink(inv.code, selectedPlan);
     const uses = inv.max_uses ? `${inv.use_count}/${inv.max_uses}` : `${inv.use_count} used`;
     const expires = inv.expires_at ? new Date(inv.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Never';
     const created = new Date(inv.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const status = getInviteStatus(inv);
+    const isDimmed = ['exhausted', 'expired'].includes(status) ? ' class="is-dimmed"' : '';
     return `
-      <tr>
+      <tr${isDimmed}>
         <td>${inv.label ? escapeHtml(inv.label) : '<span class="note-line">—</span>'}</td>
         <td><span class="metric-chip">${escapeHtml(inv.code)}</span></td>
+        <td>${inviteStatusChip(status)}</td>
         <td>
           <select class="field-select" style="min-width:120px" onchange="setInviteAccessPlan('${escapeJs(inv.code)}', this.value)">
             <option value="free" ${selectedPlan === 'free' ? 'selected' : ''}>Free</option>
@@ -1596,6 +1629,25 @@ function getInvitePlanMap() {
 function getInviteAccessPlan(code) {
   const plan = getInvitePlanMap()[code];
   return ['free', 'solo', 'team', 'pro', 'business'].includes(plan) ? plan : 'team';
+}
+
+function getInviteStatus(invite) {
+  const expired = !!invite.expires_at && new Date(invite.expires_at).getTime() < Date.now();
+  if (expired) return 'expired';
+  const exhausted = invite.max_uses !== null && invite.max_uses !== undefined && invite.use_count >= invite.max_uses;
+  if (exhausted) return 'exhausted';
+  if ((invite.use_count || 0) > 0) return 'used';
+  return 'active';
+}
+
+function inviteStatusChip(status) {
+  const labels = {
+    active: 'Active',
+    used: 'Used',
+    exhausted: 'Exhausted',
+    expired: 'Expired',
+  };
+  return `<span class="status-chip invite-${status}">${labels[status] || status}</span>`;
 }
 
 function setInviteAccessPlan(code, plan) {
