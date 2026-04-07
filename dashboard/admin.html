@@ -441,6 +441,32 @@
     flex-wrap: wrap;
     margin-bottom: 14px;
   }
+  .template-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 10px;
+  }
+  .template-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+    font-size: 12px;
+  }
+  .template-chip button {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 0;
+  }
+  .template-chip button:hover { color: #fff; }
   .range-btn {
     border: 1px solid var(--border);
     background: rgba(255,255,255,0.03);
@@ -827,8 +853,10 @@
         </div>
         <div class="toolbar-right">
           <input class="field" id="trial-coupon" placeholder="Coupon code, e.g. WELCOME20" />
+          <button class="btn-ghost" onclick="saveCouponTemplate()">Save Template</button>
         </div>
       </div>
+      <div class="template-row" id="trial-template-row"></div>
 
       <div class="kpi-grid" id="trial-stats">
         <div class="stats-card"><div class="stats-label">Expired Trials</div><div class="stats-value" id="trials-expired-count">0</div><div class="stats-sub">Total trial accounts past expiration.</div></div>
@@ -918,6 +946,7 @@ let selectedTenantId = null;
 let activeTab = 'customers';
 let currentRange = 7;
 let currentAdminAnalytics = null;
+const COUPON_TEMPLATE_KEY = 'linkcrew_admin_trial_coupon_templates';
 
 document.getElementById('current-date-chip').textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
@@ -1564,6 +1593,61 @@ function getUnconvertedTrials() {
   ).sort((a, b) => new Date(b.trial_ends_at) - new Date(a.trial_ends_at));
 }
 
+function getCouponTemplates() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(COUPON_TEMPLATE_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function setCouponTemplates(templates) {
+  localStorage.setItem(COUPON_TEMPLATE_KEY, JSON.stringify(templates));
+}
+
+function renderCouponTemplates() {
+  const row = document.getElementById('trial-template-row');
+  if (!row) return;
+  const templates = getCouponTemplates();
+  if (!templates.length) {
+    row.innerHTML = `<span class="note-line">No saved coupon templates yet. Save common offers here for faster recovery outreach.</span>`;
+    return;
+  }
+  row.innerHTML = templates.map(code => `
+    <span class="template-chip">
+      <button type="button" onclick="applyCouponTemplate('${escapeJs(code)}')">${escapeHtml(code)}</button>
+      <button type="button" title="Remove template" onclick="removeCouponTemplate('${escapeJs(code)}')">x</button>
+    </span>
+  `).join('');
+}
+
+function saveCouponTemplate() {
+  const input = document.getElementById('trial-coupon');
+  const code = (input?.value || '').trim().toUpperCase();
+  if (!code) {
+    alert('Enter a coupon code first');
+    return;
+  }
+  const templates = getCouponTemplates();
+  if (!templates.includes(code)) {
+    templates.unshift(code);
+    setCouponTemplates(templates.slice(0, 8));
+  }
+  renderCouponTemplates();
+}
+
+function applyCouponTemplate(code) {
+  const input = document.getElementById('trial-coupon');
+  if (input) input.value = code;
+}
+
+function removeCouponTemplate(code) {
+  const templates = getCouponTemplates().filter(item => item !== code);
+  setCouponTemplates(templates);
+  renderCouponTemplates();
+}
+
 function getFilteredTrials() {
   const trials = getUnconvertedTrials();
   const filter = document.getElementById('trial-filter')?.value || 'all';
@@ -1586,6 +1670,7 @@ function getFilteredTrials() {
 }
 
 function renderTrials() {
+  renderCouponTemplates();
   const allTrials = getUnconvertedTrials();
   const trials = getFilteredTrials();
   const tbody = document.getElementById('trials-tbody');
