@@ -1745,6 +1745,34 @@
       </div>
     </div>
 
+    <!-- Plan Usage -->
+    <div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:28px;margin-top:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px">
+        <div style="font-size:15px;font-weight:700;color:#17191c">Plan Usage</div>
+        <a href="/pricing" style="font-size:12px;font-weight:700;color:#0265dc;text-decoration:none">View Plans</a>
+      </div>
+      <div style="font-size:13px;color:#737475;margin-bottom:20px">See how many crew seats are included in your plan, how many are in use, and how much room is left before you need to upgrade or add extra users.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+        <div style="padding:14px 16px;border:1px solid #e8e8e8;border-radius:12px;background:#fafafa">
+          <div style="font-size:11px;font-weight:700;color:#737475;text-transform:uppercase;letter-spacing:0.08em">Plan</div>
+          <div id="settings-usage-plan" style="font-size:20px;font-weight:800;color:#17191c;margin-top:6px">—</div>
+        </div>
+        <div style="padding:14px 16px;border:1px solid #e8e8e8;border-radius:12px;background:#fafafa">
+          <div style="font-size:11px;font-weight:700;color:#737475;text-transform:uppercase;letter-spacing:0.08em">Seats Included</div>
+          <div id="settings-usage-max" style="font-size:20px;font-weight:800;color:#17191c;margin-top:6px">—</div>
+        </div>
+        <div style="padding:14px 16px;border:1px solid #e8e8e8;border-radius:12px;background:#fafafa">
+          <div style="font-size:11px;font-weight:700;color:#737475;text-transform:uppercase;letter-spacing:0.08em">Crew Added</div>
+          <div id="settings-usage-current" style="font-size:20px;font-weight:800;color:#17191c;margin-top:6px">—</div>
+        </div>
+        <div style="padding:14px 16px;border:1px solid #e8e8e8;border-radius:12px;background:#fafafa">
+          <div style="font-size:11px;font-weight:700;color:#737475;text-transform:uppercase;letter-spacing:0.08em">Seats Left</div>
+          <div id="settings-usage-left" style="font-size:20px;font-weight:800;color:#17191c;margin-top:6px">—</div>
+        </div>
+      </div>
+      <div id="settings-usage-copy" style="font-size:12px;color:#64748b;line-height:1.6;margin-top:14px">Usage details update from your current subscription and active crew count.</div>
+    </div>
+
     <!-- Voice Bot -->
     <div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:28px;margin-top:20px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -2128,6 +2156,7 @@ let currentTenantId = null;
 let currentPlan = null;
 let currentSubscriptionStatus = null;
 let currentMaxUsers = 1;
+let currentExtraUsers = 0;
 
 const TOKEN_KEY = 'fs_token';
 
@@ -2160,17 +2189,19 @@ async function loadBillingStatus() {
     const now = new Date();
     currentPlan = data.plan ?? null;
     currentSubscriptionStatus = data.subscription_status ?? null;
+    currentExtraUsers = data.extra_users || 0;
     // Show Ideas tab for active/trialing subscribers
     if (['active', 'trialing'].includes(currentSubscriptionStatus)) {
       document.getElementById('mtab-ideas').style.display = '';
       lucide.createIcons();
     }
     currentMaxUsers = (data.max_users ?? 1);
+    updateSettingsUsageCard();
 
     // Update users badge in Settings
     const badge = document.getElementById('current-users-badge');
     if (badge) {
-      const extraUsers = data.extra_users || 0;
+      const extraUsers = currentExtraUsers;
       const planBase = currentMaxUsers - extraUsers;
       badge.textContent = extraUsers > 0
         ? `Plan: ${planBase} + ${extraUsers} extra = ${currentMaxUsers} total`
@@ -2206,6 +2237,25 @@ async function loadBillingStatus() {
       document.querySelector('.header-right').insertBefore(btn, document.querySelector('.header-right').firstChild);
     }
   } catch (_) {}
+}
+
+function updateSettingsUsageCard() {
+  const planEl = document.getElementById('settings-usage-plan');
+  if (!planEl) return;
+  const maxEl = document.getElementById('settings-usage-max');
+  const currentEl = document.getElementById('settings-usage-current');
+  const leftEl = document.getElementById('settings-usage-left');
+  const copyEl = document.getElementById('settings-usage-copy');
+  const seatsLeft = Math.max(0, (currentMaxUsers || 0) - (currentEmployeeCount || 0));
+  const baseSeats = Math.max(0, (currentMaxUsers || 0) - (currentExtraUsers || 0));
+  planEl.textContent = String(currentPlan || 'beta').toUpperCase();
+  maxEl.textContent = currentMaxUsers || 0;
+  currentEl.textContent = currentEmployeeCount || 0;
+  leftEl.textContent = seatsLeft;
+  leftEl.style.color = seatsLeft === 0 && currentMaxUsers ? '#dc2626' : '#17191c';
+  copyEl.textContent = currentExtraUsers > 0
+    ? `${baseSeats} seat${baseSeats === 1 ? '' : 's'} come from your plan and ${currentExtraUsers} from extra users. ${seatsLeft} seat${seatsLeft === 1 ? '' : 's'} remaining right now.`
+    : `${seatsLeft} seat${seatsLeft === 1 ? '' : 's'} remaining on your current plan before you need extra users or an upgrade.`;
 }
 
 function showLockout(data) {
@@ -3274,6 +3324,7 @@ async function loadTeamInline() {
     setText('team-inline-leads', managerCount);
     setText('team-inline-crew', crewCount);
     setText('team-inline-capacity', currentMaxUsers ? capacityLeft : '—');
+    updateSettingsUsageCard();
 
     if (!employees.length) {
       setText('team-attention-title', 'No employees added yet.');
@@ -4686,6 +4737,7 @@ async function loadSettings() {
   if (data.appt_reminder_minutes !== undefined && data.appt_reminder_minutes !== null) document.getElementById('set-appt-reminder').value = String(data.appt_reminder_minutes);
   document.getElementById('priority-support-section').style.display =
     currentPlan === 'business' ? 'block' : 'none';
+  updateSettingsUsageCard();
   settingsLoaded = true;
 }
 
