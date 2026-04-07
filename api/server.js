@@ -307,6 +307,7 @@ app.get('/invoice', (req, res) => res.sendFile(path.join(__dirname, '../dashboar
 app.get('/workorder', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/workorder.html')));
 app.get('/timesheet', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/timesheet-print.html')));
 app.get('/pricing', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/pricing.html')));
+app.get('/faq', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/faq.html')));
 app.get('/join', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/join.html')));
 app.get('/kdg', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/kdg.html')));
 app.get('/kdg-logos', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/kdg-logos.html')));

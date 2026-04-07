@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FAQ — LinkCrew</title>
+  <meta name="description" content="Answers to common questions about LinkCrew setup, mobile support, pricing, rollout, and client visibility." />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f8fbfe;
+      --surface: #ffffff;
+      --surface2: #eef6fb;
+      --border: rgba(15,23,42,0.08);
+      --border2: rgba(15,23,42,0.12);
+      --accent: #0ea5e9;
+      --accent-hover: #0284c7;
+      --text: #0f172a;
+      --sub: #475569;
+      --muted: #94a3b8;
+      --font-head: 'Lato', sans-serif;
+      --font-body: 'Lato', sans-serif;
+    }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    nav {
+      position: sticky; top: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 68px;
+      background: rgba(255,255,255,0.94);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo img { width: 34px; height: 34px; }
+    .nav-logo-name { font-size: 17px; font-weight: 900; color: var(--text); font-family: var(--font-head); letter-spacing: -0.03em; }
+    .nav-logo-name span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 22px; }
+    .nav-links a { font-size: 14px; font-weight: 700; color: var(--sub); text-decoration: none; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: var(--accent); color: #fff; border: none;
+      padding: 9px 18px; border-radius: 8px; font-size: 14px; font-weight: 900;
+      text-decoration: none;
+    }
+    .nav-cta:hover { background: var(--accent-hover); }
+
+    .hero {
+      padding: 72px 24px 36px;
+      text-align: center;
+    }
+    .hero-eyebrow {
+      display: inline-block;
+      font-size: 11px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-family: var(--font-head);
+      font-size: 46px; font-weight: 900; letter-spacing: -0.04em; line-height: 1.08;
+      margin-bottom: 14px;
+    }
+    .hero p {
+      max-width: 620px; margin: 0 auto;
+      font-size: 16px; color: var(--sub); line-height: 1.7;
+    }
+
+    .faq-wrap {
+      max-width: 980px; margin: 0 auto; padding: 0 24px 80px;
+    }
+    .faq-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 18px;
+      padding: 22px 22px 20px;
+      box-shadow: 0 10px 30px rgba(15,23,42,0.04);
+    }
+    .faq-item h2 {
+      font-size: 17px; font-weight: 900; color: var(--text); line-height: 1.3; margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+    .faq-item p {
+      font-size: 14px; color: var(--sub); line-height: 1.7;
+    }
+
+    .faq-bridge {
+      max-width: 760px; margin: 28px auto 0;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 24px;
+      text-align: center;
+    }
+    .faq-bridge h3 {
+      font-size: 20px; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 8px;
+    }
+    .faq-bridge p {
+      font-size: 14px; color: var(--sub); line-height: 1.65; margin-bottom: 18px;
+    }
+    .faq-bridge-actions {
+      display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;
+    }
+    .faq-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 44px; padding: 0 18px; border-radius: 999px; text-decoration: none;
+      font-size: 13px; font-weight: 900;
+    }
+    .faq-btn.primary {
+      background: var(--accent); color: #fff;
+    }
+    .faq-btn.secondary {
+      background: #fff; color: var(--text); border: 1.5px solid var(--border2);
+    }
+
+    footer {
+      padding: 28px 24px 44px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    footer a {
+      color: var(--accent); text-decoration: none; font-weight: 700;
+    }
+
+    @media (max-width: 860px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .hero h1 { font-size: 34px; }
+      .faq-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a class="nav-logo" href="/">
+      <img src="/logo.svg" alt="LinkCrew Logo">
+      <div class="nav-logo-name">Link<span>Crew</span></div>
+    </a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/portal">Client Portal</a>
+    </div>
+    <a href="/app" class="nav-cta">Start Free</a>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-eyebrow">FAQ</div>
+    <h1>Questions owners ask before switching</h1>
+    <p>These are the practical rollout, mobile, pricing, and client-visibility questions that usually come up before a team moves off texts, calls, and spreadsheets.</p>
+  </section>
+
+  <main class="faq-wrap">
+    <section class="faq-grid">
+      <article class="faq-item">
+        <h2>How fast can we get started?</h2>
+        <p>Most teams can set up their account, add jobs, and invite crew members the same day. LinkCrew is designed to be lightweight to adopt, not a long implementation project.</p>
+      </article>
+      <article class="faq-item">
+        <h2>Do crews need training?</h2>
+        <p>Very little. The crew experience is built around check-ins, photos, supply requests, and simple updates from a phone instead of a complex back-office workflow.</p>
+      </article>
+      <article class="faq-item">
+        <h2>Does it work on iPhone and Android?</h2>
+        <p>Yes. The owner dashboard runs on the web, and field workflows are designed to work from the phones your crew already carries.</p>
+      </article>
+      <article class="faq-item">
+        <h2>Can clients see progress?</h2>
+        <p>Yes. LinkCrew includes a client portal so customers can review job status, photos, invoices, and service history without constant phone calls.</p>
+      </article>
+      <article class="faq-item">
+        <h2>What happens after the free trial?</h2>
+        <p>You can choose a paid plan when you are ready. The goal is to make it easy to prove operational value before you commit.</p>
+      </article>
+      <article class="faq-item">
+        <h2>What if we need help getting live?</h2>
+        <p>Call or text <a href="tel:+12603005565" style="color:var(--text);font-weight:900;text-decoration:none">(260) 300-5565</a>. You can also reach out through <a href="mailto:support@linkcrew.io" style="color:var(--text);font-weight:900;text-decoration:none">support@linkcrew.io</a> for help getting set up.</p>
+      </article>
+    </section>
+
+    <section class="faq-bridge">
+      <h3>Need plan details too?</h3>
+      <p>Compare seats, features, and add-ons on the pricing page, then come back here if you still have rollout questions.</p>
+      <div class="faq-bridge-actions">
+        <a href="/pricing" class="faq-btn primary">See Pricing</a>
+        <a href="/app" class="faq-btn secondary">Start Free Trial</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    LinkCrew FAQ. Questions not covered here? Email <a href="mailto:support@linkcrew.io">support@linkcrew.io</a>.
+  </footer>
+</body>
+</html>
