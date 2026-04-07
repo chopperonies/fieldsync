@@ -1184,16 +1184,54 @@
 
 <!-- Agreements view -->
 <div id="agreements-view" style="display:none">
-  <div class="ag-layout">
-    <div class="ag-list-panel">
-      <div class="ag-search-bar">
-        <input class="crm-search" type="text" placeholder="Search agreements..." oninput="filterAgreements(this.value)">
-        <button class="btn-add-client" onclick="openAddAgreement()">+ Add</button>
+  <div class="owner-page">
+    <div class="owner-page-shell">
+      <div class="owner-page-header">
+        <div class="owner-page-copy">
+          <div class="owner-page-eyebrow">Agreements</div>
+          <div class="owner-page-title">Track renewals, recurring value, and contract health in one view.</div>
+          <div class="owner-page-subtitle">This page should help the owner see which agreements are active, what renews next, and where recurring revenue is at risk.</div>
+        </div>
+        <div class="owner-page-actions">
+          <button class="owner-btn primary" onclick="openAddAgreement()">+ Add Agreement</button>
+        </div>
       </div>
-      <div id="agreements-list"><div class="empty"><div class="e-icon">📄</div>Loading...</div></div>
-    </div>
-    <div class="ag-detail-panel" id="ag-detail-panel">
-      <div class="empty" style="margin-top:60px"><div class="e-icon">⏳</div>Loading...</div>
+
+      <div class="owner-kpi-grid">
+        <div class="owner-kpi-card">
+          <div class="owner-kpi-label">Active Agreements</div>
+          <div class="owner-kpi-value" id="ag-active-count">—</div>
+          <div class="owner-kpi-meta">Contracts currently in force and contributing to recurring work.</div>
+        </div>
+        <div class="owner-kpi-card">
+          <div class="owner-kpi-label">Est. MRR</div>
+          <div class="owner-kpi-value" id="ag-mrr-count">—</div>
+          <div class="owner-kpi-meta">Approximate monthly recurring value across active agreements.</div>
+        </div>
+        <div class="owner-kpi-card">
+          <div class="owner-kpi-label">Overdue Renewals</div>
+          <div class="owner-kpi-value" id="ag-overdue-count">—</div>
+          <div class="owner-kpi-meta">Agreements that already passed the next due date.</div>
+        </div>
+        <div class="owner-kpi-card">
+          <div class="owner-kpi-label">Due in 30 Days</div>
+          <div class="owner-kpi-value" id="ag-upcoming-count">—</div>
+          <div class="owner-kpi-meta">Active agreements that need attention soon.</div>
+        </div>
+      </div>
+
+      <div class="ag-layout">
+        <div class="ag-list-panel">
+          <div class="ag-search-bar">
+            <input class="crm-search" type="text" placeholder="Search agreements..." oninput="filterAgreements(this.value)">
+            <button class="btn-add-client" onclick="openAddAgreement()">+ Add</button>
+          </div>
+          <div id="agreements-list"><div class="empty"><div class="e-icon">📄</div>Loading...</div></div>
+        </div>
+        <div class="ag-detail-panel" id="ag-detail-panel">
+          <div class="empty" style="margin-top:60px"><div class="e-icon">⏳</div>Loading...</div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -4596,8 +4634,24 @@ const scheduleLabels = { monthly:'Monthly', quarterly:'Quarterly', biannual:'Bi-
 async function loadAgreements() {
   const res = await authFetch('/api/agreements');
   allAgreementsData = await res.json();
+  updateAgreementMetrics();
   renderAgreementList(allAgreementsData);
   if (!selectedAgreementId) renderAgreementsEmptyState();
+}
+
+function updateAgreementMetrics() {
+  const today = new Date().toISOString().split('T')[0];
+  const in30 = new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0];
+  const active = allAgreementsData.filter(a => a.status === 'active');
+  const overdue = active.filter(a => a.next_due && a.next_due < today);
+  const upcoming = active.filter(a => a.next_due && a.next_due >= today && a.next_due <= in30);
+  const mrrMultiplier = { monthly:1, quarterly:1/3, biannual:1/6, annual:1/12, custom:1/12 };
+  const mrr = active.reduce((sum, a) => sum + (parseFloat(a.value)||0) * (mrrMultiplier[a.schedule]||1), 0);
+
+  setText('ag-active-count', active.length);
+  setText('ag-mrr-count', `$${Math.round(mrr).toLocaleString()}`);
+  setText('ag-overdue-count', overdue.length);
+  setText('ag-upcoming-count', upcoming.length);
 }
 
 function renderAgreementsEmptyState() {
@@ -4612,6 +4666,17 @@ function renderAgreementsEmptyState() {
 
   const panel = document.getElementById('ag-detail-panel');
   panel.innerHTML = `
+    <div class="owner-signal-card" style="margin-bottom:18px">
+      <div class="owner-signal-label">Agreement Snapshot</div>
+      <div class="owner-signal-title">${overdue.length ? `${overdue.length} agreement${overdue.length === 1 ? '' : 's'} are overdue for renewal.` : upcoming.length ? `${upcoming.length} agreement${upcoming.length === 1 ? '' : 's'} renew in the next 30 days.` : 'Agreement renewals are under control right now.'}</div>
+      <div class="owner-signal-copy">${overdue.length ? 'Start with overdue renewals first, then move to the agreements coming up soon so recurring revenue stays predictable.' : upcoming.length ? 'No contracts are overdue, but upcoming renewals should be reviewed before they slip into a reactive follow-up cycle.' : 'Use this page to monitor recurring value and review linked jobs before the next renewal wave.'}</div>
+      <div class="owner-inline-list">
+        <div class="owner-inline-row"><span>Active agreements</span><strong>${active.length}</strong></div>
+        <div class="owner-inline-row"><span>Estimated MRR</span><strong>$${Math.round(mrr).toLocaleString()}</strong></div>
+        <div class="owner-inline-row"><span>Upcoming in 30 days</span><strong>${upcoming.length}</strong></div>
+      </div>
+    </div>
+
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
       <div class="agd-section" style="text-align:center;margin:0;padding:16px 10px">
         <div style="font-size:28px;font-weight:800;color:#16a34a">${active.length}</div>
