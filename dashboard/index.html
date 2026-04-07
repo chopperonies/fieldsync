@@ -3621,7 +3621,7 @@ function renderCalendarGrid() {
     dayAppts.sort((a, b) => a.start_time.localeCompare(b.start_time));
 
     return `
-      <button onclick="selectCalendarDate('${dateStr}')"
+      <div role="button" tabindex="0" onclick="selectCalendarDate('${dateStr}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectCalendarDate('${dateStr}')}"
         style="text-align:left;background:${isSelected ? 'rgba(2,101,220,0.08)' : '#fff'};border:1px solid ${isSelected ? '#0265dc' : isToday ? '#7fb2ef' : '#e8e8e8'};border-radius:14px;min-height:160px;overflow:hidden;padding:0;cursor:pointer;display:flex;flex-direction:column;box-shadow:${isSelected ? '0 18px 36px rgba(2,101,220,0.12)' : 'none'}">
         <div style="padding:10px 12px;border-bottom:1px solid #f0f0f0;background:${isSelected ? 'rgba(2,101,220,0.08)' : isToday ? '#eef5ff' : '#fafafa'};display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
           <div>
@@ -3630,7 +3630,7 @@ function renderCalendarGrid() {
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-size:11px;color:${dayAppts.length ? '#0265dc' : '#9ca3af'};font-weight:700">${dayAppts.length || 'No'}${dayAppts.length ? ' appt' + (dayAppts.length === 1 ? '' : 's') : ''}</span>
-            <span onclick="event.stopPropagation();openApptModal('${dateStr}')" style="background:#fff;border:1px solid #e8e8e8;border-radius:999px;width:28px;height:28px;cursor:pointer;font-size:16px;line-height:1;color:#737475;display:flex;align-items:center;justify-content:center;flex:0 0 auto">+</span>
+            <button type="button" onclick="event.stopPropagation();openApptModal('${dateStr}')" style="background:#fff;border:1px solid #e8e8e8;border-radius:999px;width:28px;height:28px;cursor:pointer;font-size:16px;line-height:1;color:#737475;display:flex;align-items:center;justify-content:center;flex:0 0 auto">+</button>
           </div>
         </div>
         <div style="padding:10px;display:grid;gap:8px;flex:1">
@@ -3645,7 +3645,7 @@ function renderCalendarGrid() {
           }).join('') : '<div style="font-size:12px;color:#c0c0c0;padding:6px 2px">No appointments scheduled.</div>'}
           ${dayAppts.length > 3 ? `<div style="font-size:11px;color:#737475;font-weight:600;padding-left:2px">+${dayAppts.length - 3} more in agenda</div>` : ''}
         </div>
-      </button>`;
+      </div>`;
   }).join('');
 
   grid.innerHTML = headerCells + dayCells;
@@ -3807,15 +3807,28 @@ async function saveAppt() {
   const btn = document.getElementById('appt-save-btn');
   btn.disabled = true;
 
-  if (editingApptId) {
-    await authFetch(`/api/appointments/${editingApptId}`, { method: 'PATCH', body: JSON.stringify(payload) });
-  } else {
-    await authFetch('/api/appointments', { method: 'POST', body: JSON.stringify(payload) });
+  try {
+    const res = editingApptId
+      ? await authFetch(`/api/appointments/${editingApptId}`, { method: 'PATCH', body: JSON.stringify(payload) })
+      : await authFetch('/api/appointments', { method: 'POST', body: JSON.stringify(payload) });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || 'Failed to save appointment');
+      return;
+    }
+    calSelectedDate = date;
+    const selectedDate = new Date(`${date}T12:00:00`);
+    const visibleStart = new Date(calWeekStart);
+    const visibleEnd = new Date(calWeekStart);
+    visibleEnd.setDate(visibleEnd.getDate() + 27);
+    if (selectedDate < visibleStart || selectedDate > visibleEnd) {
+      calWeekStart = getWeekStart(selectedDate);
+    }
+    closeApptModal();
+    await loadCalendarWeek();
+  } finally {
+    btn.disabled = false;
   }
-
-  closeApptModal();
-  await loadCalendarWeek();
-  btn.disabled = false;
 }
 
 async function deleteAppt() {
