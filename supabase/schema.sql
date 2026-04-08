@@ -51,7 +51,7 @@ create table if not exists job_updates (
   id uuid default gen_random_uuid() primary key,
   job_id uuid references jobs(id) on delete cascade,
   employee_id uuid references employees(id),
-  type text default 'update' check (type in ('checkin', 'update', 'bottleneck', 'supply_request', 'photo', 'checkout')),
+  type text default 'update' check (type in ('checkin', 'update', 'note', 'bottleneck', 'supply_request', 'photo', 'checkout')),
   message text,
   photo_url text,
   created_at timestamptz default now()
