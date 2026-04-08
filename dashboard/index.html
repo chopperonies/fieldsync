@@ -3721,6 +3721,25 @@ function getEmployeeDashboardAccessCopy(employee) {
   return 'Dashboard access enabled';
 }
 
+function isTeamActionsExpanded(employeeId, inline = false) {
+  const key = `${inline ? 'inline' : 'modal'}:${employeeId}`;
+  return window._teamActionsExpanded?.[key] === true;
+}
+
+function setTeamActionsExpanded(employeeId, expanded, inline = false) {
+  const key = `${inline ? 'inline' : 'modal'}:${employeeId}`;
+  window._teamActionsExpanded = window._teamActionsExpanded || {};
+  window._teamActionsExpanded[key] = expanded === true;
+  const panel = document.getElementById(`team-actions-panel-${inline ? 'inline-' : ''}${employeeId}`);
+  const toggle = document.getElementById(`team-actions-toggle-${inline ? 'inline-' : ''}${employeeId}`);
+  if (panel) panel.style.display = window._teamActionsExpanded[key] ? 'flex' : 'none';
+  if (toggle) toggle.textContent = window._teamActionsExpanded[key] ? 'Hide Actions' : 'Actions';
+}
+
+function toggleTeamActions(employeeId, inline = false) {
+  setTeamActionsExpanded(employeeId, !isTeamActionsExpanded(employeeId, inline), inline);
+}
+
 function renderTeamRow(employee, inline = false) {
   const accessCopy = getEmployeeDashboardAccessCopy(employee);
   const canInviteDashboard = canManageSettings() && (employee.role === 'manager' || employee.role === 'owner');
@@ -3735,8 +3754,20 @@ function renderTeamRow(employee, inline = false) {
     ? `<button onclick="disableDashboardAccess('${employee.id}','${String(employee.name || '').replace(/'/g, "\\'")}')" style="background:#fff5f5;border:1px solid #fecaca;color:#b91c1c;cursor:pointer;font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px">Disable Access</button>`
     : '';
   const removeButton = `<button onclick="deleteEmployee('${employee.id}')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:12px;font-weight:600;padding:4px 8px;border-radius:4px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove</button>`;
-  const actionColumn = [accessButton, copyAccessButton, disableAccessButton, removeButton].filter(Boolean).join('');
+  const actionButtons = [accessButton, copyAccessButton, disableAccessButton, removeButton].filter(Boolean);
+  const actionColumn = actionButtons.join('');
   const rowId = inline ? `emp-row-inline-${employee.id}` : `emp-row-${employee.id}`;
+  const actionPanelId = `team-actions-panel-${inline ? 'inline-' : ''}${employee.id}`;
+  const actionToggleId = `team-actions-toggle-${inline ? 'inline-' : ''}${employee.id}`;
+  const actionsExpanded = isTeamActionsExpanded(employee.id, inline);
+  const actionsUI = actionButtons.length
+    ? `
+        <button id="${actionToggleId}" onclick="toggleTeamActions('${employee.id}', ${inline})" style="background:#fff;border:1px solid #cbd5e1;color:#334155;cursor:pointer;font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px">
+          ${actionsExpanded ? 'Hide Actions' : 'Actions'}
+        </button>
+        <div id="${actionPanelId}" style="display:${actionsExpanded ? 'flex' : 'none'};flex-direction:column;align-items:flex-end;gap:6px">${actionColumn}</div>
+      `
+    : '';
   return `
     <div class="team-row" id="${rowId}" style="align-items:flex-start">
       <div class="team-avatar">${(employee.name||'?')[0].toUpperCase()}</div>
@@ -3747,7 +3778,7 @@ function renderTeamRow(employee, inline = false) {
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0">
         <span class="role-badge ${roleCls[employee.role]||'role-crew'}">${employee.role.toUpperCase()}</span>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">${actionColumn}</div>
+        ${actionsUI}
       </div>
     </div>
   `;
