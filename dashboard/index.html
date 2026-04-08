@@ -3620,6 +3620,7 @@ async function saveEmployee() {
   const res = await authFetch('/api/employees', { method: 'POST', body: JSON.stringify({ name, phone, role }) });
   if (!res.ok) { const { error } = await res.json(); return alert(error || 'Failed to add employee'); }
   const employee = await res.json();
+  let successMessage = 'Employee added.';
   if (email) {
     const accessRes = await authFetch(`/api/employees/${employee.id}/dashboard-access`, {
       method: 'POST',
@@ -3630,14 +3631,15 @@ async function saveEmployee() {
       alert(`Employee added, but dashboard access was not granted: ${accessData.error || 'Unknown error'}`);
     } else if (accessData.invite_url && !accessData.email_sent) {
       try { await navigator.clipboard.writeText(accessData.invite_url); } catch (_) {}
-      alert('Employee added. Email delivery is not configured, so the setup link has been copied for manual sharing.');
+      successMessage = 'Employee added. Dashboard access is enabled, and the setup link was copied for manual sharing.';
+    } else {
+      successMessage = 'Employee added. Dashboard access granted.';
     }
   }
-  document.getElementById('emp-name').value = '';
-  document.getElementById('emp-phone').value = '';
-  document.getElementById('emp-email').value = '';
+  closeTeam();
   await loadTeam();
   if (document.getElementById('team-view').style.display !== 'none') await loadTeamInline();
+  alert(successMessage);
 }
 async function deleteEmployee(id) {
   if (!confirm('Remove this employee?')) return;
