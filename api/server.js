@@ -1833,7 +1833,7 @@ app.post('/api/jobs/:id/updates', auth, async (req, res) => {
     .from('job_updates')
     .insert({
       job_id: id,
-      employee_id: req.userId || null,
+      employee_id: req.employeeId || null,
       message: message.trim(),
       type,
     })
