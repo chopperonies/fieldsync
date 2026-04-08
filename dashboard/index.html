@@ -3553,7 +3553,7 @@ function renderTeamRow(employee, inline = false) {
       <div class="team-info">
         <div class="ti-name">${employee.name}</div>
         <div class="ti-sub">📱 ${employee.phone}</div>
-        <div class="ti-sub" style="margin-top:4px;color:${employee.dashboard_access_enabled ? '#0f766e' : '#64748b'}">${accessCopy}</div>
+        <div class="ti-sub" style="margin-top:4px;font-size:13px;font-weight:700;color:${employee.dashboard_access_enabled ? '#0f766e' : '#475569'}">${accessCopy}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0">
         <span class="role-badge ${roleCls[employee.role]||'role-crew'}">${employee.role.toUpperCase()}</span>
