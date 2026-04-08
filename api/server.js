@@ -1686,8 +1686,33 @@ app.patch('/api/supplies/:id', auth, async (req, res) => {
 });
 
 app.post('/api/jobs', auth, requireOperationAccess, ensureFinancialFieldsAllowed, async (req, res) => {
-  const { name, address, manager_email, description, estimate_amount, primary_supervisor_employee_id } = req.body;
-  const { data } = await supabaseAdmin.from('jobs')
+  const {
+    name,
+    address,
+    manager_email,
+    description,
+    estimate_amount,
+    primary_supervisor_employee_id,
+    initial_employee_ids = []
+  } = req.body;
+  const requestedEmployeeIds = Array.isArray(initial_employee_ids)
+    ? [...new Set(initial_employee_ids.filter(id => typeof id === 'string' && id.trim()))]
+    : [];
+
+  if (requestedEmployeeIds.length) {
+    const { data: crewEmployees, error: crewError } = await supabaseAdmin
+      .from('employees')
+      .select('id')
+      .eq('tenant_id', req.tenantId)
+      .eq('role', 'crew')
+      .in('id', requestedEmployeeIds);
+    if (crewError) return res.status(400).json({ error: crewError.message });
+    if ((crewEmployees || []).length !== requestedEmployeeIds.length) {
+      return res.status(400).json({ error: 'One or more selected crew members are invalid.' });
+    }
+  }
+
+  const { data, error } = await supabaseAdmin.from('jobs')
     .insert({
       name,
       address,
@@ -1697,6 +1722,18 @@ app.post('/api/jobs', auth, requireOperationAccess, ensureFinancialFieldsAllowed
       primary_supervisor_employee_id: primary_supervisor_employee_id || null,
       tenant_id: req.tenantId
     }).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+
+  if (requestedEmployeeIds.length) {
+    const assignmentRows = requestedEmployeeIds.map(employee_id => ({
+      job_id: data.id,
+      employee_id,
+      tenant_id: req.tenantId
+    }));
+    const { error: assignmentError } = await supabaseAdmin.from('job_assignments').insert(assignmentRows);
+    if (assignmentError) return res.status(400).json({ error: assignmentError.message });
+  }
+
   res.json(redactJobsForRole(data, req));
 });
 

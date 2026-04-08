@@ -2161,6 +2161,11 @@
       <select id="new-job-supervisor" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 10px;font-size:13px;color:#17191c"></select>
       <div style="margin-top:6px;font-size:12px;color:#64748b">Choose the internal lead responsible for this job. This works on any plan and does not require dashboard access.</div>
     </div>
+    <div class="form-group">
+      <label>Initial Crew</label>
+      <div id="new-job-crew-list" style="display:flex;flex-direction:column;gap:8px;max-height:180px;overflow:auto;padding:10px;border:1px solid #e8e8e8;border-radius:10px;background:#f8fafc"></div>
+      <div style="margin-top:6px;font-size:12px;color:#64748b">Optional. Pick crew members who should already be assigned when the job is created.</div>
+    </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeAddJob()">Cancel</button>
       <button class="btn-save" onclick="saveJob()">Create Job</button>
@@ -3516,6 +3521,7 @@ function subscribeRealtime() {
 function openAddJob() {
   const supervisorSelect = document.getElementById('new-job-supervisor');
   if (supervisorSelect) supervisorSelect.innerHTML = buildSupervisorSelectOptions();
+  renderNewJobCrewChecklist();
   document.getElementById('add-job-modal').classList.add('visible');
 }
 function closeAddJob() { document.getElementById('add-job-modal').classList.remove('visible'); }
@@ -3526,8 +3532,9 @@ async function saveJob() {
   const estimateInput = document.getElementById('new-job-estimate');
   const estimate_amount = canManageFinancials() ? (parseFloat(estimateInput?.value) || null) : undefined;
   const primary_supervisor_employee_id = getSelectedSupervisorId('new-job-supervisor');
+  const initial_employee_ids = getSelectedNewJobCrewIds();
   if (!name) return alert('Job name is required');
-  const payload = { name, address, description, primary_supervisor_employee_id };
+  const payload = { name, address, description, primary_supervisor_employee_id, initial_employee_ids };
   if (canManageFinancials()) payload.estimate_amount = estimate_amount;
   await authFetch('/api/jobs', { method: 'POST', body: JSON.stringify(payload) });
   closeAddJob();
@@ -3537,6 +3544,7 @@ async function saveJob() {
   if (estimateInput) estimateInput.value = '';
   const supervisorSelect = document.getElementById('new-job-supervisor');
   if (supervisorSelect) supervisorSelect.innerHTML = buildSupervisorSelectOptions();
+  renderNewJobCrewChecklist();
   await loadDashboard();
 }
 
@@ -3709,6 +3717,37 @@ function getSelectedSupervisorId(selectId) {
   const select = document.getElementById(selectId);
   if (!select) return null;
   return select.value || null;
+}
+
+function buildInitialCrewChecklist(selectedIds = []) {
+  const selected = new Set((selectedIds || []).filter(Boolean));
+  const crew = (window._allEmployees || [])
+    .filter(employee => employee.role === 'crew')
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+  if (!crew.length) {
+    return '<div style="font-size:12px;color:#64748b">No crew members added yet. Add team members first, then come back to assign them here.</div>';
+  }
+
+  return crew.map(employee => `
+    <label style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer">
+      <input type="checkbox" class="new-job-crew-checkbox" value="${employee.id}" ${selected.has(employee.id) ? 'checked' : ''} style="margin-top:2px">
+      <span style="min-width:0">
+        <span style="display:block;font-size:13px;font-weight:700;color:#0f172a">${employee.name || 'Crew member'}</span>
+        <span style="display:block;margin-top:2px;font-size:12px;color:#64748b">${employee.phone || 'No phone'}</span>
+      </span>
+    </label>
+  `).join('');
+}
+
+function renderNewJobCrewChecklist(selectedIds = []) {
+  const list = document.getElementById('new-job-crew-list');
+  if (!list) return;
+  list.innerHTML = buildInitialCrewChecklist(selectedIds);
+}
+
+function getSelectedNewJobCrewIds() {
+  return Array.from(document.querySelectorAll('.new-job-crew-checkbox:checked')).map(input => input.value);
 }
 
 function getEmployeeDashboardAccessCopy(employee) {
