@@ -1035,7 +1035,7 @@ async function sendDashboardAccessInviteEmail({ email, companyName, employeeName
       <p style="margin:20px 0"><a href="${actionLink}" style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600">Open LinkCrew</a></p>
       <p style="margin:0 0 12px;color:#475569;font-size:13px">If the button does not open, copy this URL into your browser:</p>
       <p style="margin:0 0 12px;color:#0f172a;font-size:13px;word-break:break-all">${actionLink}</p>
-      <p style="margin:0;color:#64748b;font-size:12px">After setup, your dashboard will be available at ${appUrl}/app.</p>
+      <p style="margin:0;color:#64748b;font-size:12px">After setup, your LinkCrew web dashboard will be available here: ${appUrl}/app.</p>
     </div>`,
   });
   return { sent: true, emailId: response?.data?.id || null };
@@ -1055,7 +1055,7 @@ async function sendPasswordRecoveryEmail({ email, actionLink, appUrl }) {
       <p style="margin:20px 0"><a href="${actionLink}" style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600">Reset Password</a></p>
       <p style="margin:0 0 12px;color:#475569;font-size:13px">If the button does not open, copy this URL into your browser:</p>
       <p style="margin:0 0 12px;color:#0f172a;font-size:13px;word-break:break-all">${actionLink}</p>
-      <p style="margin:0;color:#64748b;font-size:12px">After reset, your dashboard will be available at ${appUrl}/app.</p>
+      <p style="margin:0;color:#64748b;font-size:12px">After reset, your LinkCrew web dashboard will be available here: ${appUrl}/app.</p>
     </div>`,
   });
   return { sent: true, emailId: response?.data?.id || null };
