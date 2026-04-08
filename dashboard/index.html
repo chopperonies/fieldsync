@@ -1771,6 +1771,25 @@
       </div>
     </div>
 
+    <div id="manager-financials-section" style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:28px;margin-top:20px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap">
+        <div style="max-width:680px">
+          <div style="font-size:15px;font-weight:700;color:#17191c;margin-bottom:6px">Manager Financial Visibility</div>
+          <div style="font-size:13px;color:#737475;line-height:1.7">Managers keep operational control by default. Turn this on only if you want managers to see invoices, reports, agreements, recurring billing, and estimate amounts in the dashboard.</div>
+        </div>
+        <label style="display:inline-flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:#17191c">
+          <input type="checkbox" id="set-manager-financials" style="width:16px;height:16px">
+          Allow managers to view financials
+        </label>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:16px">
+        <button onclick="saveManagerFinancialsSetting()" style="background:#0265dc;color:#fff;border:none;border-radius:7px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer">
+          Save Financial Access
+        </button>
+        <span id="manager-financials-status" style="font-size:12px;color:#64748b"></span>
+      </div>
+    </div>
+
     <!-- Plan Usage -->
     <div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:28px;margin-top:20px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px">
@@ -2104,7 +2123,7 @@
     <div class="form-group"><label>Job Name</label><input type="text" id="new-job-name" placeholder="e.g. Downtown Office Renovation"></div>
     <div class="form-group"><label>Address</label><input type="text" id="new-job-address" placeholder="e.g. 123 Main St, Miami FL"></div>
     <div class="form-group"><label>Scope of Work / Description</label><textarea id="new-job-desc" placeholder="Describe the work to be done, materials, timeline..." rows="3" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 10px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit"></textarea></div>
-    <div class="form-group"><label>Estimate Amount ($)</label><input type="number" id="new-job-estimate" placeholder="0.00" min="0" step="0.01"></div>
+    <div class="form-group" id="new-job-estimate-wrap"><label>Estimate Amount ($)</label><input type="number" id="new-job-estimate" placeholder="0.00" min="0" step="0.01"></div>
     <div class="form-group"><label>Manager Email</label><input type="email" id="new-job-email" placeholder="manager@company.com"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeAddJob()">Cancel</button>
@@ -2155,6 +2174,11 @@
     <div class="form-group"><label>Full Name</label><input type="text" id="emp-name" placeholder="e.g. Marcus Johnson"></div>
     <div class="form-group"><label>Phone Number (WhatsApp)</label><input type="tel" id="emp-phone" placeholder="+1 (555) 000-0000"></div>
     <div class="form-group">
+      <label>Dashboard Access Email <span style="color:#94a3b8;font-weight:500">(manager or owner only)</span></label>
+      <input type="email" id="emp-email" placeholder="name@company.com">
+      <div style="margin-top:6px;font-size:12px;color:#64748b">Optional. If provided for a manager or owner, LinkCrew will send a secure setup link for `/app` access.</div>
+    </div>
+    <div class="form-group">
       <label>Role</label>
       <select id="emp-role">
         <option value="crew">Crew — field worker</option>
@@ -2183,6 +2207,15 @@ let currentPlan = null;
 let currentSubscriptionStatus = null;
 let currentMaxUsers = 1;
 let currentExtraUsers = 0;
+let currentRole = 'owner';
+let currentCapabilities = {
+  can_access_dashboard: true,
+  can_manage_operations: true,
+  can_manage_team: true,
+  can_manage_settings: true,
+  can_view_financials: true,
+  can_manage_financials: true,
+};
 const inviteAccessParams = new URLSearchParams(window.location.search);
 
 const TOKEN_KEY = 'fs_token';
@@ -2190,6 +2223,72 @@ const TOKEN_KEY = 'fs_token';
 function getToken() { return localStorage.getItem(TOKEN_KEY); }
 function setToken(t) { localStorage.setItem(TOKEN_KEY, t); currentToken = t; }
 function clearToken() { localStorage.removeItem(TOKEN_KEY); currentToken = null; }
+function canViewFinancials() { return !!(isAdmin || currentCapabilities.can_view_financials); }
+function canManageFinancials() { return !!(isAdmin || currentCapabilities.can_manage_financials); }
+function canManageSettings() { return !!(isAdmin || currentCapabilities.can_manage_settings); }
+function canManageOperations() { return !!(isAdmin || currentCapabilities.can_manage_operations); }
+
+function getAccessibleTabs() {
+  const tabs = ['jobs', 'team', 'clients', 'calendar', 'timesheets'];
+  if (canViewFinancials()) {
+    tabs.push('agreements', 'reports');
+  }
+  if (canManageSettings()) {
+    tabs.push('settings');
+  }
+  if (isAdmin || ['active', 'trialing'].includes(currentSubscriptionStatus)) {
+    tabs.push('ideas');
+  }
+  return tabs;
+}
+
+function applyCapabilityUI() {
+  const accessibleTabs = new Set(getAccessibleTabs());
+  ['jobs','team','clients','reports','agreements','calendar','timesheets','settings','ideas'].forEach(tab => {
+    const tabEl = document.getElementById(`mtab-${tab}`);
+    if (tabEl) tabEl.style.display = accessibleTabs.has(tab) ? '' : 'none';
+  });
+  const inviteBtn = document.getElementById('invite-crew-btn');
+  if (inviteBtn) inviteBtn.style.display = canManageSettings() ? '' : 'none';
+  document.querySelectorAll('[onclick="goToCrewInvite()"]').forEach(el => {
+    el.style.display = canManageSettings() ? '' : 'none';
+  });
+  const recurringTab = document.getElementById('ctab-recurring');
+  if (recurringTab) recurringTab.style.display = canViewFinancials() ? '' : 'none';
+  const settingsButtons = document.querySelectorAll('#settings-view .owner-page-actions button');
+  settingsButtons.forEach(btn => { btn.style.display = canManageSettings() ? '' : 'none'; });
+  const managerFinancialsSection = document.getElementById('manager-financials-section');
+  if (managerFinancialsSection) managerFinancialsSection.style.display = canManageSettings() ? 'block' : 'none';
+  const newJobEstimateWrap = document.getElementById('new-job-estimate-wrap');
+  if (newJobEstimateWrap) newJobEstimateWrap.style.display = canManageFinancials() ? 'block' : 'none';
+  const ownerRoleOption = document.querySelector('#emp-role option[value="owner"]');
+  if (ownerRoleOption) {
+    ownerRoleOption.style.display = canManageSettings() ? '' : 'none';
+    ownerRoleOption.disabled = !canManageSettings();
+  }
+  const roleSelect = document.getElementById('emp-role');
+  if (roleSelect && !canManageSettings() && roleSelect.value === 'owner') roleSelect.value = 'crew';
+  const dashboardEmailInput = document.getElementById('emp-email');
+  if (dashboardEmailInput) {
+    dashboardEmailInput.disabled = !canManageSettings();
+    dashboardEmailInput.placeholder = canManageSettings() ? 'name@company.com' : 'Owner-only';
+  }
+}
+
+async function loadCurrentUserContext() {
+  const res = await authFetch('/api/me');
+  const me = await res.json();
+  isAdmin = !!me.is_admin;
+  currentRole = me.role || 'owner';
+  currentCapabilities = {
+    can_access_dashboard: !!me.capabilities?.can_access_dashboard,
+    can_manage_operations: !!me.capabilities?.can_manage_operations,
+    can_manage_team: !!me.capabilities?.can_manage_team,
+    can_manage_settings: !!me.capabilities?.can_manage_settings,
+    can_view_financials: !!me.capabilities?.can_view_financials,
+    can_manage_financials: !!me.capabilities?.can_manage_financials,
+  };
+}
 
 async function authFetch(url, opts = {}) {
   const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
@@ -2207,6 +2306,7 @@ async function authFetch(url, opts = {}) {
 
 // ── Billing ───────────────────────────────────────────────────────────────────
 async function loadBillingStatus() {
+  if (!canViewFinancials()) return;
   try {
     const res = await fetch('/api/billing/status', {
       headers: { Authorization: `Bearer ${currentToken}` }
@@ -2263,6 +2363,7 @@ async function loadBillingStatus() {
       btn.onclick = openBillingPortal;
       document.querySelector('.header-right').insertBefore(btn, document.querySelector('.header-right').firstChild);
     }
+    applyCapabilityUI();
   } catch (_) {}
 }
 
@@ -2445,6 +2546,7 @@ async function doSignup() {
 }
 
 function goToCrewInvite() {
+  if (!canManageSettings()) return;
   switchMainTab('settings');
   setTimeout(() => {
     const card = document.getElementById('crew-invite-card');
@@ -2458,6 +2560,7 @@ function goToCrewInvite() {
 }
 
 async function loadCrewInviteUrl() {
+  if (!canManageSettings()) return;
   const input = document.getElementById('crew-invite-url');
   input.value = '';
   input.placeholder = 'No link generated yet';
@@ -2476,6 +2579,7 @@ async function loadCrewInviteUrl() {
 }
 
 async function generateCrewInviteUrl() {
+  if (!canManageSettings()) return;
   const input = document.getElementById('crew-invite-url');
   const genBtn = document.getElementById('crew-invite-gen-btn');
   genBtn.disabled = true;
@@ -2532,6 +2636,15 @@ async function doLogout() {
   clearToken();
   isAdmin = false;
   currentTenantId = null;
+  currentRole = 'owner';
+  currentCapabilities = {
+    can_access_dashboard: true,
+    can_manage_operations: true,
+    can_manage_team: true,
+    can_manage_settings: true,
+    can_view_financials: true,
+    can_manage_financials: true,
+  };
   if (supabaseClient) { try { supabaseClient.removeAllChannels(); } catch(_){} }
   document.getElementById('auth-screen').classList.add('visible');
   document.getElementById('app-shell').style.display = 'none';
@@ -2544,9 +2657,12 @@ async function bootApp() {
   document.getElementById('auth-screen').classList.remove('visible');
   document.getElementById('app-shell').style.display = 'block';
 
+  await loadCurrentUserContext();
+  applyCapabilityUI();
+
   // If user came from pricing page, auto-redirect to Stripe checkout
   const pendingPlan = new URLSearchParams(location.search).get('plan');
-  if (pendingPlan) {
+  if (pendingPlan && canManageSettings() && canViewFinancials()) {
     try {
       const res = await authFetch('/api/billing/checkout', {
         method: 'POST',
@@ -2558,9 +2674,7 @@ async function bootApp() {
     } catch (_) {}
   }
 
-  // Check if admin
-  const testRes = await authFetch('/api/admin/tenants');
-  isAdmin = testRes.ok;
+  const testRes = isAdmin ? await authFetch('/api/admin/tenants') : { ok: false };
 
   if (isAdmin) {
     document.getElementById('admin-bar').style.display = 'flex';
@@ -2627,10 +2741,13 @@ async function init() {
   const state = readDashboardState();
   if (state.calendarWeekStart) calWeekStart = new Date(state.calendarWeekStart);
   if (state.calendarSelectedDate) calSelectedDate = state.calendarSelectedDate;
-  const restoredTab = getTabFromLocationHash() || state.mainTab || 'jobs';
+  const accessibleTabs = getAccessibleTabs();
+  const requestedTab = getTabFromLocationHash() || state.mainTab || 'jobs';
+  const restoredTab = accessibleTabs.includes(requestedTab) ? requestedTab : (accessibleTabs[0] || 'jobs');
   switchMainTab(restoredTab);
   if (restoredTab === 'clients') {
-    switchClientsTab(state.clientsSubtab || 'all');
+    const requestedClientsSubtab = state.clientsSubtab || 'all';
+    switchClientsTab(requestedClientsSubtab === 'recurring' && !canViewFinancials() ? 'all' : requestedClientsSubtab);
   }
   subscribeRealtime();
 }
@@ -3007,6 +3124,9 @@ async function openDetail(jobId, jobName) {
   `;
 
   const overviewEl = document.getElementById('detail-overview');
+  const financialOverviewField = canManageFinancials()
+    ? `<div class="form-group" style="margin-bottom:0"><label>Estimate Amount</label><input type="number" id="detail-job-estimate" value="${job?.estimate_amount || ''}" min="0" step="0.01" placeholder="0.00"></div>`
+    : `<div style="display:flex;align-items:flex-end;padding:12px 14px;border:1px solid #e8e8e8;border-radius:10px;background:#f8fafc;font-size:12px;color:#64748b;line-height:1.6">Financial details are hidden for your role.</div>`;
   overviewEl.innerHTML = `
     <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
       <div class="panel-title">Job Overview</div>
@@ -3022,7 +3142,7 @@ async function openDetail(jobId, jobName) {
             ${['quoted','scheduled','in_progress','active','complete','invoiced','on_hold'].map(status => `<option value="${status}" ${job?.status === status ? 'selected' : ''}>${status.replace('_',' ')}</option>`).join('')}
           </select>
         </div>
-        <div class="form-group" style="margin-bottom:0"><label>Estimate Amount</label><input type="number" id="detail-job-estimate" value="${job?.estimate_amount || ''}" min="0" step="0.01" placeholder="0.00"></div>
+        ${financialOverviewField}
       </div>
       <div class="form-group" style="margin-top:12px;margin-bottom:0">
         <label>Scope / Work Being Done</label>
@@ -3036,7 +3156,7 @@ async function openDetail(jobId, jobName) {
   `;
 
   const woEl = document.getElementById('detail-workorder');
-  const hasEstimate = job?.estimate_amount > 0;
+  const hasEstimate = canViewFinancials() && job?.estimate_amount > 0;
   const woUrl = `/workorder?job_id=${job?.id}`;
   const smsDisabledAttrs = !ownerTwilioConfigured ? 'disabled title="Set up the company Twilio number in Settings to enable SMS client messages."' : '';
   const smsDisabledStyle = !ownerTwilioConfigured ? 'opacity:0.5;cursor:not-allowed;' : 'cursor:pointer;';
@@ -3061,9 +3181,9 @@ async function openDetail(jobId, jobName) {
   `;
 
   const invEl = document.getElementById('detail-invoice');
-  const isPaid = job?.payment_status === 'paid';
-  const hasInvoice = job?.invoice_amount > 0;
-  invEl.innerHTML = `
+  const isPaid = canViewFinancials() && job?.payment_status === 'paid';
+  const hasInvoice = canViewFinancials() && job?.invoice_amount > 0;
+  invEl.innerHTML = canViewFinancials() ? `
     <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
     <div class="panel-title">Invoice</div>
     ${isPaid
@@ -3090,6 +3210,11 @@ async function openDetail(jobId, jobName) {
              </button>
            </div>`
     }
+    </div>
+  ` : `
+    <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
+      <div class="panel-title">Invoice</div>
+      <div style="font-size:13px;color:#64748b;line-height:1.7">Invoice amounts and payment details are hidden for your role.</div>
     </div>
   `;
 
@@ -3182,9 +3307,12 @@ async function saveJobOverview(jobId) {
     manager_email: document.getElementById('detail-job-email').value.trim() || null,
     address: document.getElementById('detail-job-address').value.trim() || null,
     status: document.getElementById('detail-job-status').value,
-    estimate_amount: document.getElementById('detail-job-estimate').value || null,
     description: document.getElementById('detail-job-description').value.trim() || null,
   };
+  const estimateEl = document.getElementById('detail-job-estimate');
+  if (estimateEl && canManageFinancials()) {
+    payload.estimate_amount = estimateEl.value || null;
+  }
   const res = await authFetch(`/api/jobs/${jobId}`, { method: 'PATCH', body: JSON.stringify(payload) });
   if (!res.ok) {
     statusEl.style.color = '#dc2626';
@@ -3282,15 +3410,18 @@ async function saveJob() {
   const name = document.getElementById('new-job-name').value.trim();
   const address = document.getElementById('new-job-address').value.trim();
   const description = document.getElementById('new-job-desc').value.trim();
-  const estimate_amount = parseFloat(document.getElementById('new-job-estimate').value) || null;
+  const estimateInput = document.getElementById('new-job-estimate');
+  const estimate_amount = canManageFinancials() ? (parseFloat(estimateInput?.value) || null) : undefined;
   const manager_email = document.getElementById('new-job-email').value.trim();
   if (!name) return alert('Job name is required');
-  await authFetch('/api/jobs', { method: 'POST', body: JSON.stringify({ name, address, description, estimate_amount, manager_email }) });
+  const payload = { name, address, description, manager_email };
+  if (canManageFinancials()) payload.estimate_amount = estimate_amount;
+  await authFetch('/api/jobs', { method: 'POST', body: JSON.stringify(payload) });
   closeAddJob();
   document.getElementById('new-job-name').value = '';
   document.getElementById('new-job-address').value = '';
   document.getElementById('new-job-desc').value = '';
-  document.getElementById('new-job-estimate').value = '';
+  if (estimateInput) estimateInput.value = '';
   document.getElementById('new-job-email').value = '';
   await loadDashboard();
 }
@@ -3319,6 +3450,41 @@ async function sendWorkOrder(jobId) {
 
 // ── Team Management ───────────────────────────────────────────────────────────
 const roleCls = { owner: 'role-owner', manager: 'role-manager', crew: 'role-crew' };
+
+function getEmployeeDashboardAccessCopy(employee) {
+  if (!employee.dashboard_access_enabled) {
+    return employee.role === 'crew'
+      ? 'Mobile app access only'
+      : 'Dashboard access not invited yet';
+  }
+  if (employee.dashboard_can_view_financials) return 'Dashboard access enabled • financials on';
+  return 'Dashboard access enabled';
+}
+
+function renderTeamRow(employee, inline = false) {
+  const accessCopy = getEmployeeDashboardAccessCopy(employee);
+  const canInviteDashboard = canManageSettings() && (employee.role === 'manager' || employee.role === 'owner');
+  const accessButton = canInviteDashboard
+    ? `<button onclick="grantDashboardAccess('${employee.id}','${String(employee.name || '').replace(/'/g, "\\'")}','${employee.role}')" style="background:#eef6ff;border:1px solid #bfdbfe;color:#1d4ed8;cursor:pointer;font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px">${employee.dashboard_access_enabled ? 'Resend Access Link' : 'Grant Dashboard Access'}</button>`
+    : '';
+  const removeButton = `<button onclick="deleteEmployee('${employee.id}')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:12px;font-weight:600;padding:4px 8px;border-radius:4px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove</button>`;
+  const actionColumn = [accessButton, removeButton].filter(Boolean).join('');
+  const rowId = inline ? `emp-row-inline-${employee.id}` : `emp-row-${employee.id}`;
+  return `
+    <div class="team-row" id="${rowId}" style="align-items:flex-start">
+      <div class="team-avatar">${(employee.name||'?')[0].toUpperCase()}</div>
+      <div class="team-info">
+        <div class="ti-name">${employee.name}</div>
+        <div class="ti-sub">📱 ${employee.phone}</div>
+        <div class="ti-sub" style="margin-top:4px;color:${employee.dashboard_access_enabled ? '#0f766e' : '#64748b'}">${accessCopy}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0">
+        <span class="role-badge ${roleCls[employee.role]||'role-crew'}">${employee.role.toUpperCase()}</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">${actionColumn}</div>
+      </div>
+    </div>
+  `;
+}
 
 async function loadAllEmployees() {
   const res = await authFetch('/api/employees');
@@ -3382,17 +3548,7 @@ async function loadTeamInline() {
     setText('team-attention-copy', capacityLeft === 0 && currentMaxUsers
       ? 'This plan is at its user limit. Upgrade before adding more crew to keep onboarding simple.'
       : 'Use this roster to manage roles, remove inactive workers, and keep the field team cleanly assigned.');
-    el.innerHTML = employees.map(e => `
-      <div class="team-row" id="emp-row-inline-${e.id}">
-        <div class="team-avatar">${(e.name||'?')[0].toUpperCase()}</div>
-        <div class="team-info">
-          <div class="ti-name">${e.name}</div>
-          <div class="ti-sub">📱 ${e.phone}</div>
-        </div>
-        <span class="role-badge ${roleCls[e.role]||'role-crew'}">${e.role.toUpperCase()}</span>
-        <button onclick="deleteEmployee('${e.id}')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:12px;font-weight:600;padding:4px 8px;border-radius:4px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove</button>
-      </div>
-    `).join('');
+    el.innerHTML = employees.map(e => renderTeamRow(e, true)).join('');
   } catch (err) {
     el.innerHTML = '<div class="empty" style="padding:12px;color:#dc2626">Failed to load team. Please try again.</div>';
   }
@@ -3405,6 +3561,7 @@ function closeTeam() {
   document.getElementById('team-modal').classList.remove('visible');
   document.getElementById('emp-name').value = '';
   document.getElementById('emp-phone').value = '';
+  document.getElementById('emp-email').value = '';
   document.getElementById('emp-role').value = 'crew';
 }
 let currentEmployeeCount = 0;
@@ -3415,33 +3572,70 @@ async function loadTeam() {
     const employees = await res.json();
     currentEmployeeCount = employees.length;
     if (!employees.length) { el.innerHTML = '<div class="empty" style="padding:12px">No employees yet. Add one below.</div>'; return; }
-    el.innerHTML = employees.map(e => `
-      <div class="team-row" id="emp-row-${e.id}">
-        <div class="team-avatar">${(e.name||'?')[0].toUpperCase()}</div>
-        <div class="team-info">
-          <div class="ti-name">${e.name}</div>
-          <div class="ti-sub">📱 ${e.phone}</div>
-        </div>
-        <span class="role-badge ${roleCls[e.role]||'role-crew'}">${e.role.toUpperCase()}</span>
-        <button onclick="deleteEmployee('${e.id}')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:12px;font-weight:600;padding:4px 8px;border-radius:4px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove</button>
-      </div>
-    `).join('');
+    el.innerHTML = employees.map(e => renderTeamRow(e)).join('');
   } catch (err) {
     el.innerHTML = '<div class="empty" style="padding:12px;color:#dc2626">Failed to load team. Please try again.</div>';
   }
 }
+
+async function grantDashboardAccess(id, name, role) {
+  if (!canManageSettings()) return alert('Only the owner can grant dashboard access.');
+  if (role === 'crew') return alert('Crew members should stay on the mobile app only.');
+  const email = window.prompt(`Enter the dashboard email for ${name}:`);
+  if (!email) return;
+  const res = await authFetch(`/api/employees/${id}/dashboard-access`, {
+    method: 'POST',
+    body: JSON.stringify({ email: email.trim() })
+  });
+  const data = await res.json();
+  if (!res.ok) return alert(data.error || 'Failed to grant dashboard access');
+  if (data.invite_url && !data.email_sent) {
+    try { await navigator.clipboard.writeText(data.invite_url); } catch (_) {}
+    alert('Dashboard access is linked. Email delivery is not configured, so the setup link has been copied for manual sharing.');
+  } else {
+    alert(data.existing_user ? 'Access refreshed and a new setup link was sent.' : 'Dashboard access granted and the setup link was sent.');
+  }
+  await loadTeam();
+  if (document.getElementById('team-view').style.display !== 'none') await loadTeamInline();
+}
+
 async function saveEmployee() {
   const name = document.getElementById('emp-name').value.trim();
   const phone = document.getElementById('emp-phone').value.trim();
+  const email = document.getElementById('emp-email').value.trim();
   const role = document.getElementById('emp-role').value;
   if (!name || !phone) return alert('Name and phone are required');
+  if (role === 'owner' && !canManageSettings()) {
+    return alert('Only the owner can assign owner access.');
+  }
+  if (email && !canManageSettings()) {
+    return alert('Only the owner can grant dashboard access.');
+  }
+  if (email && role === 'crew') {
+    return alert('Dashboard access is only available for managers or owners.');
+  }
   if (currentEmployeeCount >= currentMaxUsers) {
     return alert(`Plan limit reached. Your ${currentPlan ?? 'current'} plan allows up to ${currentMaxUsers} crew member${currentMaxUsers === 1 ? '' : 's'}. Upgrade at linkcrew.io/pricing.`);
   }
   const res = await authFetch('/api/employees', { method: 'POST', body: JSON.stringify({ name, phone, role }) });
   if (!res.ok) { const { error } = await res.json(); return alert(error || 'Failed to add employee'); }
+  const employee = await res.json();
+  if (email) {
+    const accessRes = await authFetch(`/api/employees/${employee.id}/dashboard-access`, {
+      method: 'POST',
+      body: JSON.stringify({ email })
+    });
+    const accessData = await accessRes.json();
+    if (!accessRes.ok) {
+      alert(`Employee added, but dashboard access was not granted: ${accessData.error || 'Unknown error'}`);
+    } else if (accessData.invite_url && !accessData.email_sent) {
+      try { await navigator.clipboard.writeText(accessData.invite_url); } catch (_) {}
+      alert('Employee added. Email delivery is not configured, so the setup link has been copied for manual sharing.');
+    }
+  }
   document.getElementById('emp-name').value = '';
   document.getElementById('emp-phone').value = '';
+  document.getElementById('emp-email').value = '';
   await loadTeam();
   if (document.getElementById('team-view').style.display !== 'none') await loadTeamInline();
 }
@@ -3569,6 +3763,10 @@ function closeOverlay(e) {
 
 // ── Main Tab Navigation ───────────────────────────────────────────────────────
 function switchMainTab(tab) {
+  const accessibleTabs = getAccessibleTabs();
+  if (!accessibleTabs.includes(tab)) {
+    tab = accessibleTabs[0] || 'jobs';
+  }
   const scrollableViews = ['team','settings','timesheets','calendar','reports','ideas'];
   const contentArea = document.querySelector('.content-area');
   writeDashboardState({ mainTab: tab });
@@ -3588,11 +3786,11 @@ function switchMainTab(tab) {
   if (statsEl) statsEl.style.display = tab === 'jobs' ? 'flex' : 'none';
   if (tab === 'team') loadTeamInline();
   if (tab === 'clients' && !allClientsData.length) loadClients();
-  if (tab === 'reports') loadReports(30);
-  if (tab === 'agreements') { selectedAgreementId = null; loadAgreements(); }
+  if (tab === 'reports' && canViewFinancials()) loadReports(30);
+  if (tab === 'agreements' && canViewFinancials()) { selectedAgreementId = null; loadAgreements(); }
   if (tab === 'calendar') initCalendar();
   if (tab === 'timesheets') initTimesheets();
-  if (tab === 'settings') { loadSettings(); loadCrewInviteUrl(); }
+  if (tab === 'settings' && canManageSettings()) { loadSettings(); loadCrewInviteUrl(); }
   if (tab === 'ideas') {
     // Reset to form state when tab is opened
     document.getElementById('ideas-form-state').style.display = 'block';
@@ -3606,6 +3804,7 @@ function switchMainTab(tab) {
 }
 
 function switchClientsTab(sub) {
+  if (sub === 'recurring' && !canViewFinancials()) sub = 'all';
   writeDashboardState({ clientsSubtab: sub });
   document.getElementById('clients-sub-all').style.display = sub === 'all' ? '' : 'none';
   document.getElementById('clients-sub-recurring').style.display = sub === 'recurring' ? 'block' : 'none';
@@ -4644,6 +4843,12 @@ let editingRecurringId = null;
 const FREQ_LABEL = { weekly: 'Weekly', biweekly: 'Every 2 weeks', monthly: 'Monthly' };
 
 async function loadRecurring() {
+  if (!canViewFinancials()) {
+    recurringData = [];
+    updateClientMetrics();
+    renderRecurring();
+    return;
+  }
   const res = await authFetch('/api/recurring-invoices');
   recurringData = await res.json();
   updateClientMetrics();
@@ -4689,6 +4894,7 @@ function populateRecurringClients(selectedClientId = '') {
 }
 
 function openRecurringModal(id = null) {
+  if (!canViewFinancials()) return;
   const recurring = id ? recurringData.find(item => item.id === id) : null;
   editingRecurringId = recurring?.id || null;
   document.getElementById('recurring-modal-title').textContent = recurring ? 'Edit Recurring Invoice' : 'New Recurring Invoice';
@@ -4756,7 +4962,7 @@ async function deleteRecurring(id) {
 let settingsLoaded = false;
 
 async function loadSettings() {
-  if (settingsLoaded) return;
+  if (settingsLoaded || !canManageSettings()) return;
   const res = await authFetch('/api/settings');
   const data = await res.json();
   ownerTwilioConfigured = !!(data.twilio_account_sid && data.twilio_phone);
@@ -4766,6 +4972,7 @@ async function loadSettings() {
   document.getElementById('set-company-name').value = data.company_name || '';
   document.getElementById('set-phone').value = data.phone || '';
   document.getElementById('set-address').value = data.address || '';
+  document.getElementById('set-manager-financials').checked = !!data.manager_financials_enabled;
   if (data.logo_url) {
     document.getElementById('logo-preview').innerHTML =
       `<img src="${data.logo_url}" style="width:100%;height:100%;object-fit:contain;padding:8px">`;
@@ -4784,6 +4991,28 @@ async function loadSettings() {
     currentPlan === 'business' ? 'block' : 'none';
   updateSettingsUsageCard();
   settingsLoaded = true;
+}
+
+async function saveManagerFinancialsSetting() {
+  if (!canManageSettings()) return;
+  const enabled = !!document.getElementById('set-manager-financials').checked;
+  const statusEl = document.getElementById('manager-financials-status');
+  statusEl.style.color = '#64748b';
+  statusEl.textContent = 'Saving…';
+  const res = await authFetch('/api/settings', {
+    method: 'PATCH',
+    body: JSON.stringify({ manager_financials_enabled: enabled })
+  });
+  if (res.ok) {
+    statusEl.style.color = '#16a34a';
+    statusEl.textContent = '✓ Saved';
+    settingsLoaded = false;
+    setTimeout(() => { statusEl.textContent = ''; }, 3000);
+    return;
+  }
+  const json = await res.json().catch(() => ({}));
+  statusEl.style.color = '#dc2626';
+  statusEl.textContent = json.error || 'Error saving';
 }
 
 async function saveApptReminder() {
@@ -5040,12 +5269,12 @@ async function openClientDetail(clientId) {
     </div>
 
     <!-- Quick stats -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(${canViewFinancials() ? 3 : 1},1fr);gap:10px;margin-bottom:16px">
       <div style="background:linear-gradient(180deg,#ffffff 0%,#f8fbfd 100%);border:1px solid #e8eef3;border-radius:14px;padding:14px;text-align:center">
         <div style="font-size:22px;font-weight:800;color:#17191c">${jobs.length}</div>
         <div style="font-size:10px;color:#737475;margin-top:2px;font-weight:600;text-transform:uppercase">Jobs</div>
       </div>
-      <div style="background:linear-gradient(180deg,#ffffff 0%,#f8fbfd 100%);border:1px solid #e8eef3;border-radius:14px;padding:14px;text-align:center">
+      ${canViewFinancials() ? `<div style="background:linear-gradient(180deg,#ffffff 0%,#f8fbfd 100%);border:1px solid #e8eef3;border-radius:14px;padding:14px;text-align:center">
         <div style="font-size:22px;font-weight:800;color:#0265dc">$${jobs.reduce((s,j) => s + (parseFloat(j.invoice_amount)||0), 0).toFixed(0)}</div>
         <div style="font-size:10px;color:#737475;margin-top:2px;font-weight:600;text-transform:uppercase">Invoiced</div>
       </div>
@@ -5054,7 +5283,7 @@ async function openClientDetail(clientId) {
           $${jobs.filter(j=>j.payment_status!=='paid').reduce((s,j) => s + (parseFloat(j.invoice_amount)||0), 0).toFixed(0)}
         </div>
         <div style="font-size:10px;color:#737475;margin-top:2px;font-weight:600;text-transform:uppercase">Outstanding</div>
-      </div>
+      </div>` : ''}
     </div>
 
     <!-- Notes -->
@@ -5092,7 +5321,7 @@ async function openClientDetail(clientId) {
     </div>
 
     <!-- Invoices -->
-    ${jobs.some(j => j.invoice_amount > 0) ? `
+    ${canViewFinancials() && jobs.some(j => j.invoice_amount > 0) ? `
     <div class="cd-section">
       <div class="cd-section-title">Invoices</div>
       ${jobs.filter(j => j.invoice_amount > 0).map(j => `
@@ -5278,6 +5507,7 @@ function updateReportsSummary(d, days) {
 }
 
 async function loadReports(days = 30) {
+  if (!canViewFinancials()) return;
   // Tier gate disabled during beta — all plans have full access
 
   document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
@@ -5384,6 +5614,13 @@ let editingAgreementId = null;
 const scheduleLabels = { monthly:'Monthly', quarterly:'Quarterly', biannual:'Bi-annual', annual:'Annual', custom:'Custom' };
 
 async function loadAgreements() {
+  if (!canViewFinancials()) {
+    allAgreementsData = [];
+    updateAgreementMetrics();
+    renderAgreementList(allAgreementsData);
+    renderAgreementsEmptyState();
+    return;
+  }
   const res = await authFetch('/api/agreements');
   allAgreementsData = await res.json();
   updateAgreementMetrics();
@@ -5589,6 +5826,7 @@ async function openAddAgreement() {
 }
 
 async function openEditAgreement(id) {
+  if (!canViewFinancials()) return;
   const a = allAgreementsData.find(x => x.id === id);
   if (!a) return;
   editingAgreementId = id;

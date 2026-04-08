@@ -63,10 +63,12 @@ app.use((req, res, next) => {
 // Regular client (anon key) — used for realtime/public config
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+
 // Admin client (service role) — used for all server-side queries and auth verification
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  SUPABASE_SERVICE_ROLE_KEY,
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
@@ -780,6 +782,399 @@ app.post('/api/contact-kdg', async (req, res) => {
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
   .split(',').map(e => e.trim()).filter(Boolean);
 
+const FINANCIAL_JOB_FIELDS = ['estimate_amount', 'invoice_amount', 'payment_status'];
+
+function normalizeAppRole(role) {
+  const normalized = String(role || '').trim().toLowerCase();
+  return ['owner', 'manager', 'crew', 'client', 'admin'].includes(normalized) ? normalized : 'owner';
+}
+
+function buildCapabilities(role, canViewFinancials = false) {
+  const normalizedRole = normalizeAppRole(role);
+  if (normalizedRole === 'admin') {
+    return {
+      can_access_dashboard: true,
+      can_manage_operations: true,
+      can_manage_team: true,
+      can_manage_settings: true,
+      can_view_financials: true,
+      can_manage_financials: true,
+    };
+  }
+  if (normalizedRole === 'owner') {
+    return {
+      can_access_dashboard: true,
+      can_manage_operations: true,
+      can_manage_team: true,
+      can_manage_settings: true,
+      can_view_financials: true,
+      can_manage_financials: true,
+    };
+  }
+  if (normalizedRole === 'manager') {
+    return {
+      can_access_dashboard: true,
+      can_manage_operations: true,
+      can_manage_team: true,
+      can_manage_settings: false,
+      can_view_financials: !!canViewFinancials,
+      can_manage_financials: !!canViewFinancials,
+    };
+  }
+  return {
+    can_access_dashboard: normalizedRole === 'crew',
+    can_manage_operations: false,
+    can_manage_team: false,
+    can_manage_settings: false,
+    can_view_financials: false,
+    can_manage_financials: false,
+  };
+}
+
+async function loadTenantUserRecord(userId) {
+  const detailed = await supabaseAdmin
+    .from('tenant_users')
+    .select('tenant_id, role, can_view_financials, employee_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!detailed.error && detailed.data) {
+    return detailed.data;
+  }
+
+  const roleOnly = await supabaseAdmin
+    .from('tenant_users')
+    .select('tenant_id, role')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!roleOnly.error && roleOnly.data) {
+    return {
+      tenant_id: roleOnly.data.tenant_id,
+      role: roleOnly.data.role || 'owner',
+      can_view_financials: undefined,
+      employee_id: null,
+    };
+  }
+
+  const fallback = await supabaseAdmin
+    .from('tenant_users')
+    .select('tenant_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (fallback.error || !fallback.data) return null;
+  return {
+    tenant_id: fallback.data.tenant_id,
+    role: 'owner',
+    can_view_financials: true,
+    employee_id: null,
+  };
+}
+
+async function getTenantManagerFinancialAccess(tenantId) {
+  const result = await supabaseAdmin
+    .from('tenants')
+    .select('manager_financials_enabled')
+    .eq('id', tenantId)
+    .maybeSingle();
+
+  if (result.error) return { enabled: false, missingColumn: true };
+  return { enabled: !!result.data?.manager_financials_enabled, missingColumn: false };
+}
+
+async function updateTenantManagerFinancialAccess(tenantId, enabled) {
+  const result = await supabaseAdmin
+    .from('tenants')
+    .update({ manager_financials_enabled: !!enabled })
+    .eq('id', tenantId)
+    .select('id')
+    .maybeSingle();
+
+  return { error: result.error || null };
+}
+
+function requireRoleAccess(...roles) {
+  const allowedRoles = new Set(roles.map(normalizeAppRole));
+  return (req, res, next) => {
+    if (req.isAdmin || allowedRoles.has(req.role)) return next();
+    return res.status(403).json({ error: 'forbidden', message: 'This action is not available for your role.' });
+  };
+}
+
+function requireSettingsAccess(req, res, next) {
+  if (req.isAdmin || req.capabilities?.can_manage_settings) return next();
+  return res.status(403).json({ error: 'forbidden', message: 'Only the owner can manage account settings.' });
+}
+
+function requireFinancialAccess(req, res, next) {
+  if (req.isAdmin || req.capabilities?.can_view_financials) return next();
+  return res.status(403).json({ error: 'financial_access_required', message: 'Financial access is disabled for your role.' });
+}
+
+function stripFinancialsFromJob(job) {
+  if (!job) return job;
+  const copy = { ...job };
+  FINANCIAL_JOB_FIELDS.forEach(field => { delete copy[field]; });
+  return copy;
+}
+
+function redactJobsForRole(jobs, req) {
+  if (req.isAdmin || req.capabilities?.can_view_financials) return jobs;
+  if (Array.isArray(jobs)) return jobs.map(stripFinancialsFromJob);
+  return stripFinancialsFromJob(jobs);
+}
+
+function normalizeEmailAddress(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function getAppUrl(req) {
+  return process.env.APP_URL || req.headers.origin || 'https://linkcrew.io';
+}
+
+async function findAuthUserByEmail(email) {
+  const normalizedEmail = normalizeEmailAddress(email);
+  if (!normalizedEmail) return null;
+  let page = 1;
+  while (page <= 20) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const users = data?.users || [];
+    const match = users.find(user => normalizeEmailAddress(user.email) === normalizedEmail);
+    if (match) return match;
+    if (users.length < 1000) break;
+    page += 1;
+  }
+  return null;
+}
+
+function getActionLinkFromAdminResponse(data) {
+  return data?.properties?.action_link
+    || data?.properties?.actionLink
+    || data?.action_link
+    || data?.actionLink
+    || null;
+}
+
+async function sendDashboardAccessInviteEmail({ email, companyName, employeeName, role, actionLink, appUrl, existingUser }) {
+  if (!actionLink || !process.env.RESEND_API_KEY) return false;
+  const { Resend } = require('resend');
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const subject = existingUser
+    ? `${companyName || 'Your team'} refreshed your LinkCrew access`
+    : `${companyName || 'Your team'} invited you to LinkCrew`;
+  const roleLabel = normalizeAppRole(role) === 'owner' ? 'owner' : 'manager';
+  await resend.emails.send({
+    from: 'LinkCrew <hello@linkcrew.io>',
+    to: email,
+    subject,
+    html: `<div style="font-family:sans-serif;max-width:560px">
+      <h2 style="margin:0 0 12px;color:#0f172a">${companyName || 'Your team'} invited you to LinkCrew</h2>
+      <p style="margin:0 0 12px;color:#334155">Hi ${employeeName || 'there'},</p>
+      <p style="margin:0 0 12px;color:#334155">Your ${roleLabel} dashboard access is ready. Use the secure link below to ${existingUser ? 'refresh your password and sign in' : 'set your password and open the dashboard'}.</p>
+      <p style="margin:20px 0"><a href="${actionLink}" style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600">Open LinkCrew</a></p>
+      <p style="margin:0 0 12px;color:#475569;font-size:13px">If the button does not open, copy this URL into your browser:</p>
+      <p style="margin:0 0 12px;color:#0f172a;font-size:13px;word-break:break-all">${actionLink}</p>
+      <p style="margin:0;color:#64748b;font-size:12px">After setup, your dashboard will be available at ${appUrl}/app.</p>
+    </div>`,
+  });
+  return true;
+}
+
+async function syncEmployeeDashboardAccess({ tenantId, employeeId, role }) {
+  const normalizedRole = normalizeAppRole(role);
+  const { enabled: managerFinancialsEnabled } = await getTenantManagerFinancialAccess(tenantId);
+  const canViewFinancials = normalizedRole === 'owner'
+    ? true
+    : normalizedRole === 'manager'
+      ? !!managerFinancialsEnabled
+      : false;
+
+  if (normalizedRole === 'crew') {
+    await supabaseAdmin
+      .from('tenant_users')
+      .delete()
+      .eq('tenant_id', tenantId)
+      .eq('employee_id', employeeId);
+    return { revoked: true };
+  }
+
+  const result = await supabaseAdmin
+    .from('tenant_users')
+    .update({ role: normalizedRole, can_view_financials: canViewFinancials })
+    .eq('tenant_id', tenantId)
+    .eq('employee_id', employeeId)
+    .select('id')
+    .maybeSingle();
+
+  if (result.error && !/column/i.test(result.error.message || '')) {
+    throw result.error;
+  }
+
+  return { revoked: false };
+}
+
+async function provisionEmployeeDashboardAccess({ req, employee, email }) {
+  const normalizedEmail = normalizeEmailAddress(email);
+  if (!normalizedEmail) return { error: 'A valid email is required to invite dashboard access.' };
+  const normalizedRole = normalizeAppRole(employee.role);
+  if (!['manager', 'owner'].includes(normalizedRole)) {
+    return { error: 'Dashboard access can only be granted to managers or owners.' };
+  }
+
+  const appUrl = getAppUrl(req);
+  const { data: tenant } = await supabaseAdmin
+    .from('tenants')
+    .select('company_name, manager_financials_enabled')
+    .eq('id', req.tenantId)
+    .maybeSingle();
+
+  const managerFinancialsEnabled = !!tenant?.manager_financials_enabled;
+  const canViewFinancials = normalizedRole === 'owner'
+    ? true
+    : !!managerFinancialsEnabled;
+
+  let authUser = null;
+  try {
+    authUser = await findAuthUserByEmail(normalizedEmail);
+  } catch (err) {
+    return { error: `Unable to look up auth user: ${err.message}` };
+  }
+
+  if (authUser) {
+    const existingMembership = await loadTenantUserRecord(authUser.id);
+    if (existingMembership && existingMembership.tenant_id && existingMembership.tenant_id !== req.tenantId) {
+      return { error: 'That email is already linked to another LinkCrew workspace.' };
+    }
+    if (existingMembership && existingMembership.tenant_id === req.tenantId && existingMembership.employee_id && existingMembership.employee_id !== employee.id) {
+      return { error: 'That email is already linked to another team member in this workspace.' };
+    }
+  }
+
+  const linkType = authUser ? 'recovery' : 'invite';
+  const linkResult = await supabaseAdmin.auth.admin.generateLink({
+    type: linkType,
+    email: normalizedEmail,
+    options: {
+      redirectTo: `${appUrl}/auth/reset-password`,
+      data: {
+        tenant_id: req.tenantId,
+        employee_id: employee.id,
+        role: normalizedRole,
+      },
+    },
+  });
+
+  if (linkResult.error) {
+    return { error: linkResult.error.message };
+  }
+
+  const actionLink = getActionLinkFromAdminResponse(linkResult.data);
+  const userId = linkResult.data?.user?.id || authUser?.id || null;
+  if (!userId) {
+    return { error: 'Dashboard invite link was created, but the auth user could not be linked.' };
+  }
+
+  const existingEmployeeMembership = await supabaseAdmin
+    .from('tenant_users')
+    .select('user_id')
+    .eq('tenant_id', req.tenantId)
+    .eq('employee_id', employee.id)
+    .maybeSingle();
+
+  if (existingEmployeeMembership.error && /column/i.test(existingEmployeeMembership.error.message || '')) {
+    return { error: 'Database migration required before dashboard access invites can be used.' };
+  }
+  if (existingEmployeeMembership.error) {
+    return { error: existingEmployeeMembership.error.message };
+  }
+  if (existingEmployeeMembership.data?.user_id && existingEmployeeMembership.data.user_id !== userId) {
+    return { error: 'This team member is already linked to a different dashboard account.' };
+  }
+
+  const membershipPayload = {
+    employee_id: employee.id,
+    role: normalizedRole,
+    can_view_financials: canViewFinancials,
+  };
+
+  const existingMembershipResult = await supabaseAdmin
+    .from('tenant_users')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('tenant_id', req.tenantId)
+    .maybeSingle();
+
+  if (existingMembershipResult.error && /column/i.test(existingMembershipResult.error.message || '')) {
+    return { error: 'Database migration required before dashboard access invites can be used.' };
+  }
+  if (existingMembershipResult.error) {
+    return { error: existingMembershipResult.error.message };
+  }
+
+  if (existingMembershipResult.data?.id) {
+    const updateMembershipResult = await supabaseAdmin
+      .from('tenant_users')
+      .update(membershipPayload)
+      .eq('id', existingMembershipResult.data.id);
+    if (updateMembershipResult.error) return { error: updateMembershipResult.error.message };
+  } else {
+    const insertMembershipResult = await supabaseAdmin
+      .from('tenant_users')
+      .insert({ user_id: userId, tenant_id: req.tenantId, ...membershipPayload });
+    if (insertMembershipResult.error) {
+      if (/column/i.test(insertMembershipResult.error.message || '')) {
+        return { error: 'Database migration required before dashboard access invites can be used.' };
+      }
+      return { error: insertMembershipResult.error.message };
+    }
+  }
+
+  let emailSent = false;
+  try {
+    emailSent = await sendDashboardAccessInviteEmail({
+      email: normalizedEmail,
+      companyName: tenant?.company_name || 'Your team',
+      employeeName: employee.name,
+      role: normalizedRole,
+      actionLink,
+      appUrl,
+      existingUser: !!authUser,
+    });
+  } catch (err) {
+    console.error('[employee dashboard invite] email error:', err.message);
+  }
+
+  return {
+    ok: true,
+    email: normalizedEmail,
+    invite_url: actionLink,
+    email_sent: emailSent,
+    existing_user: !!authUser,
+    can_view_financials: canViewFinancials,
+  };
+}
+
+function requireOperationAccess(req, res, next) {
+  if (req.isAdmin || req.capabilities?.can_manage_operations) return next();
+  return res.status(403).json({ error: 'forbidden', message: 'Operational access is not available for your role.' });
+}
+
+function ensureFinancialFieldsAllowed(req, res, next) {
+  const touchedFinancialField = FINANCIAL_JOB_FIELDS.some(field => req.body[field] !== undefined);
+  if (!touchedFinancialField) return next();
+  if (req.isAdmin || req.capabilities?.can_manage_financials) return next();
+  return res.status(403).json({ error: 'financial_access_required', message: 'Financial edits are disabled for your role.' });
+}
+
+function ensureEmployeeRoleAllowed(req, res, next) {
+  const requestedRole = normalizeAppRole(req.body.role || 'crew');
+  if (requestedRole !== 'owner') return next();
+  if (req.isAdmin || req.capabilities?.can_manage_settings) return next();
+  return res.status(403).json({ error: 'forbidden', message: 'Only the owner can assign owner access.' });
+}
+
 
 // ── Auth middleware ───────────────────────────────────────────────────────────
 
@@ -799,6 +1194,8 @@ async function auth(req, res, next) {
     req.tenantId = session.tenant_id;
     req.isAdmin = false;
     req.isImpersonating = true;
+    req.role = 'owner';
+    req.capabilities = buildCapabilities('owner', true);
     return next();
   }
 
@@ -813,21 +1210,26 @@ async function auth(req, res, next) {
   if (req.isAdmin) {
     // Admin can optionally scope to a specific tenant via header
     req.tenantId = req.headers['x-tenant-id'] || null;
+    req.role = 'admin';
+    req.capabilities = buildCapabilities('admin', true);
     return next();
   }
 
-  // Regular owner: look up their tenant
-  const { data: tenantUser } = await supabaseAdmin
-    .from('tenant_users')
-    .select('tenant_id')
-    .eq('user_id', user.id)
-    .single();
+  const tenantUser = await loadTenantUserRecord(user.id);
 
   if (!tenantUser) {
     return res.status(403).json({ error: 'No organization found. Please contact support.' });
   }
 
   req.tenantId = tenantUser.tenant_id;
+  req.role = normalizeAppRole(tenantUser.role || 'owner');
+  req.employeeId = tenantUser.employee_id || null;
+  let managerFinancialAccess = tenantUser.can_view_financials;
+  if (req.role === 'manager' && managerFinancialAccess === undefined) {
+    const toggleState = await getTenantManagerFinancialAccess(req.tenantId);
+    managerFinancialAccess = toggleState.enabled;
+  }
+  req.capabilities = buildCapabilities(req.role, managerFinancialAccess);
 
   // Track last activity (fire-and-forget)
   supabaseAdmin.from('tenants').update({ last_seen_at: new Date().toISOString() }).eq('id', req.tenantId).then(() => {});
@@ -871,7 +1273,24 @@ function scoped(query, tenantId) {
 
 // Returns public Supabase credentials (anon key is safe to expose)
 app.get('/api/config', (req, res) => {
-  res.json({ supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_ANON_KEY });
+  res.json({
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseKey: process.env.SUPABASE_ANON_KEY,
+    SUPABASE_URL: process.env.SUPABASE_URL,
+    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
+  });
+});
+
+app.get('/api/me', auth, async (req, res) => {
+  res.json({
+    user_id: req.userId || null,
+    email: req.userEmail || null,
+    tenant_id: req.tenantId || null,
+    role: req.role || 'owner',
+    is_admin: !!req.isAdmin,
+    employee_id: req.employeeId || null,
+    capabilities: req.capabilities || buildCapabilities(req.role || 'owner'),
+  });
 });
 
 // Create a new owner account + tenant
@@ -938,9 +1357,25 @@ app.post('/api/auth/signup', async (req, res) => {
   // Link auth user to tenant
   const { error: linkError } = await supabaseAdmin
     .from('tenant_users')
-    .insert({ user_id: authData.user.id, tenant_id: tenant.id });
+    .insert({ user_id: authData.user.id, tenant_id: tenant.id, role: 'owner', can_view_financials: true });
 
   if (linkError) {
+    if (!/column/i.test(linkError.message || '')) {
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      return res.status(400).json({ error: 'Failed to link account to organization' });
+    }
+    const { error: fallbackLinkError } = await supabaseAdmin
+      .from('tenant_users')
+      .insert({ user_id: authData.user.id, tenant_id: tenant.id });
+    if (fallbackLinkError) {
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      return res.status(400).json({ error: 'Failed to link account to organization' });
+    }
+  }
+
+  if (linkError && /column/i.test(linkError.message || '')) {
+    // Legacy tenant_users schema fallback already linked above.
+  } else if (linkError) {
     await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
     return res.status(400).json({ error: 'Failed to link account to organization' });
   }
@@ -1052,18 +1487,19 @@ app.post('/webhook/whatsapp', async (req, res) => {
 
 app.get('/api/jobs', auth, async (req, res) => {
   const { data } = await scoped(supabaseAdmin.from('jobs').select('*').order('name'), req.tenantId);
-  res.json(data || []);
+  res.json(redactJobsForRole(data || [], req));
 });
 
 app.get('/api/jobs/:id', auth, async (req, res) => {
   const { id } = req.params;
   const [{ data: job }, { data: assignments }, { data: supplies }, { data: updates }] = await Promise.all([
-    supabaseAdmin.from('jobs').select('*').eq('id', id).single(),
+    supabaseAdmin.from('jobs').select('*').eq('id', id).eq('tenant_id', req.tenantId).single(),
     supabaseAdmin.from('job_assignments').select('*, employees(name, role)').eq('job_id', id),
     supabaseAdmin.from('supply_requests').select('*, employees(name)').eq('job_id', id).order('created_at', { ascending: false }),
     supabaseAdmin.from('job_updates').select('*, employees(name)').eq('job_id', id).order('created_at', { ascending: false }).limit(50)
   ]);
-  res.json({ job, assignments, supplies, updates });
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  res.json({ job: redactJobsForRole(job, req), assignments, supplies, updates });
 });
 
 app.get('/api/photos/recent', auth, async (req, res) => {
@@ -1130,11 +1566,11 @@ app.patch('/api/supplies/:id', auth, async (req, res) => {
   res.json(data);
 });
 
-app.post('/api/jobs', auth, async (req, res) => {
+app.post('/api/jobs', auth, requireOperationAccess, ensureFinancialFieldsAllowed, async (req, res) => {
   const { name, address, manager_email, description, estimate_amount } = req.body;
   const { data } = await supabaseAdmin.from('jobs')
     .insert({ name, address, manager_email, description, estimate_amount: estimate_amount || null, tenant_id: req.tenantId }).select().single();
-  res.json(data);
+  res.json(redactJobsForRole(data, req));
 });
 
 // Public work order page data (no auth — UUID is the access control)
@@ -1195,7 +1631,7 @@ app.post('/api/jobs/:id/send-workorder', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-app.patch('/api/jobs/:id', auth, async (req, res) => {
+app.patch('/api/jobs/:id', auth, requireOperationAccess, ensureFinancialFieldsAllowed, async (req, res) => {
   const { id } = req.params;
   const allowed = ['status', 'client_id', 'name', 'address', 'description', 'estimate_amount', 'manager_email'];
   const updates = {};
@@ -1208,8 +1644,9 @@ app.patch('/api/jobs/:id', auth, async (req, res) => {
     updates[f] = req.body[f] || null;
   });
   updates.updated_at = new Date().toISOString();
-  const { data } = await supabaseAdmin.from('jobs').update(updates).eq('id', id).select().single();
-  res.json(data);
+  const { data } = await supabaseAdmin.from('jobs').update(updates).eq('id', id).eq('tenant_id', req.tenantId).select().single();
+  if (!data) return res.status(404).json({ error: 'Job not found' });
+  res.json(redactJobsForRole(data, req));
 });
 
 app.post('/api/jobs/:id/updates', auth, async (req, res) => {
@@ -1248,11 +1685,39 @@ app.post('/api/send-note', auth, async (req, res) => {
 // ── Employee Management ───────────────────────────────────────────────────────
 
 app.get('/api/employees', auth, async (req, res) => {
-  const { data } = await scoped(supabaseAdmin.from('employees').select('*').order('name'), req.tenantId);
-  res.json(data || []);
+  const { data, error } = await scoped(supabaseAdmin.from('employees').select('*').order('name'), req.tenantId);
+  if (error) return res.status(400).json({ error: error.message });
+  const employees = data || [];
+  if (!employees.length) return res.json([]);
+
+  const employeeIds = employees.map(employee => employee.id);
+  const dashboardAccessResult = await supabaseAdmin
+    .from('tenant_users')
+    .select('employee_id, role, can_view_financials')
+    .eq('tenant_id', req.tenantId)
+    .in('employee_id', employeeIds);
+
+  if (dashboardAccessResult.error && /column/i.test(dashboardAccessResult.error.message || '')) {
+    return res.json(employees);
+  }
+  if (dashboardAccessResult.error) return res.status(400).json({ error: dashboardAccessResult.error.message });
+
+  const accessByEmployeeId = new Map((dashboardAccessResult.data || [])
+    .filter(entry => entry.employee_id)
+    .map(entry => [entry.employee_id, entry]));
+
+  res.json(employees.map(employee => {
+    const access = accessByEmployeeId.get(employee.id);
+    return {
+      ...employee,
+      dashboard_access_enabled: !!access,
+      dashboard_role: access?.role || null,
+      dashboard_can_view_financials: !!access?.can_view_financials,
+    };
+  }));
 });
 
-app.post('/api/employees', auth, async (req, res) => {
+app.post('/api/employees', auth, requireOperationAccess, ensureEmployeeRoleAllowed, async (req, res) => {
   const { name, phone, role } = req.body;
   if (!name || !phone || !role) return res.status(400).json({ error: 'name, phone and role are required' });
   // Enforce plan crew limit
@@ -1266,22 +1731,54 @@ app.post('/api/employees', auth, async (req, res) => {
   res.json(data);
 });
 
-app.patch('/api/employees/:id', auth, async (req, res) => {
+app.patch('/api/employees/:id', auth, requireOperationAccess, ensureEmployeeRoleAllowed, async (req, res) => {
   const { id } = req.params;
   const { name, phone, role } = req.body;
   const updates = {};
   if (name) updates.name = name.trim();
   if (phone) updates.phone = phone.trim();
   if (role) updates.role = role;
-  const { data, error } = await supabaseAdmin.from('employees').update(updates).eq('id', id).select().single();
+  const { data, error } = await supabaseAdmin.from('employees').update(updates).eq('id', id).eq('tenant_id', req.tenantId).select().single();
   if (error) return res.status(400).json({ error: error.message });
+  if (role) {
+    try {
+      await syncEmployeeDashboardAccess({ tenantId: req.tenantId, employeeId: id, role });
+    } catch (syncError) {
+      if (!/column/i.test(syncError.message || '')) {
+        return res.status(400).json({ error: syncError.message });
+      }
+    }
+  }
   res.json(data);
 });
 
-app.delete('/api/employees/:id', auth, async (req, res) => {
+app.delete('/api/employees/:id', auth, requireOperationAccess, async (req, res) => {
   const { id } = req.params;
-  await supabaseAdmin.from('employees').delete().eq('id', id);
+  await supabaseAdmin.from('tenant_users').delete().eq('tenant_id', req.tenantId).eq('employee_id', id);
+  await supabaseAdmin.from('employees').delete().eq('id', id).eq('tenant_id', req.tenantId);
   res.json({ ok: true });
+});
+
+app.post('/api/employees/:id/dashboard-access', auth, requireSettingsAccess, async (req, res) => {
+  const { id } = req.params;
+  const email = normalizeEmailAddress(req.body?.email);
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'A valid email is required.' });
+  }
+
+  const { data: employee, error: employeeError } = await supabaseAdmin
+    .from('employees')
+    .select('id, name, role, tenant_id')
+    .eq('id', id)
+    .eq('tenant_id', req.tenantId)
+    .single();
+
+  if (employeeError || !employee) return res.status(404).json({ error: 'Employee not found.' });
+
+  const inviteResult = await provisionEmployeeDashboardAccess({ req, employee, email });
+  if (inviteResult.error) return res.status(400).json({ error: inviteResult.error });
+
+  res.json(inviteResult);
 });
 
 // ── CRM: Clients ─────────────────────────────────────────────────────────────
@@ -1307,10 +1804,11 @@ app.post('/api/clients', auth, async (req, res) => {
 app.get('/api/clients/:id', auth, async (req, res) => {
   const { id } = req.params;
   const [{ data: client }, { data: followUps }, { data: jobs }] = await Promise.all([
-    supabaseAdmin.from('clients').select('*').eq('id', id).single(),
+    supabaseAdmin.from('clients').select('*').eq('id', id).eq('tenant_id', req.tenantId).single(),
     supabaseAdmin.from('client_follow_ups').select('*').eq('client_id', id).order('due_date').order('created_at'),
-    supabaseAdmin.from('jobs').select('id, name, address, status, created_at, invoice_amount, payment_status').eq('client_id', id).order('created_at', { ascending: false }),
+    supabaseAdmin.from('jobs').select('id, name, address, status, created_at, invoice_amount, payment_status, estimate_amount').eq('client_id', id).eq('tenant_id', req.tenantId).order('created_at', { ascending: false }),
   ]);
+  if (!client) return res.status(404).json({ error: 'Client not found' });
 
   let photos = [];
   if (jobs?.length) {
@@ -1325,10 +1823,10 @@ app.get('/api/clients/:id', auth, async (req, res) => {
     photos = photoData || [];
   }
 
-  res.json({ client, followUps: followUps || [], jobs: jobs || [], photos });
+  res.json({ client, followUps: followUps || [], jobs: redactJobsForRole(jobs || [], req), photos });
 });
 
-app.patch('/api/clients/:id', auth, async (req, res) => {
+app.patch('/api/clients/:id', auth, requireOperationAccess, async (req, res) => {
   const { id } = req.params;
   const { name, company, phone, email, address, notes } = req.body;
   const updates = {};
@@ -1338,7 +1836,7 @@ app.patch('/api/clients/:id', auth, async (req, res) => {
   if (email !== undefined) updates.email = email;
   if (address !== undefined) updates.address = address;
   if (notes !== undefined) updates.notes = notes;
-  const { data, error } = await supabaseAdmin.from('clients').update(updates).eq('id', id).select().single();
+  const { data, error } = await supabaseAdmin.from('clients').update(updates).eq('id', id).eq('tenant_id', req.tenantId).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.json(data);
 });
@@ -1395,7 +1893,7 @@ app.delete('/api/clients/:id/followups/:fid', auth, async (req, res) => {
 
 // ── Service Agreements ────────────────────────────────────────────────────────
 
-app.get('/api/agreements', auth, async (req, res) => {
+app.get('/api/agreements', auth, requireFinancialAccess, async (req, res) => {
   const { data } = await scoped(
     supabaseAdmin.from('service_agreements').select('*, clients(name)').order('next_due').order('name'),
     req.tenantId
@@ -1403,7 +1901,7 @@ app.get('/api/agreements', auth, async (req, res) => {
   res.json(data || []);
 });
 
-app.post('/api/agreements', auth, async (req, res) => {
+app.post('/api/agreements', auth, requireFinancialAccess, async (req, res) => {
   const { name, client_id, description, schedule, value, start_date, next_due } = req.body;
   if (!name) return res.status(400).json({ error: 'Name is required' });
   const { data, error } = await supabaseAdmin.from('service_agreements')
@@ -1413,7 +1911,7 @@ app.post('/api/agreements', auth, async (req, res) => {
   res.json(data);
 });
 
-app.get('/api/agreements/:id', auth, async (req, res) => {
+app.get('/api/agreements/:id', auth, requireFinancialAccess, async (req, res) => {
   const { id } = req.params;
   const [{ data: agreement }, { data: jobs }] = await Promise.all([
     supabaseAdmin.from('service_agreements').select('*, clients(name)').eq('id', id).single(),
@@ -1424,7 +1922,7 @@ app.get('/api/agreements/:id', auth, async (req, res) => {
   res.json({ agreement, jobs: jobs || [] });
 });
 
-app.patch('/api/agreements/:id', auth, async (req, res) => {
+app.patch('/api/agreements/:id', auth, requireFinancialAccess, async (req, res) => {
   const { id } = req.params;
   const fields = ['name','client_id','description','schedule','value','start_date','next_due','status'];
   const updates = {};
@@ -1436,7 +1934,7 @@ app.patch('/api/agreements/:id', auth, async (req, res) => {
   res.json(data);
 });
 
-app.delete('/api/agreements/:id', auth, async (req, res) => {
+app.delete('/api/agreements/:id', auth, requireFinancialAccess, async (req, res) => {
   await supabaseAdmin.from('service_agreements').delete().eq('id', req.params.id);
   res.json({ ok: true });
 });
@@ -1564,7 +2062,7 @@ app.delete('/api/appointments/:id', auth, async (req, res) => {
 // ── Timesheets ────────────────────────────────────────────────────────────────
 
 // Get timesheet entries — filtered by date range and optionally employee
-app.get('/api/timesheets', auth, async (req, res) => {
+app.get('/api/timesheets', auth, requireOperationAccess, async (req, res) => {
   const { start, end, employee_id } = req.query;
   const { data: jobs } = await supabaseAdmin.from('jobs').select('id').eq('tenant_id', req.tenantId);
   if (!jobs?.length) return res.json([]);
@@ -1585,7 +2083,7 @@ app.get('/api/timesheets', auth, async (req, res) => {
 });
 
 // Manual punch in
-app.post('/api/timesheets/punch-in', auth, async (req, res) => {
+app.post('/api/timesheets/punch-in', auth, requireOperationAccess, async (req, res) => {
   const { employee_id, job_id, lat, lng } = req.body;
   if (!employee_id) return res.status(400).json({ error: 'employee_id required' });
 
@@ -1639,7 +2137,7 @@ app.post('/api/timesheets/punch-in', auth, async (req, res) => {
 });
 
 // Manual punch out
-app.post('/api/timesheets/punch-out', auth, async (req, res) => {
+app.post('/api/timesheets/punch-out', auth, requireOperationAccess, async (req, res) => {
   const { employee_id, lat, lng } = req.body;
   if (!employee_id) return res.status(400).json({ error: 'employee_id required' });
 
@@ -1667,7 +2165,7 @@ app.post('/api/timesheets/punch-out', auth, async (req, res) => {
 });
 
 // Update a timesheet entry manually (admin correction)
-app.patch('/api/timesheets/:id', auth, async (req, res) => {
+app.patch('/api/timesheets/:id', auth, requireOperationAccess, async (req, res) => {
   const { checked_in_at, checked_out_at } = req.body;
   const updates = {};
   if (checked_in_at !== undefined) updates.checked_in_at = checked_in_at;
@@ -1679,7 +2177,7 @@ app.patch('/api/timesheets/:id', auth, async (req, res) => {
 
 // ── Reports ───────────────────────────────────────────────────────────────────
 
-app.get('/api/reports', auth, async (req, res) => {
+app.get('/api/reports', auth, requireFinancialAccess, async (req, res) => {
   const { data: tenant } = await supabaseAdmin.from('tenants').select('plan').eq('id', req.tenantId).single();
   if (!['pro', 'business'].includes(tenant?.plan)) {
     return res.status(403).json({ error: 'upgrade_required', message: 'Reports are available on Pro and Business plans.' });
@@ -2012,13 +2510,13 @@ app.delete('/api/jobs/:id/assign/:employeeId', auth, async (req, res) => {
 
 // ── Invoicing ─────────────────────────────────────────────────────────────────
 
-app.post('/api/jobs/:id/invoice', auth, async (req, res) => {
+app.post('/api/jobs/:id/invoice', auth, requireFinancialAccess, async (req, res) => {
   const { amount } = req.body;
   if (!amount || isNaN(amount) || parseFloat(amount) <= 0)
     return res.status(400).json({ error: 'Valid amount required' });
   const { data, error } = await supabaseAdmin.from('jobs')
     .update({ invoice_amount: parseFloat(amount), status: 'invoiced', payment_status: 'unpaid' })
-    .eq('id', req.params.id).select('*, clients(name, email)').single();
+    .eq('id', req.params.id).eq('tenant_id', req.tenantId).select('*, clients(name, email)').single();
   if (error) return res.status(400).json({ error: error.message });
 
   // Send invoice email to client if they have an email
@@ -2047,15 +2545,15 @@ app.post('/api/jobs/:id/invoice', auth, async (req, res) => {
     }
   }
 
-  res.json(data);
+  res.json(redactJobsForRole(data, req));
 });
 
 // Mark invoice as paid (cash / in-person payment)
-app.post('/api/jobs/:id/mark-paid', auth, async (req, res) => {
+app.post('/api/jobs/:id/mark-paid', auth, requireFinancialAccess, async (req, res) => {
   const { notify } = req.body; // 'email' | 'sms' | null
   const { data: job, error } = await supabaseAdmin.from('jobs')
     .update({ payment_status: 'paid' })
-    .eq('id', req.params.id)
+    .eq('id', req.params.id).eq('tenant_id', req.tenantId)
     .select('*, clients(name, email, phone)')
     .single();
   if (error) return res.status(400).json({ error: error.message });
@@ -2097,7 +2595,7 @@ app.post('/api/jobs/:id/mark-paid', auth, async (req, res) => {
     }
   }
 
-  res.json(job);
+  res.json(redactJobsForRole(job, req));
 });
 
 // Portal: create Stripe Checkout session
@@ -2138,7 +2636,7 @@ app.post('/portal/api/checkout', portalAuth, async (req, res) => {
 
 // ── Billing ───────────────────────────────────────────────────────────────────
 
-app.get('/api/billing/status', auth, async (req, res) => {
+app.get('/api/billing/status', auth, requireFinancialAccess, async (req, res) => {
   const tenantId = await getEffectiveTenantId(req);
   if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
   const { data } = await supabaseAdmin.from('tenants')
@@ -2147,7 +2645,7 @@ app.get('/api/billing/status', auth, async (req, res) => {
   res.json(data || {});
 });
 
-app.post('/api/billing/checkout', auth, async (req, res) => {
+app.post('/api/billing/checkout', auth, requireSettingsAccess, requireFinancialAccess, async (req, res) => {
   const { plan } = req.body;
   const priceMap = {
     solo:      process.env.STRIPE_PRICE_SOLO,
@@ -2183,7 +2681,7 @@ app.post('/api/billing/checkout', auth, async (req, res) => {
 });
 
 // Extra users add-on checkout
-app.post('/api/billing/extra-users', auth, async (req, res) => {
+app.post('/api/billing/extra-users', auth, requireSettingsAccess, requireFinancialAccess, async (req, res) => {
   const { quantity } = req.body;
   if (!quantity || quantity < 1 || quantity > 50)
     return res.status(400).json({ error: 'Quantity must be between 1 and 50' });
@@ -2212,7 +2710,7 @@ app.post('/api/billing/extra-users', auth, async (req, res) => {
   }
 });
 
-app.post('/api/billing/portal', auth, async (req, res) => {
+app.post('/api/billing/portal', auth, requireSettingsAccess, requireFinancialAccess, async (req, res) => {
   const tenantId = await getEffectiveTenantId(req);
   const { data: tenant } = await supabaseAdmin.from('tenants')
     .select('stripe_customer_id').eq('id', tenantId).single();
@@ -2261,16 +2759,35 @@ async function getEffectiveTenantId(req) {
 app.get('/api/settings', auth, async (req, res) => {
   const tenantId = await getEffectiveTenantId(req);
   if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
-  const { data } = await supabaseAdmin.from('tenants')
+  const { data, error } = await supabaseAdmin.from('tenants')
+    .select('company_name, owner_email, logo_url, phone, address, voicebot_enabled, twilio_phone, twilio_account_sid, voicebot_knowledge, photo_expiry_days, appt_reminder_minutes, manager_financials_enabled')
+    .eq('id', tenantId).single();
+  if (!error && data) return res.json(data);
+  if (error && !/manager_financials_enabled/i.test(error.message || '')) {
+    return res.status(400).json({ error: error.message });
+  }
+  const fallback = await supabaseAdmin.from('tenants')
     .select('company_name, owner_email, logo_url, phone, address, voicebot_enabled, twilio_phone, twilio_account_sid, voicebot_knowledge, photo_expiry_days, appt_reminder_minutes')
     .eq('id', tenantId).single();
-  res.json(data || {});
+  if (fallback.error) return res.status(400).json({ error: fallback.error.message });
+  const toggleState = await getTenantManagerFinancialAccess(tenantId);
+  res.json({ ...fallback.data, manager_financials_enabled: toggleState.enabled });
 });
 
-app.patch('/api/settings', auth, async (req, res) => {
+app.patch('/api/settings', auth, requireSettingsAccess, async (req, res) => {
   const tenantId = await getEffectiveTenantId(req);
   if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
-  const { company_name, phone, address, voicebot_knowledge, photo_expiry_days, appt_reminder_minutes } = req.body;
+  const { company_name, phone, address, voicebot_knowledge, photo_expiry_days, appt_reminder_minutes, manager_financials_enabled } = req.body;
+  const syncManagerFinancialAccess = async enabled => {
+    const syncResult = await supabaseAdmin
+      .from('tenant_users')
+      .update({ can_view_financials: !!enabled })
+      .eq('tenant_id', tenantId)
+      .eq('role', 'manager');
+    if (syncResult.error && !/column/i.test(syncResult.error.message || '')) {
+      throw syncResult.error;
+    }
+  };
   const updates = {};
   if (company_name !== undefined) updates.company_name = company_name;
   if (phone !== undefined) updates.phone = phone;
@@ -2278,13 +2795,42 @@ app.patch('/api/settings', auth, async (req, res) => {
   if (voicebot_knowledge !== undefined) updates.voicebot_knowledge = voicebot_knowledge;
   if (photo_expiry_days !== undefined) updates.photo_expiry_days = photo_expiry_days || null;
   if (appt_reminder_minutes !== undefined) updates.appt_reminder_minutes = appt_reminder_minutes;
+  if (manager_financials_enabled !== undefined) updates.manager_financials_enabled = !!manager_financials_enabled;
   const { data, error } = await supabaseAdmin.from('tenants')
     .update(updates).eq('id', tenantId).select().single();
-  if (error) return res.status(400).json({ error: error.message });
-  res.json(data);
+  if (!error) {
+    if (manager_financials_enabled !== undefined) {
+      try {
+        await syncManagerFinancialAccess(manager_financials_enabled);
+      } catch (syncError) {
+        return res.status(400).json({ error: syncError.message });
+      }
+    }
+    return res.json(data);
+  }
+
+  if (manager_financials_enabled !== undefined && /manager_financials_enabled/i.test(error.message || '')) {
+    const toggleResult = await updateTenantManagerFinancialAccess(tenantId, manager_financials_enabled);
+    if (toggleResult.error) return res.status(400).json({ error: toggleResult.error.message });
+    try {
+      await syncManagerFinancialAccess(manager_financials_enabled);
+    } catch (syncError) {
+      return res.status(400).json({ error: syncError.message });
+    }
+    const fallbackFields = { ...updates };
+    delete fallbackFields.manager_financials_enabled;
+    if (!Object.keys(fallbackFields).length) {
+      return res.json({ manager_financials_enabled: !!manager_financials_enabled });
+    }
+    const fallbackUpdate = await supabaseAdmin.from('tenants')
+      .update(fallbackFields).eq('id', tenantId).select().single();
+    if (fallbackUpdate.error) return res.status(400).json({ error: fallbackUpdate.error.message });
+    return res.json({ ...fallbackUpdate.data, manager_financials_enabled: !!manager_financials_enabled });
+  }
+  return res.status(400).json({ error: error.message });
 });
 
-app.post('/api/settings/logo', auth, upload.single('logo'), async (req, res) => {
+app.post('/api/settings/logo', auth, requireSettingsAccess, upload.single('logo'), async (req, res) => {
   const tenantId = await getEffectiveTenantId(req);
   if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
@@ -2299,7 +2845,7 @@ app.post('/api/settings/logo', auth, upload.single('logo'), async (req, res) => 
 });
 
 // Save Twilio credentials + auto-configure webhook on the phone number
-app.post('/api/settings/voicebot', auth, async (req, res) => {
+app.post('/api/settings/voicebot', auth, requireSettingsAccess, async (req, res) => {
   const { twilio_account_sid, twilio_auth_token, twilio_phone } = req.body;
   if (!twilio_account_sid || !twilio_auth_token || !twilio_phone)
     return res.status(400).json({ error: 'Account SID, Auth Token, and phone number are required' });
@@ -2337,7 +2883,7 @@ app.post('/api/settings/voicebot', auth, async (req, res) => {
 });
 
 // Disable voicebot + clear credentials
-app.delete('/api/settings/voicebot', auth, async (req, res) => {
+app.delete('/api/settings/voicebot', auth, requireSettingsAccess, async (req, res) => {
   const tenantId = await getEffectiveTenantId(req);
   if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
   await supabaseAdmin.from('tenants').update({
@@ -3129,7 +3675,7 @@ app.delete('/api/admin/invites/:id', auth, async (req, res) => {
 // ── Crew Invite (crew_invite_links table) ──────────────────────────────────────
 
 // GET: return current invite URL if one exists
-app.get('/api/crew-invite', auth, async (req, res) => {
+app.get('/api/crew-invite', auth, requireSettingsAccess, async (req, res) => {
   const tenantId = req.tenantId;
   if (!tenantId) return res.json({ url: null });
   const appUrl = process.env.APP_URL || 'https://linkcrew.io';
@@ -3140,7 +3686,7 @@ app.get('/api/crew-invite', auth, async (req, res) => {
 });
 
 // POST: generate a new token, invalidates old one via upsert
-app.post('/api/crew-invite', auth, async (req, res) => {
+app.post('/api/crew-invite', auth, requireSettingsAccess, async (req, res) => {
   const tenantId = req.tenantId;
   if (!tenantId) return res.status(400).json({ error: 'Cannot generate invite — no organization found' });
   const appUrl = process.env.APP_URL || 'https://linkcrew.io';
@@ -3406,7 +3952,7 @@ app.post('/api/appointments/ask', auth, async (req, res) => {
 
 // ── Recurring Invoices ────────────────────────────────────────────────────────
 
-app.get('/api/recurring-invoices', auth, async (req, res) => {
+app.get('/api/recurring-invoices', auth, requireFinancialAccess, async (req, res) => {
   const { data } = await supabaseAdmin
     .from('recurring_invoices')
     .select('*, clients(id, name, email)')
@@ -3415,7 +3961,7 @@ app.get('/api/recurring-invoices', auth, async (req, res) => {
   res.json(data || []);
 });
 
-app.post('/api/recurring-invoices', auth, async (req, res) => {
+app.post('/api/recurring-invoices', auth, requireFinancialAccess, async (req, res) => {
   const { client_id, description, amount, frequency, next_send_date } = req.body;
   if (!description || !amount || !frequency || !next_send_date)
     return res.status(400).json({ error: 'Description, amount, frequency, and start date required' });
@@ -3426,7 +3972,7 @@ app.post('/api/recurring-invoices', auth, async (req, res) => {
   res.json(data);
 });
 
-app.patch('/api/recurring-invoices/:id', auth, async (req, res) => {
+app.patch('/api/recurring-invoices/:id', auth, requireFinancialAccess, async (req, res) => {
   const allowed = ['active', 'amount', 'description', 'frequency', 'next_send_date', 'client_id'];
   const updates = {};
   for (const k of allowed) if (req.body[k] !== undefined) updates[k] = req.body[k];
@@ -3438,7 +3984,7 @@ app.patch('/api/recurring-invoices/:id', auth, async (req, res) => {
   res.json(data);
 });
 
-app.delete('/api/recurring-invoices/:id', auth, async (req, res) => {
+app.delete('/api/recurring-invoices/:id', auth, requireFinancialAccess, async (req, res) => {
   await supabaseAdmin.from('recurring_invoices')
     .delete().eq('id', req.params.id).eq('tenant_id', req.tenantId);
   res.json({ ok: true });

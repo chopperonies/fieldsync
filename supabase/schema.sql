@@ -62,6 +62,32 @@ alter publication supabase_realtime add table supply_requests;
 alter publication supabase_realtime add table job_updates;
 alter publication supabase_realtime add table job_assignments;
 
+-- Tenant access metadata used by the web dashboard role model.
+-- These tables already exist in production; keep these supplemental definitions
+-- in sync with the app-level permission model and migrations.
+
+create table if not exists tenants (
+  id uuid default gen_random_uuid() primary key,
+  company_name text,
+  owner_email text,
+  manager_financials_enabled boolean not null default false
+);
+
+create table if not exists tenant_users (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid not null,
+  tenant_id uuid not null references tenants(id) on delete cascade,
+  employee_id uuid references employees(id) on delete set null,
+  role text not null default 'owner' check (role in ('owner', 'manager', 'crew', 'client')),
+  can_view_financials boolean not null default false,
+  created_at timestamptz default now(),
+  unique(user_id, tenant_id)
+);
+
+create index if not exists tenant_users_tenant_id_idx on tenant_users (tenant_id);
+create index if not exists tenant_users_employee_id_idx on tenant_users (employee_id);
+create index if not exists tenant_users_role_idx on tenant_users (role);
+
 -- Sample data to get started
 insert into jobs (name, address, status) values
   ('Downtown Office Renovation', '123 Main St, Miami FL', 'active'),
