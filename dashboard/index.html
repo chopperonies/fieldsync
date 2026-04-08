@@ -834,6 +834,9 @@
     <button id="invite-crew-btn" class="sidebar-action-btn crew" onclick="goToCrewInvite()">
       <i data-lucide="user-plus" style="width:13px;height:13px"></i> Invite Crew
     </button>
+    <button class="sidebar-action-btn" onclick="openAccountSecurity()">
+      <i data-lucide="shield-check" style="width:13px;height:13px"></i> Account Security
+    </button>
     <button class="sidebar-action-btn signout" onclick="doLogout()">
       <i data-lucide="log-out" style="width:13px;height:13px"></i> Sign Out
     </button>
@@ -1791,6 +1794,18 @@
       </div>
     </div>
 
+    <div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:28px;margin-top:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#17191c;margin-bottom:6px">Account Security</div>
+          <div style="font-size:13px;color:#737475;line-height:1.7">Change the password for the account currently signed into this dashboard.</div>
+        </div>
+        <button onclick="openAccountSecurity()" style="background:#0265dc;color:#fff;border:none;border-radius:7px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer">
+          Change Password
+        </button>
+      </div>
+    </div>
+
     <div id="manager-financials-section" style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:28px;margin-top:20px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap">
         <div style="max-width:680px">
@@ -2209,6 +2224,24 @@
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeTeam()">Cancel</button>
       <button class="btn-save" onclick="saveEmployee()">Add Employee</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="account-security-modal">
+  <div class="modal" style="width:460px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="margin:0">Account Security</h3>
+      <button class="btn-cancel" onclick="closeAccountSecurity()" style="padding:4px 10px">✕</button>
+    </div>
+    <div style="font-size:13px;color:#737475;line-height:1.7;margin-bottom:18px">Change the password for the account currently signed into this dashboard.</div>
+    <div class="form-group"><label>Current Password</label><input type="password" id="acct-current-password" placeholder="Enter current password"></div>
+    <div class="form-group"><label>New Password</label><input type="password" id="acct-new-password" placeholder="At least 8 characters"></div>
+    <div class="form-group"><label>Confirm New Password</label><input type="password" id="acct-confirm-password" placeholder="Repeat new password"></div>
+    <div id="account-security-status" style="font-size:12px;color:#64748b;min-height:18px;margin-bottom:10px"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeAccountSecurity()">Cancel</button>
+      <button class="btn-save" onclick="submitPasswordChange()">Update Password</button>
     </div>
   </div>
 </div>
@@ -3511,8 +3544,11 @@ function renderTeamRow(employee, inline = false) {
   const accessButton = canInviteDashboard
     ? `<button onclick="grantDashboardAccess('${employee.id}','${String(employee.name || '').replace(/'/g, "\\'")}','${employee.role}')" style="background:#eef6ff;border:1px solid #bfdbfe;color:#1d4ed8;cursor:pointer;font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px">${employee.dashboard_access_enabled ? 'Resend Access Link' : 'Grant Dashboard Access'}</button>`
     : '';
+  const disableAccessButton = canManageSettings() && employee.dashboard_access_enabled && employee.role !== 'owner'
+    ? `<button onclick="disableDashboardAccess('${employee.id}','${String(employee.name || '').replace(/'/g, "\\'")}')" style="background:#fff5f5;border:1px solid #fecaca;color:#b91c1c;cursor:pointer;font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px">Disable Access</button>`
+    : '';
   const removeButton = `<button onclick="deleteEmployee('${employee.id}')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:12px;font-weight:600;padding:4px 8px;border-radius:4px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove</button>`;
-  const actionColumn = [accessButton, removeButton].filter(Boolean).join('');
+  const actionColumn = [accessButton, disableAccessButton, removeButton].filter(Boolean).join('');
   const rowId = inline ? `emp-row-inline-${employee.id}` : `emp-row-${employee.id}`;
   return `
     <div class="team-row" id="${rowId}" style="align-items:flex-start">
@@ -3641,6 +3677,73 @@ async function grantDashboardAccess(id, name, role) {
   }
   await loadTeam();
   if (document.getElementById('team-view').style.display !== 'none') await loadTeamInline();
+}
+
+async function disableDashboardAccess(id, name) {
+  if (!canManageSettings()) return alert('Only the owner can disable dashboard access.');
+  if (!confirm(`Disable dashboard access for ${name}?`)) return;
+  const res = await authFetch(`/api/employees/${id}/dashboard-access`, { method: 'DELETE' });
+  const data = await res.json();
+  if (!res.ok) return alert(data.error || 'Failed to disable dashboard access');
+  await loadTeam();
+  if (document.getElementById('team-view').style.display !== 'none') await loadTeamInline();
+  alert('Dashboard access disabled.');
+}
+
+function openAccountSecurity() {
+  document.getElementById('account-security-modal').classList.add('visible');
+  document.getElementById('account-security-status').textContent = '';
+}
+
+function closeAccountSecurity() {
+  document.getElementById('account-security-modal').classList.remove('visible');
+  document.getElementById('acct-current-password').value = '';
+  document.getElementById('acct-new-password').value = '';
+  document.getElementById('acct-confirm-password').value = '';
+  document.getElementById('account-security-status').textContent = '';
+}
+
+async function submitPasswordChange() {
+  const current_password = document.getElementById('acct-current-password').value;
+  const password = document.getElementById('acct-new-password').value;
+  const confirm = document.getElementById('acct-confirm-password').value;
+  const statusEl = document.getElementById('account-security-status');
+
+  if (!current_password || !password || !confirm) {
+    statusEl.style.color = '#dc2626';
+    statusEl.textContent = 'All password fields are required.';
+    return;
+  }
+  if (password.length < 8) {
+    statusEl.style.color = '#dc2626';
+    statusEl.textContent = 'New password must be at least 8 characters.';
+    return;
+  }
+  if (password !== confirm) {
+    statusEl.style.color = '#dc2626';
+    statusEl.textContent = 'New passwords do not match.';
+    return;
+  }
+
+  statusEl.style.color = '#64748b';
+  statusEl.textContent = 'Updating password...';
+  const res = await authFetch('/api/account/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ current_password, password })
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    statusEl.style.color = '#dc2626';
+    statusEl.textContent = data.error || 'Failed to update password.';
+    return;
+  }
+
+  statusEl.style.color = '#16a34a';
+  statusEl.textContent = 'Password updated.';
+  setTimeout(() => {
+    closeAccountSecurity();
+    alert('Password updated successfully.');
+  }, 400);
 }
 
 async function saveEmployee() {

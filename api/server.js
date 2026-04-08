@@ -979,6 +979,21 @@ async function loadEmployeeForDashboardAccess(tenantId, employeeId) {
   return { employee: null, error: null };
 }
 
+async function loadDashboardAccessMembership(tenantId, employeeId) {
+  const result = await supabaseAdmin
+    .from('tenant_users')
+    .select('id, user_id, role, employee_id')
+    .eq('tenant_id', tenantId)
+    .eq('employee_id', employeeId)
+    .maybeSingle();
+
+  if (result.error && /column/i.test(result.error.message || '')) {
+    return { membership: null, error: new Error('Database migration required before dashboard access controls can be used.') };
+  }
+  if (result.error) return { membership: null, error: result.error };
+  return { membership: result.data || null, error: null };
+}
+
 async function sendDashboardAccessInviteEmail({ email, companyName, employeeName, role, actionLink, appUrl, existingUser }) {
   if (!actionLink || !process.env.RESEND_API_KEY) return false;
   const { Resend } = require('resend');
@@ -1796,6 +1811,37 @@ app.post('/api/employees/:id/dashboard-access', auth, requireSettingsAccess, asy
   if (inviteResult.error) return res.status(400).json({ error: inviteResult.error });
 
   res.json(inviteResult);
+});
+
+app.delete('/api/employees/:id/dashboard-access', auth, requireSettingsAccess, async (req, res) => {
+  const { id } = req.params;
+  const { employee, error: employeeError } = await loadEmployeeForDashboardAccess(req.tenantId, id);
+  if (employeeError) return res.status(400).json({ error: employeeError.message });
+  if (!employee) return res.status(404).json({ error: 'Employee not found.' });
+  if (normalizeAppRole(employee.role) === 'owner') {
+    return res.status(400).json({ error: 'Owner dashboard access cannot be disabled here.' });
+  }
+
+  const { membership, error: membershipError } = await loadDashboardAccessMembership(req.tenantId, id);
+  if (membershipError) return res.status(400).json({ error: membershipError.message });
+  if (!membership) return res.json({ ok: true, disabled: false });
+  if (membership.user_id === req.userId) {
+    return res.status(400).json({ error: 'You cannot disable your own dashboard access.' });
+  }
+
+  const deleteResult = await supabaseAdmin
+    .from('tenant_users')
+    .delete()
+    .eq('id', membership.id);
+  if (deleteResult.error) return res.status(400).json({ error: deleteResult.error.message });
+
+  try {
+    await supabaseAdmin.auth.admin.signOut(membership.user_id);
+  } catch (err) {
+    console.error('[dashboard-access] signout error:', err.message);
+  }
+
+  res.json({ ok: true, disabled: true });
 });
 
 // ── CRM: Clients ─────────────────────────────────────────────────────────────
@@ -3902,6 +3948,38 @@ app.post('/api/admin/change-password', auth, async (req, res) => {
   if (!password || password.length < 8) return res.status(400).json({ error: 'Min 8 characters' });
   const { error } = await supabaseAdmin.auth.admin.updateUserById(req.userId, { password });
   if (error) return res.status(400).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+app.post('/api/account/change-password', auth, async (req, res) => {
+  const { current_password, password } = req.body || {};
+  if (!current_password || !password) {
+    return res.status(400).json({ error: 'Current password and new password are required.' });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'New password must be at least 8 characters.' });
+  }
+  if (!req.userEmail) {
+    return res.status(400).json({ error: 'User email not found for this session.' });
+  }
+
+  const verifyResult = await supabase.auth.signInWithPassword({
+    email: req.userEmail,
+    password: current_password,
+  });
+  if (verifyResult.error || !verifyResult.data?.user) {
+    return res.status(400).json({ error: 'Current password is incorrect.' });
+  }
+
+  const updateResult = await supabaseAdmin.auth.admin.updateUserById(req.userId, { password });
+  if (updateResult.error) return res.status(400).json({ error: updateResult.error.message });
+
+  try {
+    if (verifyResult.data?.session?.access_token) {
+      await supabase.auth.signOut(verifyResult.data.session.access_token);
+    }
+  } catch (_) {}
+
   res.json({ ok: true });
 });
 
