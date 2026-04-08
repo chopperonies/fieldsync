@@ -1970,7 +1970,7 @@
     <div id="priority-support-section" style="display:none;margin-top:24px;padding:20px;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:12px">
       <div style="font-size:14px;font-weight:700;color:#17191c;margin-bottom:4px">Priority Support</div>
       <div style="font-size:13px;color:#737475;margin-bottom:14px">As a Business plan member you have access to priority support from our team.</div>
-      <a href="mailto:hello@linkcrew.io?subject=Priority Support Request" style="display:inline-block;background:#0265dc;color:#fff;text-decoration:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700">Contact Priority Support</a>
+      <a href="mailto:platform@linkcrew.io?subject=Priority Support Request" style="display:inline-block;background:#0265dc;color:#fff;text-decoration:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700">Contact Priority Support</a>
     </div>
 
     <!-- Crew Invite Link -->
@@ -2330,12 +2330,36 @@ function canViewFinancials() { return !!(isAdmin || currentCapabilities.can_view
 function canManageFinancials() { return !!(isAdmin || currentCapabilities.can_manage_financials); }
 function canManageSettings() { return !!(isAdmin || currentCapabilities.can_manage_settings); }
 function canManageOperations() { return !!(isAdmin || currentCapabilities.can_manage_operations); }
+function canManageEmployeeAvailability() { return !!(isAdmin || canManageSettings() || currentRole === 'manager' || currentRole === 'owner'); }
 function canAccessSettingsTab() { return !!(isAdmin || canManageSettings() || currentRole === 'manager' || currentRole === 'supervisor' || currentRole === 'owner'); }
 
 function formatRoleLabel(role) {
   const normalized = String(role || '').trim().toLowerCase();
   if (!normalized) return '—';
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function normalizeEmployeeStatus(status) {
+  const normalized = String(status || '').trim().toLowerCase();
+  return ['active', 'vacation', 'suspended'].includes(normalized) ? normalized : 'active';
+}
+
+function employeeIsAssignable(employee) {
+  return normalizeEmployeeStatus(employee?.status) === 'active';
+}
+
+function formatEmployeeStatusLabel(status) {
+  const normalized = normalizeEmployeeStatus(status);
+  if (normalized === 'vacation') return 'On Vacation';
+  if (normalized === 'suspended') return 'Suspended';
+  return 'Active';
+}
+
+function getEmployeeStatusColor(status) {
+  const normalized = normalizeEmployeeStatus(status);
+  if (normalized === 'vacation') return '#b45309';
+  if (normalized === 'suspended') return '#b91c1c';
+  return '#0f766e';
 }
 
 function updateSignedInAccountUI() {
@@ -2584,7 +2608,7 @@ function showLockout(data) {
   if (error === 'account_blocked') {
     iconEl.textContent = '🚫';
     titleEl.textContent = 'Account suspended';
-    bodyEl.textContent = 'Your account has been suspended. Contact hello@linkcrew.io for more information.';
+    bodyEl.textContent = 'Your account has been suspended. Contact platform@linkcrew.io for more information.';
   } else if (error === 'account_paused') {
     iconEl.textContent = '⏸';
     titleEl.textContent = 'Account paused';
@@ -3240,7 +3264,7 @@ async function openDetail(jobId, jobName) {
 
   const empEl = document.getElementById('detail-employees');
   const assignedIds = new Set((assignments||[]).map(a => a.employee_id));
-  const unassigned = (window._allEmployees||[]).filter(e => !assignedIds.has(e.id));
+  const unassigned = (window._allEmployees||[]).filter(e => employeeIsAssignable(e) && !assignedIds.has(e.id));
   empEl.innerHTML = `
     <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
     <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
@@ -3801,6 +3825,7 @@ function renderStoredDashboardLinks(employees = []) {
   const links = getStoredDashboardLinks();
   const activeIds = new Set(
     (employees || [])
+      .filter(e => normalizeEmployeeStatus(e.status) !== 'suspended')
       .filter(e => e.dashboard_access_enabled && (e.role === 'supervisor' || e.role === 'manager' || e.role === 'owner'))
       .map(e => e.id)
   );
@@ -3835,6 +3860,7 @@ function renderStoredDashboardLinks(employees = []) {
 
 function getSupervisorSelectorEntries() {
   return (window._allEmployees || [])
+    .filter(employeeIsAssignable)
     .filter(employee => employee.role === 'supervisor' || employee.role === 'manager' || employee.role === 'owner')
     .map(employee => {
       return {
@@ -3864,6 +3890,7 @@ function getSelectedSupervisorId(selectId) {
 function buildInitialCrewChecklist(selectedIds = []) {
   const selected = new Set((selectedIds || []).filter(Boolean));
   const crew = (window._allEmployees || [])
+    .filter(employeeIsAssignable)
     .filter(employee => employee.role === 'crew')
     .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
@@ -3903,6 +3930,9 @@ function buildEmployeeRoleOptions(selectedRole = 'crew') {
 }
 
 function getEmployeeDashboardAccessCopy(employee) {
+  const status = normalizeEmployeeStatus(employee.status);
+  if (status === 'suspended') return 'Dashboard access suspended';
+  if (status === 'vacation' && employee.dashboard_access_enabled) return 'Dashboard access enabled • unavailable';
   if (!employee.dashboard_access_enabled) {
     return employee.role === 'crew'
       ? 'Mobile app access only'
@@ -3932,10 +3962,12 @@ function toggleTeamActions(employeeId, inline = false) {
 }
 
 function renderTeamRow(employee, inline = false) {
+  const employeeStatus = normalizeEmployeeStatus(employee.status);
   const accessCopy = getEmployeeDashboardAccessCopy(employee);
-  const canInviteDashboard = canManageSettings() && (employee.role === 'supervisor' || employee.role === 'manager' || employee.role === 'owner');
+  const canInviteDashboard = canManageSettings() && employeeStatus !== 'suspended' && (employee.role === 'supervisor' || employee.role === 'manager' || employee.role === 'owner');
   const hasStoredLink = !!getStoredDashboardLinks()[employee.id]?.invite_url;
   const roleSelectId = `team-role-select-${inline ? 'inline-' : ''}${employee.id}`;
+  const statusSelectId = `team-status-select-${inline ? 'inline-' : ''}${employee.id}`;
   const accessButton = canInviteDashboard
     ? `<button onclick="grantDashboardAccess('${employee.id}','${String(employee.name || '').replace(/'/g, "\\'")}','${employee.role}')" style="background:#eef6ff;border:1px solid #bfdbfe;color:#1d4ed8;cursor:pointer;font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px">${employee.dashboard_access_enabled ? 'Resend Access Link' : 'Grant Dashboard Access'}</button>`
     : '';
@@ -3953,8 +3985,22 @@ function renderTeamRow(employee, inline = false) {
       <button onclick="updateEmployeeRole('${employee.id}', '${String(employee.name || '').replace(/'/g, "\\'")}', '${roleSelectId}')" style="background:#fff;border:1px solid #cbd5e1;color:#334155;cursor:pointer;font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px">Save Role</button>
     </div>
   ` : '';
-  const removeButton = `<button onclick="deleteEmployee('${employee.id}')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:12px;font-weight:600;padding:4px 8px;border-radius:4px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove</button>`;
-  const actionButtons = [changeRoleUI, accessButton, copyAccessButton, disableAccessButton, removeButton].filter(Boolean);
+  const statusOptions = ['active', 'vacation', 'suspended']
+    .filter(status => canManageSettings() || status !== 'suspended')
+    .map(status => `<option value="${status}" ${employeeStatus === status ? 'selected' : ''}>${formatEmployeeStatusLabel(status)}</option>`)
+    .join('');
+  const changeStatusUI = canManageEmployeeAvailability() ? `
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+      <select id="${statusSelectId}" style="background:#fff;border:1px solid #cbd5e1;color:#0f172a;font-size:12px;padding:6px 8px;border-radius:10px;min-width:122px">
+        ${statusOptions}
+      </select>
+      <button onclick="updateEmployeeStatus('${employee.id}', '${String(employee.name || '').replace(/'/g, "\\'")}', '${statusSelectId}')" style="background:#fff;border:1px solid #cbd5e1;color:#334155;cursor:pointer;font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px">Save Status</button>
+    </div>
+  ` : '';
+  const removeButton = canManageSettings()
+    ? `<button onclick="deleteEmployee('${employee.id}')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:12px;font-weight:600;padding:4px 8px;border-radius:4px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">Remove</button>`
+    : '';
+  const actionButtons = [changeRoleUI, changeStatusUI, accessButton, copyAccessButton, disableAccessButton, removeButton].filter(Boolean);
   const actionColumn = actionButtons.join('');
   const rowId = inline ? `emp-row-inline-${employee.id}` : `emp-row-${employee.id}`;
   const actionPanelId = `team-actions-panel-${inline ? 'inline-' : ''}${employee.id}`;
@@ -3974,6 +4020,7 @@ function renderTeamRow(employee, inline = false) {
       <div class="team-info">
         <div class="ti-name">${employee.name}</div>
         <div class="ti-sub">📱 ${employee.phone}</div>
+        <div class="ti-sub" style="margin-top:4px;font-size:12px;font-weight:700;color:${getEmployeeStatusColor(employeeStatus)}">${formatEmployeeStatusLabel(employeeStatus)}</div>
         <div class="ti-sub" style="margin-top:4px;font-size:13px;font-weight:700;color:${employee.dashboard_access_enabled ? '#0f766e' : '#475569'}">${accessCopy}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0">
@@ -4150,6 +4197,22 @@ async function updateEmployeeRole(id, name, selectId) {
   alert(`${name} is now ${role}.`);
 }
 
+async function updateEmployeeStatus(id, name, selectId) {
+  const select = document.getElementById(selectId);
+  const status = select?.value;
+  if (!status) return;
+  const res = await authFetch(`/api/employees/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status })
+  });
+  const data = await res.json();
+  if (!res.ok) return alert(data.error || data.message || 'Failed to update status');
+  if (status === 'suspended') forgetDashboardLink(id);
+  await Promise.all([loadTeam(), loadAllEmployees()]);
+  if (document.getElementById('team-view').style.display !== 'none') await loadTeamInline();
+  alert(`${name} is now ${formatEmployeeStatusLabel(status).toLowerCase()}.`);
+}
+
 function openAccountSecurity() {
   document.getElementById('account-security-modal').classList.add('visible');
   document.getElementById('account-security-status').textContent = '';
@@ -4258,9 +4321,12 @@ document.getElementById('emp-role')?.addEventListener('change', () => {
   applyCapabilityUI();
 });
 async function deleteEmployee(id) {
+  if (!canManageSettings()) return alert('Only the owner can remove team members.');
   if (!confirm('Remove this employee?')) return;
+  const res = await authFetch(`/api/employees/${id}`, { method: 'DELETE' });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return alert(data.error || data.message || 'Failed to remove employee');
   forgetDashboardLink(id);
-  await authFetch(`/api/employees/${id}`, { method: 'DELETE' });
   await loadTeam();
   if (document.getElementById('team-view').style.display !== 'none') await loadTeamInline();
 }

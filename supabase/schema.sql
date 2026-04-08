@@ -19,6 +19,7 @@ create table if not exists employees (
   name text not null,
   telegram_id bigint unique,
   role text default 'crew' check (role in ('crew', 'supervisor', 'manager', 'owner')),
+  status text default 'active' check (status in ('active', 'vacation', 'suspended')),
   created_at timestamptz default now()
 );
 

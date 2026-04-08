@@ -1,6 +1,7 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const { Resend } = require('resend');
 const { createClient } = require('@supabase/supabase-js');
+const { LINKCREW_FROM, LINKCREW_ALERT_FROM, SUPPORT_EMAIL } = require('./config');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
@@ -139,7 +140,7 @@ ${bottlenecks.length > 0 ? `
   `;
 
   await resend.emails.send({
-    from: 'LinkCrew Alerts <alerts@linkcrew.io>',
+    from: LINKCREW_ALERT_FROM,
     to: process.env.MANAGER_EMAIL,
     subject: `FieldSync Daily Digest — ${today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} | ${jobs.length} active jobs`,
     html
@@ -171,7 +172,7 @@ async function sendAlertEmail({ subject, title, color, rows, photoUrl }) {
 </body></html>`;
 
   await resend.emails.send({
-    from: 'LinkCrew Alerts <alerts@linkcrew.io>',
+    from: LINKCREW_ALERT_FROM,
     to: process.env.MANAGER_EMAIL,
     subject,
     html
@@ -234,7 +235,7 @@ async function sendNote({ subject, body }) {
 </body></html>`;
 
   await resend.emails.send({
-    from: 'LinkCrew Alerts <alerts@linkcrew.io>',
+    from: LINKCREW_ALERT_FROM,
     to: process.env.MANAGER_EMAIL,
     subject: subject || 'Note from FieldSync',
     html,
@@ -274,7 +275,7 @@ async function sendInvoiceToClient({ clientName, clientEmail, jobName, amount, p
 </body></html>`;
 
   await resend.emails.send({
-    from: 'LinkCrew <hello@linkcrew.io>',
+    from: LINKCREW_FROM,
     to: clientEmail,
     subject: `Invoice for ${jobName} — ${formattedAmount}`,
     html,
@@ -322,7 +323,7 @@ async function sendPaymentReceivedToOwner({ ownerEmail, clientName, jobName, amo
 </body></html>`;
 
   await resend.emails.send({
-    from: 'LinkCrew Alerts <alerts@linkcrew.io>',
+    from: LINKCREW_ALERT_FROM,
     to: ownerEmail,
     subject: `Payment received — ${formattedAmount} from ${clientName}`,
     html,
@@ -380,7 +381,7 @@ async function sendCallTranscriptToOwner({ ownerEmail, companyName, callerNumber
 </body></html>`;
 
   await resend.emails.send({
-    from: 'LinkCrew Alerts <alerts@linkcrew.io>',
+    from: LINKCREW_ALERT_FROM,
     to: ownerEmail,
     subject,
     html,
@@ -425,7 +426,7 @@ async function sendWorkOrderToClient({ clientName, clientEmail, jobName, descrip
 </body></html>`;
 
   await resend.emails.send({
-    from: 'LinkCrew <hello@linkcrew.io>',
+    from: LINKCREW_FROM,
     to: clientEmail,
     subject: `Work Order from ${tenantName || 'Your Contractor'} — ${jobName}`,
     html,
@@ -451,7 +452,7 @@ async function sendIncomingSmsNotification({ toEmail, fromNumber, message, compa
 </body></html>`;
 
   await resend.emails.send({
-    from: 'LinkCrew Alerts <alerts@linkcrew.io>',
+    from: LINKCREW_ALERT_FROM,
     to: toEmail,
     subject: `📱 Text from ${fromNumber} — ${companyName || 'LinkCrew'}`,
     html,
@@ -480,7 +481,7 @@ async function sendBusinessOnboardingEmail({ ownerEmail, companyName }) {
       </a>
     </div>
     <p style="font-size:13px;color:#6b7280;line-height:1.6">
-      Questions before the call? Reply to this email or reach us at <a href="mailto:hello@linkcrew.io" style="color:#0265dc">hello@linkcrew.io</a>.
+      Questions before the call? Reply to this email or reach us at <a href="mailto:${SUPPORT_EMAIL}" style="color:#0265dc">${SUPPORT_EMAIL}</a>.
     </p>
   </div>
   <div style="padding:14px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center">
@@ -490,7 +491,7 @@ async function sendBusinessOnboardingEmail({ ownerEmail, companyName }) {
 </body></html>`;
 
   await resend.emails.send({
-    from: 'LinkCrew <hello@linkcrew.io>',
+    from: LINKCREW_FROM,
     to: ownerEmail,
     subject: 'Welcome to Business — book your onboarding call',
     html,
@@ -502,7 +503,7 @@ async function sendAppointmentConfirmation({ clientName, clientEmail, title, sta
   const time = new Date(startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   const endStr = endTime ? ` – ${new Date(endTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` : '';
   await resend.emails.send({
-    from: 'LinkCrew <hello@linkcrew.io>',
+    from: LINKCREW_FROM,
     to: clientEmail,
     subject: `Appointment Confirmed: ${title}`,
     html: `<div style="font-family:sans-serif;max-width:500px;color:#17191c">
@@ -525,7 +526,7 @@ async function sendAppointmentReminder({ clientName, clientEmail, title, startTi
   const time = new Date(startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   const endStr = endTime ? ` – ${new Date(endTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` : '';
   await resend.emails.send({
-    from: 'LinkCrew <hello@linkcrew.io>',
+    from: LINKCREW_FROM,
     to: clientEmail,
     subject: `Reminder: ${title} — Tomorrow`,
     html: `<div style="font-family:sans-serif;max-width:500px;color:#17191c">

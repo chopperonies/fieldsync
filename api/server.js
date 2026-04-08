@@ -9,6 +9,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 const { createClient } = require('@supabase/supabase-js');
 const cron = require('node-cron');
 const { sendDailyDigest, sendNote, sendInvoiceToClient, sendPaymentReceivedToOwner, sendCallTranscriptToOwner, sendWorkOrderToClient, sendIncomingSmsNotification, sendBusinessOnboardingEmail, sendAppointmentConfirmation, sendAppointmentReminder } = require('../email/digest');
+const { LINKCREW_FROM, LINKCREW_ALERT_FROM, EMAIL_FROM_ADDRESS, formatFrom } = require('../email/config');
 const { handleMessage } = require('../bot/whatsapp');
 const Anthropic = require('@anthropic-ai/sdk');
 const twilio = require('twilio');
@@ -696,7 +697,7 @@ app.post('/api/track', async (req, res) => {
     if (count && count % 200 === 0) {
       const { Resend } = require('resend');
       new Resend(process.env.RESEND_API_KEY).emails.send({
-        from: 'alerts@linkcrew.io',
+        from: LINKCREW_ALERT_FROM,
         to: (process.env.ADMIN_EMAILS || '').split(',')[0].trim() || 'eliott@kingstondatagroup.com',
         subject: `🎉 LinkCrew hit ${count.toLocaleString()} total page views!`,
         html: `<p>LinkCrew just crossed <strong>${count.toLocaleString()} total page views</strong>.</p>
@@ -755,7 +756,7 @@ app.post('/api/contact-kdg', async (req, res) => {
     const { Resend } = require('resend');
     const r = new Resend(process.env.RESEND_API_KEY);
     await r.emails.send({
-      from: 'Kingston Data Group <hello@linkcrew.io>',
+      from: formatFrom('Kingston Data Group', EMAIL_FROM_ADDRESS),
       to: 'sales@kingstondatagroup.com',
       subject: `New Project Inquiry from ${name}${company ? ' — ' + company : ''}`,
       html: `<div style="font-family:sans-serif;max-width:600px">
@@ -787,6 +788,15 @@ const FINANCIAL_JOB_FIELDS = ['estimate_amount', 'invoice_amount', 'payment_stat
 function normalizeAppRole(role) {
   const normalized = String(role || '').trim().toLowerCase();
   return ['owner', 'manager', 'supervisor', 'crew', 'client', 'admin'].includes(normalized) ? normalized : 'owner';
+}
+
+function normalizeEmployeeStatus(status) {
+  const normalized = String(status || '').trim().toLowerCase();
+  return ['active', 'vacation', 'suspended'].includes(normalized) ? normalized : 'active';
+}
+
+function employeeStatusAllowsAssignment(status) {
+  return normalizeEmployeeStatus(status) === 'active';
 }
 
 function buildCapabilities(role, canViewFinancials = false) {
@@ -1025,7 +1035,7 @@ async function sendDashboardAccessInviteEmail({ email, companyName, employeeName
       ? 'supervisor'
       : 'manager';
   const response = await resend.emails.send({
-    from: 'LinkCrew <hello@linkcrew.io>',
+    from: LINKCREW_FROM,
     to: email,
     subject,
     html: `<div style="font-family:sans-serif;max-width:560px">
@@ -1046,7 +1056,7 @@ async function sendPasswordRecoveryEmail({ email, actionLink, appUrl }) {
   const { Resend } = require('resend');
   const resend = new Resend(process.env.RESEND_API_KEY);
   const response = await resend.emails.send({
-    from: 'LinkCrew <hello@linkcrew.io>',
+    from: LINKCREW_FROM,
     to: email,
     subject: 'Reset your LinkCrew password',
     html: `<div style="font-family:sans-serif;max-width:560px">
@@ -1280,6 +1290,17 @@ function ensureEmployeeRoleAllowed(req, res, next) {
   return res.status(403).json({ error: 'forbidden', message: 'Only the owner can assign supervisor, manager, or owner access.' });
 }
 
+function ensureEmployeeStatusAllowed(req, res, next) {
+  if (req.body.status === undefined) return next();
+  const requestedStatus = normalizeEmployeeStatus(req.body.status);
+  if (requestedStatus === 'suspended') {
+    if (req.isAdmin || req.capabilities?.can_manage_settings) return next();
+    return res.status(403).json({ error: 'forbidden', message: 'Only the owner can suspend team members.' });
+  }
+  if (req.isAdmin || req.capabilities?.can_manage_settings || req.role === 'manager' || req.role === 'owner') return next();
+  return res.status(403).json({ error: 'forbidden', message: 'Only owners and managers can change team availability.' });
+}
+
 
 // ── Auth middleware ───────────────────────────────────────────────────────────
 
@@ -1335,6 +1356,21 @@ async function auth(req, res, next) {
     managerFinancialAccess = toggleState.enabled;
   }
   req.capabilities = buildCapabilities(req.role, managerFinancialAccess);
+
+  if (req.employeeId) {
+    const employeeStatusResult = await supabaseAdmin
+      .from('employees')
+      .select('status')
+      .eq('id', req.employeeId)
+      .eq('tenant_id', req.tenantId)
+      .maybeSingle();
+    if (employeeStatusResult.error && !/column/i.test(employeeStatusResult.error.message || '')) {
+      return res.status(400).json({ error: employeeStatusResult.error.message });
+    }
+    if (normalizeEmployeeStatus(employeeStatusResult.data?.status) === 'suspended') {
+      return res.status(403).json({ error: 'account_blocked' });
+    }
+  }
 
   // Track last activity (fire-and-forget)
   supabaseAdmin.from('tenants').update({ last_seen_at: new Date().toISOString() }).eq('id', req.tenantId).then(() => {});
@@ -1704,16 +1740,35 @@ app.post('/api/jobs', auth, requireOperationAccess, ensureFinancialFieldsAllowed
     ? [...new Set(initial_employee_ids.filter(id => typeof id === 'string' && id.trim()))]
     : [];
 
+  if (primary_supervisor_employee_id) {
+    const { data: supervisor, error: supervisorError } = await supabaseAdmin
+      .from('employees')
+      .select('id, role, status')
+      .eq('tenant_id', req.tenantId)
+      .eq('id', primary_supervisor_employee_id)
+      .maybeSingle();
+    if (supervisorError) return res.status(400).json({ error: supervisorError.message });
+    if (!supervisor || !['owner', 'manager', 'supervisor'].includes(normalizeAppRole(supervisor.role))) {
+      return res.status(400).json({ error: 'Selected primary lead is invalid.' });
+    }
+    if (!employeeStatusAllowsAssignment(supervisor.status)) {
+      return res.status(400).json({ error: 'Selected primary lead is not currently available for assignment.' });
+    }
+  }
+
   if (requestedEmployeeIds.length) {
     const { data: crewEmployees, error: crewError } = await supabaseAdmin
       .from('employees')
-      .select('id')
+      .select('id, status')
       .eq('tenant_id', req.tenantId)
       .eq('role', 'crew')
       .in('id', requestedEmployeeIds);
     if (crewError) return res.status(400).json({ error: crewError.message });
     if ((crewEmployees || []).length !== requestedEmployeeIds.length) {
       return res.status(400).json({ error: 'One or more selected crew members are invalid.' });
+    }
+    if ((crewEmployees || []).some(employee => !employeeStatusAllowsAssignment(employee.status))) {
+      return res.status(400).json({ error: 'One or more selected crew members are not currently available for assignment.' });
     }
   }
 
@@ -1913,6 +1968,7 @@ app.get('/api/employees', auth, async (req, res) => {
     const access = accessByEmployeeId.get(employee.id);
     return {
       ...employee,
+      status: normalizeEmployeeStatus(employee.status),
       dashboard_access_enabled: !!access,
       dashboard_role: access?.role || null,
       dashboard_can_view_financials: !!access?.can_view_financials,
@@ -1929,18 +1985,19 @@ app.post('/api/employees', auth, requireOperationAccess, ensureEmployeeRoleAllow
   const { count } = await supabaseAdmin.from('employees').select('*', { count: 'exact', head: true }).eq('tenant_id', req.tenantId);
   if (count >= maxUsers) return res.status(403).json({ error: `Plan limit reached. Your plan allows up to ${maxUsers} crew member${maxUsers === 1 ? '' : 's'}. Upgrade at linkcrew.io/pricing.` });
   const { data, error } = await supabaseAdmin.from('employees')
-    .insert({ name: name.trim(), phone: phone.trim(), role, tenant_id: req.tenantId }).select().single();
+    .insert({ name: name.trim(), phone: phone.trim(), role, status: 'active', tenant_id: req.tenantId }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.json(data);
 });
 
-app.patch('/api/employees/:id', auth, requireOperationAccess, ensureEmployeeRoleAllowed, async (req, res) => {
+app.patch('/api/employees/:id', auth, requireOperationAccess, ensureEmployeeRoleAllowed, ensureEmployeeStatusAllowed, async (req, res) => {
   const { id } = req.params;
-  const { name, phone, role } = req.body;
+  const { name, phone, role, status } = req.body;
   const updates = {};
   if (name) updates.name = name.trim();
   if (phone) updates.phone = phone.trim();
   if (role) updates.role = role;
+  if (status !== undefined) updates.status = normalizeEmployeeStatus(status);
   const { data, error } = await supabaseAdmin.from('employees').update(updates).eq('id', id).eq('tenant_id', req.tenantId).select().single();
   if (error) return res.status(400).json({ error: error.message });
   if (role) {
@@ -1955,7 +2012,7 @@ app.patch('/api/employees/:id', auth, requireOperationAccess, ensureEmployeeRole
   res.json(data);
 });
 
-app.delete('/api/employees/:id', auth, requireOperationAccess, async (req, res) => {
+app.delete('/api/employees/:id', auth, requireSettingsAccess, async (req, res) => {
   const { id } = req.params;
   await supabaseAdmin.from('tenant_users').delete().eq('tenant_id', req.tenantId).eq('employee_id', id);
   await supabaseAdmin.from('employees').delete().eq('id', id).eq('tenant_id', req.tenantId);
@@ -2632,8 +2689,11 @@ app.post('/api/jobs/:id/assign', auth, async (req, res) => {
   const { data: job } = await supabaseAdmin.from('jobs').select('id').eq('id', req.params.id).eq('tenant_id', req.tenantId).single();
   if (!job) return res.status(404).json({ error: 'Job not found' });
 
-  const { data: employee } = await supabaseAdmin.from('employees').select('id').eq('id', employee_id).eq('tenant_id', req.tenantId).single();
+  const { data: employee } = await supabaseAdmin.from('employees').select('id, status').eq('id', employee_id).eq('tenant_id', req.tenantId).single();
   if (!employee) return res.status(404).json({ error: 'Employee not found' });
+  if (!employeeStatusAllowsAssignment(employee.status)) {
+    return res.status(400).json({ error: 'This team member is not currently available for assignment.' });
+  }
 
   // Check if already assigned
   const { data: existing } = await supabaseAdmin.from('job_assignments').select('id').eq('job_id', req.params.id).eq('employee_id', employee_id).maybeSingle();
@@ -2798,7 +2858,7 @@ app.post('/api/jobs/:id/mark-paid', auth, requireFinancialAccess, async (req, re
         const { Resend } = require('resend');
         const resend = new Resend(process.env.RESEND_API_KEY);
         await resend.emails.send({
-          from: 'LinkCrew <hello@linkcrew.io>',
+          from: LINKCREW_FROM,
           to: job.clients.email,
           subject: `Payment received — ${job.name}`,
           html: `<div style="font-family:sans-serif;max-width:500px">
@@ -3390,7 +3450,7 @@ app.post('/api/voice/kdg/end', async (req, res) => {
         ? `<div style="margin-bottom:16px;padding:14px;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px"><strong style="color:#92400e">📲 Callback Requested</strong><p style="margin:4px 0 0;color:#b45309;font-size:13px">This caller asked to be called back at ${conv.callerNumber}.</p></div>`
         : '';
       await r.emails.send({
-        from: 'KDG Voice Bot <alerts@linkcrew.io>',
+        from: formatFrom('KDG Voice Bot', EMAIL_FROM_ADDRESS),
         to: 'sales@kingstondatagroup.com',
         subject: callbackRequested
           ? `📲 Callback requested — ${conv.callerNumber} (KDG)`
@@ -4326,7 +4386,7 @@ cron.schedule('*/15 * * * *', async () => {
         return `<li style="margin-bottom:6px"><strong>${a.title}</strong> at ${t}${a.clients ? ' — ' + a.clients.name : ''}</li>`;
       }).join('');
       await resend.emails.send({
-        from: 'LinkCrew <hello@linkcrew.io>',
+        from: LINKCREW_FROM,
         to: tenant.owner_email,
         subject: `📅 Upcoming in ${label}: ${eligibleAppts.length > 1 ? eligibleAppts.length + ' appointments' : eligibleAppts[0].title}`,
         html: `<div style="font-family:sans-serif;max-width:500px">
