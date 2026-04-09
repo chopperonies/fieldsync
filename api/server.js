@@ -1857,12 +1857,52 @@ app.post('/api/jobs/:id/send-workorder', auth, async (req, res) => {
 
 app.patch('/api/jobs/:id', auth, requireOperationAccess, ensureFinancialFieldsAllowed, async (req, res) => {
   const { id } = req.params;
-  const allowed = ['status', 'client_id', 'name', 'address', 'description', 'estimate_amount', 'manager_email', 'primary_supervisor_employee_id'];
+  const allowed = [
+    'status',
+    'client_id',
+    'name',
+    'address',
+    'description',
+    'estimate_amount',
+    'manager_email',
+    'primary_supervisor_employee_id',
+    'plans_notes',
+    'execution_plan',
+    'checklist_items',
+    'missing_items_watchlist',
+    'client_communication_plan',
+    'expected_duration_hours',
+    'required_before_photos',
+    'required_mid_job_photos',
+    'required_completion_photos',
+    'required_cleanup_photos',
+    'crew_plan_confirmed',
+  ];
   const updates = {};
   allowed.forEach(f => {
     if (req.body[f] === undefined) return;
     if (f === 'estimate_amount') {
       updates[f] = req.body[f] === '' || req.body[f] === null ? null : parseFloat(req.body[f]);
+      return;
+    }
+    if (f === 'expected_duration_hours') {
+      updates[f] = req.body[f] === '' || req.body[f] === null ? null : parseFloat(req.body[f]);
+      return;
+    }
+    if (['required_before_photos', 'required_mid_job_photos', 'required_completion_photos', 'required_cleanup_photos'].includes(f)) {
+      const raw = req.body[f];
+      const value = raw === '' || raw === null ? 0 : parseInt(raw, 10);
+      updates[f] = Number.isFinite(value) && value >= 0 ? value : 0;
+      return;
+    }
+    if (f === 'crew_plan_confirmed') {
+      updates[f] = req.body[f] === true;
+      return;
+    }
+    if (f === 'checklist_items') {
+      updates[f] = Array.isArray(req.body[f])
+        ? req.body[f].map(item => String(item || '').trim()).filter(Boolean)
+        : [];
       return;
     }
     updates[f] = req.body[f] || null;

@@ -3510,6 +3510,18 @@ async function openDetail(jobId, jobName) {
   const { job, assignments, supplies, updates } = await res.json();
   const noteUpdates = (updates || []).filter(u => u.type === 'note');
   const bottleneckUpdates = (updates || []).filter(u => u.type === 'bottleneck');
+  const photoUpdates = (updates || []).filter(u => u.type === 'photo' && u.photo_url);
+  const checklistItems = Array.isArray(job?.checklist_items) ? job.checklist_items : [];
+  const requiredProofPhotos = (job?.required_before_photos || 0) + (job?.required_mid_job_photos || 0) + (job?.required_completion_photos || 0) + (job?.required_cleanup_photos || 0);
+  const onSiteAssignments = (assignments || []).filter(a => a.checked_in_at && !a.checked_out_at);
+  const remoteSignals = [
+    { label: 'Lead Assigned', value: job?.primary_supervisor_employee_id ? 'Ready' : 'Missing', ok: !!job?.primary_supervisor_employee_id },
+    { label: 'Crew Assigned', value: `${(assignments || []).length}`, ok: (assignments || []).length > 0 },
+    { label: 'Crew On Site', value: `${onSiteAssignments.length}`, ok: onSiteAssignments.length > 0 },
+    { label: 'Plan Confirmed', value: job?.crew_plan_confirmed ? 'Yes' : 'Needs Confirm', ok: !!job?.crew_plan_confirmed },
+    { label: 'Checklist', value: `${checklistItems.length} items`, ok: checklistItems.length > 0 },
+    { label: 'Proof Photos', value: `${photoUpdates.length} / ${requiredProofPhotos}`, ok: requiredProofPhotos === 0 ? photoUpdates.length > 0 : photoUpdates.length >= requiredProofPhotos },
+  ];
 
   const empEl = document.getElementById('detail-employees');
   const assignedIds = new Set((assignments||[]).map(a => a.employee_id));
@@ -3618,6 +3630,47 @@ async function openDetail(jobId, jobName) {
         <label>Scope / Work Being Done</label>
         <textarea id="detail-job-description" rows="5" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit">${job?.description || ''}</textarea>
       </div>
+      <div style="margin-top:14px;padding:16px;border:1px solid #e8eef3;border-radius:14px;background:linear-gradient(180deg,#ffffff 0%,#f8fbfd 100%)">
+        <div style="font-size:12px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px">Remote Control Plan</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group" style="margin-bottom:0">
+            <label>Plans / Schematics / Special Notes</label>
+            <textarea id="detail-job-plans-notes" rows="4" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit" placeholder="Critical plans, measurements, diagrams, finish standards, or install instructions...">${job?.plans_notes || ''}</textarea>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>Order of Work / Execution Plan</label>
+            <textarea id="detail-job-execution-plan" rows="4" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit" placeholder="1. Prep area&#10;2. Confirm measurements&#10;3. Install&#10;4. Final punch">${job?.execution_plan || ''}</textarea>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+          <div class="form-group" style="margin-bottom:0">
+            <label>Owner Checklist</label>
+            <textarea id="detail-job-checklist" rows="6" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit" placeholder="One required item per line&#10;Arrival photos&#10;Protect floors&#10;Confirm measurements&#10;Final cleanup photos">${checklistItems.join('\n')}</textarea>
+            <div style="margin-top:6px;font-size:12px;color:#64748b">These are the steps the owner expects verified before the job is truly done.</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div class="form-group" style="margin-bottom:0">
+              <label>Missing Items / Risk Watchlist</label>
+              <textarea id="detail-job-missing-items" rows="3" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit" placeholder="Materials still needed, measurements to double-check, customer concerns...">${job?.missing_items_watchlist || ''}</textarea>
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label>Client Communication Plan</label>
+              <textarea id="detail-job-client-comms" rows="3" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit" placeholder="What the crew should confirm with the client, and when they should update them...">${job?.client_communication_plan || ''}</textarea>
+            </div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:12px">
+          <div class="form-group" style="margin-bottom:0"><label>Expected Hours</label><input type="number" id="detail-job-expected-duration" value="${job?.expected_duration_hours || ''}" min="0" step="0.5" placeholder="4"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Before Photos</label><input type="number" id="detail-job-before-photos" value="${job?.required_before_photos ?? 2}" min="0" step="1"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Mid-Job Photos</label><input type="number" id="detail-job-mid-photos" value="${job?.required_mid_job_photos ?? 1}" min="0" step="1"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Completion Photos</label><input type="number" id="detail-job-completion-photos" value="${job?.required_completion_photos ?? 2}" min="0" step="1"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Cleanup Photos</label><input type="number" id="detail-job-cleanup-photos" value="${job?.required_cleanup_photos ?? 1}" min="0" step="1"></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;font-weight:600;color:#0f172a">
+          <input type="checkbox" id="detail-job-crew-confirmed" ${job?.crew_plan_confirmed ? 'checked' : ''}>
+          Crew has confirmed they understand the plan, order of work, and proof required.
+        </label>
+      </div>
       <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
         <button class="btn-save" onclick="saveJobOverview('${job.id}')">Save Job Details</button>
         <span id="detail-job-status-msg" style="font-size:12px;color:#4ade80"></span>
@@ -3690,6 +3743,45 @@ async function openDetail(jobId, jobName) {
 
   const notesEl = document.getElementById('detail-notes');
   notesEl.innerHTML = `
+    <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft);margin-bottom:16px">
+      <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Remote Control</span>
+        <span style="font-size:12px;color:#64748b">Proof and execution snapshot</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+        ${remoteSignals.map(signal => `
+          <div style="padding:12px;border:1px solid ${signal.ok ? '#bbf7d0' : '#fde68a'};border-radius:12px;background:${signal.ok ? '#f0fdf4' : '#fffbeb'}">
+            <div style="font-size:11px;font-weight:700;color:${signal.ok ? '#166534' : '#92400e'};text-transform:uppercase;letter-spacing:0.04em">${signal.label}</div>
+            <div style="font-size:18px;font-weight:800;color:#0f172a;margin-top:4px">${signal.value}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="padding:14px;border:1px solid #e8eef3;border-radius:12px;background:#f8fbfd">
+          <div style="font-size:12px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">Owner Checklist</div>
+          ${checklistItems.length ? `<div style="display:flex;flex-direction:column;gap:8px">${checklistItems.map((item, index) => `<div style="display:flex;gap:8px;align-items:flex-start;font-size:13px;color:#334155"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;background:#e2e8f0;color:#334155;font-size:11px;font-weight:700">${index + 1}</span><span>${item}</span></div>`).join('')}</div>` : '<div style="font-size:13px;color:#94a3b8">No checklist saved yet.</div>'}
+        </div>
+        <div style="padding:14px;border:1px solid #e8eef3;border-radius:12px;background:#f8fbfd">
+          <div style="font-size:12px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">Proof Targets</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;color:#334155">
+            <div>Before start: <strong>${job?.required_before_photos ?? 0}</strong></div>
+            <div>Mid-job: <strong>${job?.required_mid_job_photos ?? 0}</strong></div>
+            <div>Completion: <strong>${job?.required_completion_photos ?? 0}</strong></div>
+            <div>Cleanup: <strong>${job?.required_cleanup_photos ?? 0}</strong></div>
+            <div>Expected hours: <strong>${job?.expected_duration_hours || '—'}</strong></div>
+            <div>Actual photos: <strong>${photoUpdates.length}</strong></div>
+          </div>
+          ${(job?.plans_notes || job?.execution_plan || job?.missing_items_watchlist || job?.client_communication_plan) ? `
+            <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;font-size:12px;color:#475569;line-height:1.6">
+              ${job?.plans_notes ? `<div><strong style="color:#0f172a">Plans:</strong> ${job.plans_notes}</div>` : ''}
+              ${job?.execution_plan ? `<div><strong style="color:#0f172a">Order of work:</strong> ${job.execution_plan}</div>` : ''}
+              ${job?.missing_items_watchlist ? `<div><strong style="color:#0f172a">Watchlist:</strong> ${job.missing_items_watchlist}</div>` : ''}
+              ${job?.client_communication_plan ? `<div><strong style="color:#0f172a">Client comms:</strong> ${job.client_communication_plan}</div>` : ''}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
     <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
       <div class="panel-title">Owner Notes</div>
       <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:14px">
@@ -3781,6 +3873,20 @@ async function saveJobOverview(jobId) {
     address: document.getElementById('detail-job-address').value.trim() || null,
     status: document.getElementById('detail-job-status').value,
     description: document.getElementById('detail-job-description').value.trim() || null,
+    plans_notes: document.getElementById('detail-job-plans-notes')?.value.trim() || null,
+    execution_plan: document.getElementById('detail-job-execution-plan')?.value.trim() || null,
+    checklist_items: (document.getElementById('detail-job-checklist')?.value || '')
+      .split('\n')
+      .map(item => item.trim())
+      .filter(Boolean),
+    missing_items_watchlist: document.getElementById('detail-job-missing-items')?.value.trim() || null,
+    client_communication_plan: document.getElementById('detail-job-client-comms')?.value.trim() || null,
+    expected_duration_hours: document.getElementById('detail-job-expected-duration')?.value || null,
+    required_before_photos: document.getElementById('detail-job-before-photos')?.value || 0,
+    required_mid_job_photos: document.getElementById('detail-job-mid-photos')?.value || 0,
+    required_completion_photos: document.getElementById('detail-job-completion-photos')?.value || 0,
+    required_cleanup_photos: document.getElementById('detail-job-cleanup-photos')?.value || 0,
+    crew_plan_confirmed: !!document.getElementById('detail-job-crew-confirmed')?.checked,
   };
   const estimateEl = document.getElementById('detail-job-estimate');
   if (estimateEl && canManageFinancials()) {

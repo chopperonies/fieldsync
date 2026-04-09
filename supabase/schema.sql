@@ -9,6 +9,17 @@ create table if not exists jobs (
   status text default 'active' check (status in ('active', 'completed', 'on_hold')),
   manager_email text,
   primary_supervisor_employee_id uuid,
+  plans_notes text,
+  execution_plan text,
+  checklist_items jsonb not null default '[]'::jsonb,
+  missing_items_watchlist text,
+  client_communication_plan text,
+  expected_duration_hours numeric,
+  required_before_photos integer not null default 2,
+  required_mid_job_photos integer not null default 1,
+  required_completion_photos integer not null default 2,
+  required_cleanup_photos integer not null default 1,
+  crew_plan_confirmed boolean not null default false,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
