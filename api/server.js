@@ -8,7 +8,7 @@ const bcrypt = require('bcryptjs');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const { createClient } = require('@supabase/supabase-js');
 const cron = require('node-cron');
-const { sendDailyDigest, sendNote, sendInvoiceToClient, sendPaymentReceivedToOwner, sendCallTranscriptToOwner, sendWorkOrderToClient, sendIncomingSmsNotification, sendBusinessOnboardingEmail, sendAppointmentConfirmation, sendAppointmentReminder } = require('../email/digest');
+const { sendDailyDigest, sendNote, sendInvoiceToClient, sendClientPortalInvite, sendPaymentReceivedToOwner, sendCallTranscriptToOwner, sendWorkOrderToClient, sendIncomingSmsNotification, sendBusinessOnboardingEmail, sendAppointmentConfirmation, sendAppointmentReminder } = require('../email/digest');
 const { LINKCREW_FROM, LINKCREW_ALERT_FROM, EMAIL_FROM_ADDRESS, formatFrom } = require('../email/config');
 const { handleMessage } = require('../bot/whatsapp');
 const Anthropic = require('@anthropic-ai/sdk');
@@ -2629,6 +2629,12 @@ app.post('/api/clients/:id/invite', auth, async (req, res) => {
   const { id } = req.params;
   const token = crypto.randomBytes(32).toString('hex');
 
+  const [{ data: client }, { data: tenant }] = await Promise.all([
+    supabaseAdmin.from('clients').select('id, name, email').eq('id', id).eq('tenant_id', req.tenantId).single(),
+    supabaseAdmin.from('tenants').select('company_name').eq('id', req.tenantId).single(),
+  ]);
+  if (!client) return res.status(404).json({ error: 'Client not found' });
+
   const { data, error } = await supabaseAdmin
     .from('client_users')
     .upsert({ client_id: id, portal_token: token, tenant_id: req.tenantId }, { onConflict: 'client_id' })
@@ -2637,7 +2643,22 @@ app.post('/api/clients/:id/invite', auth, async (req, res) => {
   if (error) return res.status(400).json({ error: error.message });
 
   const portalUrl = `${req.protocol}://${req.get('host')}/portal?token=${token}`;
-  res.json({ portalUrl });
+  let emailSent = false;
+  if (client.email) {
+    try {
+      await sendClientPortalInvite({
+        clientName: client.name || 'there',
+        clientEmail: client.email,
+        portalUrl,
+        tenantName: tenant?.company_name,
+      });
+      emailSent = true;
+    } catch (emailErr) {
+      console.error('[client invite] email error:', emailErr.message);
+    }
+  }
+
+  res.json({ portalUrl, emailSent, emailedTo: emailSent ? client.email : null });
 });
 
 // Portal: client info

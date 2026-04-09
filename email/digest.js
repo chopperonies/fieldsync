@@ -282,6 +282,40 @@ async function sendInvoiceToClient({ clientName, clientEmail, jobName, amount, p
   });
 }
 
+async function sendClientPortalInvite({ clientName, clientEmail, portalUrl, tenantName }) {
+  const html = `
+<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px">
+<div style="background:white;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb">
+  <div style="background:#0a0a0a;padding:24px">
+    <h2 style="margin:0;color:white;font-size:20px">Your Client Portal Is Ready</h2>
+    <p style="margin:6px 0 0;color:#d1d5db;font-size:14px">${tenantName || 'Your contractor'} shared a secure portal link with you</p>
+  </div>
+  <div style="padding:28px">
+    <p style="font-size:15px;color:#111827;margin:0 0 20px">Hi ${clientName},</p>
+    <p style="font-size:14px;color:#374151;line-height:1.6;margin:0 0 24px">
+      Use your client portal to view jobs, check updates, see site photos, and request new services.
+    </p>
+    <a href="${portalUrl}" style="display:block;background:#0265dc;color:white;text-decoration:none;text-align:center;padding:14px 24px;border-radius:8px;font-weight:700;font-size:15px;margin-bottom:16px">
+      Open Client Portal
+    </a>
+    <p style="font-size:12px;color:#9ca3af;line-height:1.6;margin:0">
+      If the button does not open, copy and paste this link into your browser:<br>${portalUrl}
+    </p>
+  </div>
+  <div style="padding:16px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center">
+    LinkCrew — Field Service Management
+  </div>
+</div>
+</body></html>`;
+
+  await resend.emails.send({
+    from: LINKCREW_FROM,
+    to: clientEmail,
+    subject: `Your client portal from ${tenantName || 'your contractor'}`,
+    html,
+  });
+}
+
 async function sendPaymentReceivedToOwner({ ownerEmail, clientName, jobName, amount, tenantName }) {
   const formattedAmount = Number(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   const html = `
@@ -543,4 +577,4 @@ async function sendAppointmentReminder({ clientName, clientEmail, title, startTi
   });
 }
 
-module.exports = { sendDailyDigest, sendSupplyAlert, sendBottleneckAlert, sendPhotoAlert, sendNote, sendInvoiceToClient, sendPaymentReceivedToOwner, sendCallTranscriptToOwner, sendWorkOrderToClient, sendIncomingSmsNotification, sendBusinessOnboardingEmail, sendAppointmentConfirmation, sendAppointmentReminder };
+module.exports = { sendDailyDigest, sendSupplyAlert, sendBottleneckAlert, sendPhotoAlert, sendNote, sendInvoiceToClient, sendClientPortalInvite, sendPaymentReceivedToOwner, sendCallTranscriptToOwner, sendWorkOrderToClient, sendIncomingSmsNotification, sendBusinessOnboardingEmail, sendAppointmentConfirmation, sendAppointmentReminder };
