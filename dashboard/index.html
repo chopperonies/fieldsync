@@ -917,55 +917,119 @@
         <div class="owner-card">
           <div class="owner-card-header">
             <div>
-              <div class="owner-card-title">Plans And Scope</div>
-              <div class="owner-card-headline">What the crew is supposed to execute</div>
-              <div class="owner-card-sub">A quick exploded view of the lead job’s plans, order of work, checklist, and client communication expectations.</div>
+              <div class="owner-card-title">Plans / Schematics / Special Notes</div>
+              <div class="owner-card-headline">Critical plans, measurements, diagrams, finish standards, or install instructions</div>
             </div>
           </div>
-          <div id="remote-control-plan-card"><div class="empty"><div class="e-icon">🧭</div>Selecting lead job...</div></div>
+          <div id="remote-control-plans-card"><div class="empty"><div class="e-icon">🧭</div>Selecting lead job...</div></div>
         </div>
 
         <div class="owner-card">
           <div class="owner-card-header">
             <div>
-              <div class="owner-card-title">Proof Of Execution</div>
-              <div class="owner-card-headline">Photo targets and field evidence</div>
-              <div class="owner-card-sub">Use this to confirm the job is actually being documented without opening the modal first.</div>
+              <div class="owner-card-title">Order Of Work / Execution Plan</div>
+              <div class="owner-card-headline">What should happen first, next, and last</div>
             </div>
           </div>
-          <div id="remote-control-proof-card"><div class="empty"><div class="e-icon">📸</div>Loading proof targets...</div></div>
+          <div id="remote-control-execution-card"><div class="empty"><div class="e-icon">🪜</div>Loading execution plan...</div></div>
+        </div>
+
+        <div class="owner-card">
+          <div class="owner-card-header">
+            <div>
+              <div class="owner-card-title">Owner Checklist</div>
+              <div class="owner-card-headline">What must be verified before the job is truly done</div>
+            </div>
+          </div>
+          <div id="remote-control-checklist-card"><div class="empty"><div class="e-icon">✅</div>Loading checklist...</div></div>
         </div>
       </div>
 
       <div class="owner-section-stack">
-        <div class="owner-signal-card">
-          <div class="owner-signal-label">Why This Matters</div>
-          <div class="owner-signal-title">The owner should only drive out for judgment, not verification.</div>
-          <div class="owner-signal-copy">Missing proof, unclear plans, or unconfirmed crews are the reasons jobs drift. This page is where those weak spots should surface first.</div>
-          <div class="owner-inline-list">
-            <div class="owner-inline-row"><span>Jobs in motion</span><strong id="rc-inline-active">—</strong></div>
-            <div class="owner-inline-row"><span>Crew currently on site</span><strong id="rc-inline-crew">—</strong></div>
-            <div class="owner-inline-row"><span>Open supply issues</span><strong id="rc-inline-supplies">—</strong></div>
-          </div>
-        </div>
-
         <div class="owner-card">
           <div class="owner-card-header">
             <div>
-              <div class="owner-card-title">Crew Readiness</div>
-              <div class="owner-card-headline">Lead, crew, and plan confirmation</div>
-              <div class="owner-card-sub">If a job is missing a lead, missing crew, or still unconfirmed, it should stand out here immediately.</div>
+              <div class="owner-card-title">Missing Items / Risk Watchlist</div>
+              <div class="owner-card-headline">Materials, measurements, and customer concerns that can still derail the job</div>
             </div>
           </div>
-          <div id="remote-control-crew-card"><div class="empty"><div class="e-icon">👷</div>Loading crew readiness...</div></div>
+          <div id="remote-control-watchlist-card"><div class="empty"><div class="e-icon">📦</div>Loading watchlist...</div></div>
         </div>
 
         <div class="owner-card">
           <div class="owner-card-header">
             <div>
-              <div class="owner-card-title">Blockers And Missing Items</div>
+              <div class="owner-card-title">Client Communication Plan</div>
+              <div class="owner-card-headline">What the crew should confirm and when they should update the client</div>
+            </div>
+          </div>
+          <div id="remote-control-client-comms-card"><div class="empty"><div class="e-icon">💬</div>Loading communication plan...</div></div>
+        </div>
+
+        <div class="owner-card">
+          <div class="owner-card-header">
+            <div>
+              <div class="owner-card-title">Proof And Execution Snapshot</div>
+              <div class="owner-card-headline">The one-glance field read on assignment, proof, and plan compliance</div>
+            </div>
+          </div>
+          <div id="remote-control-proof-card"><div class="empty"><div class="e-icon">📷</div>Loading proof snapshot...</div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+          <div class="owner-card">
+            <div class="owner-card-header">
+              <div>
+                <div class="owner-card-title">Expected Hours</div>
+                <div class="owner-card-headline">Planned duration</div>
+              </div>
+            </div>
+            <div id="remote-control-duration-card"><div class="empty"><div class="e-icon">⏱️</div>Loading duration...</div></div>
+          </div>
+          <div class="owner-card">
+            <div class="owner-card-header">
+              <div>
+                <div class="owner-card-title">Crew Confirmation</div>
+                <div class="owner-card-headline">Have they confirmed the plan?</div>
+              </div>
+            </div>
+            <div id="remote-control-confirmation-card"><div class="empty"><div class="e-icon">🤝</div>Loading confirmation...</div></div>
+          </div>
+          <div class="owner-card">
+            <div class="owner-card-header">
+              <div>
+                <div class="owner-card-title">Crew Readiness</div>
+                <div class="owner-card-headline">Lead, crew, and on-site status</div>
+              </div>
+            </div>
+            <div id="remote-control-crew-card"><div class="empty"><div class="e-icon">👷</div>Loading crew readiness...</div></div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+          <div class="owner-card">
+            <div class="owner-card-header"><div><div class="owner-card-title">Before Photos</div></div></div>
+            <div id="remote-control-before-photos-card"><div class="empty"><div class="e-icon">📸</div>Loading...</div></div>
+          </div>
+          <div class="owner-card">
+            <div class="owner-card-header"><div><div class="owner-card-title">Mid-Job Photos</div></div></div>
+            <div id="remote-control-mid-photos-card"><div class="empty"><div class="e-icon">📸</div>Loading...</div></div>
+          </div>
+          <div class="owner-card">
+            <div class="owner-card-header"><div><div class="owner-card-title">Completion Photos</div></div></div>
+            <div id="remote-control-completion-photos-card"><div class="empty"><div class="e-icon">📸</div>Loading...</div></div>
+          </div>
+          <div class="owner-card">
+            <div class="owner-card-header"><div><div class="owner-card-title">Cleanup Photos</div></div></div>
+            <div id="remote-control-cleanup-photos-card"><div class="empty"><div class="e-icon">📸</div>Loading...</div></div>
+          </div>
+        </div>
+
+        <div class="owner-card">
+          <div class="owner-card-header">
+            <div>
+              <div class="owner-card-title">Blockers</div>
               <div class="owner-card-headline">What can still blow up the day</div>
-              <div class="owner-card-sub">Materials, blockers, and watchlist items that can derail remote confidence even when the crew is technically assigned.</div>
             </div>
           </div>
           <div id="remote-control-blockers-card"><div class="empty"><div class="e-icon">⚠️</div>Loading blockers...</div></div>
@@ -3368,7 +3432,7 @@ function getJobRemoteControlSignals(job) {
 
 function renderRemoteControlBoard(jobs = []) {
   const scopedJobs = (jobs || [])
-    .filter(job => ['quoted', 'scheduled', 'in_progress', 'active', 'on_hold'].includes(String(job?.status || '').toLowerCase()))
+    .filter(job => ['scheduled', 'in_progress', 'active', 'on_hold'].includes(String(job?.status || '').toLowerCase()))
     .map(job => ({ job, signals: getJobRemoteControlSignals(job) }))
     .sort((a, b) => b.signals.riskCount - a.signals.riskCount || new Date(b.job.updated_at || b.job.created_at || 0) - new Date(a.job.updated_at || a.job.created_at || 0))
     .slice(0, 8);
@@ -3425,31 +3489,87 @@ function renderRemoteControlBoard(jobs = []) {
         </div>
         <span class="chip" style="background:${statusColors[leadJob.status]||'#f5f5f5'};color:${statusTextColors[leadJob.status]||'#737475'}">${String(leadJob.status || 'unknown').replace('_',' ')}</span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div style="padding:14px;border:1px solid #e8eef3;border-radius:12px;background:#f8fbfd">
-          <div style="font-size:11px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Plans And Order</div>
-          <div style="font-size:13px;color:#334155;line-height:1.7">${leadJob.plans_notes || 'No plans or schematics notes saved yet.'}</div>
-          <div style="margin-top:10px;font-size:12px;color:#475569;line-height:1.7"><strong style="color:#0f172a">Order of work:</strong> ${leadJob.execution_plan || 'No execution plan saved yet.'}</div>
-        </div>
-        <div style="padding:14px;border:1px solid #e8eef3;border-radius:12px;background:#f8fbfd">
-          <div style="font-size:11px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Checklist And Comms</div>
-          ${leadChecklist.length ? `<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">${leadChecklist.map((item, index) => `<div style="display:flex;gap:8px;align-items:flex-start;font-size:13px;color:#334155"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;background:#e2e8f0;color:#334155;font-size:11px;font-weight:700">${index + 1}</span><span>${item}</span></div>`).join('')}</div>` : '<div style="font-size:13px;color:#94a3b8;margin-bottom:10px">No checklist saved yet.</div>'}
-          <div style="font-size:12px;color:#475569;line-height:1.7"><strong style="color:#0f172a">Client comms:</strong> ${leadJob.client_communication_plan || 'No communication plan saved yet.'}</div>
-        </div>
+      <div style="font-size:13px;color:#334155;line-height:1.8;white-space:pre-wrap">${leadJob.plans_notes || 'No plans or schematics notes saved yet.'}</div>
+    `;
+
+  const executionHtml = !leadJob
+    ? '<div class="empty"><div class="e-icon">🪜</div>No lead job selected yet</div>'
+    : `<div style="font-size:13px;color:#334155;line-height:1.8;white-space:pre-wrap">${leadJob.execution_plan || 'No execution plan saved yet.'}</div>`;
+
+  const checklistHtml = !leadJob
+    ? '<div class="empty"><div class="e-icon">✅</div>No lead job selected yet</div>'
+    : leadChecklist.length
+      ? `<div style="display:flex;flex-direction:column;gap:10px">${leadChecklist.map((item, index) => `<div style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:#334155"><span style="display:inline-flex;align-items:center;justify-content:center;min-width:22px;width:22px;height:22px;border-radius:999px;background:#e2e8f0;color:#334155;font-size:11px;font-weight:700">${index + 1}</span><span style="line-height:1.7">${item}</span></div>`).join('')}</div>`
+      : '<div style="font-size:13px;color:#94a3b8">No checklist saved yet.</div>';
+
+  const watchlistHtml = !leadJob
+    ? '<div class="empty"><div class="e-icon">📦</div>No lead job selected yet</div>'
+    : `<div style="font-size:13px;color:#334155;line-height:1.8;white-space:pre-wrap">${leadJob.missing_items_watchlist || 'No missing items or risk watchlist saved yet.'}</div>`;
+
+  const clientCommsHtml = !leadJob
+    ? '<div class="empty"><div class="e-icon">💬</div>No lead job selected yet</div>'
+    : `<div style="font-size:13px;color:#334155;line-height:1.8;white-space:pre-wrap">${leadJob.client_communication_plan || 'No client communication plan saved yet.'}</div>`;
+
+  const durationHtml = !leadJob
+    ? '<div class="empty"><div class="e-icon">⏱️</div>No lead job selected yet</div>'
+    : `<div style="font-size:30px;font-weight:900;color:#0f172a">${leadJob.expected_duration_hours != null && leadJob.expected_duration_hours !== '' ? leadJob.expected_duration_hours : '—'}</div><div style="font-size:12px;color:#64748b;margin-top:6px">Expected hours</div>`;
+
+  const confirmationHtml = !leadJob
+    ? '<div class="empty"><div class="e-icon">🤝</div>No lead job selected yet</div>'
+    : `
+      <div style="padding:14px;border:1px solid ${leadJob.crew_plan_confirmed ? '#bbf7d0' : '#fdba74'};border-radius:12px;background:${leadJob.crew_plan_confirmed ? '#f0fdf4' : '#fff7ed'}">
+        <div style="font-size:14px;font-weight:800;color:${leadJob.crew_plan_confirmed ? '#166534' : '#c2410c'}">${leadJob.crew_plan_confirmed ? 'Confirmed' : 'Needs Confirm'}</div>
+        <div style="font-size:12px;color:#475569;line-height:1.7;margin-top:6px">Crew has ${leadJob.crew_plan_confirmed ? '' : 'not '}confirmed they understand the plan, order of work, and proof required.</div>
       </div>
     `;
 
   const proofHtml = !leadJob
     ? '<div class="empty"><div class="e-icon">📸</div>No proof targets to show yet</div>'
     : `
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">
-        <div style="padding:12px;border:1px solid #e8eef3;border-radius:12px;background:#f8fbfd"><div style="font-size:11px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:0.05em">Before</div><div style="font-size:22px;font-weight:900;color:#0f172a;margin-top:4px">${leadJob.required_before_photos ?? 0}</div></div>
-        <div style="padding:12px;border:1px solid #e8eef3;border-radius:12px;background:#f8fbfd"><div style="font-size:11px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:0.05em">Mid-Job</div><div style="font-size:22px;font-weight:900;color:#0f172a;margin-top:4px">${leadJob.required_mid_job_photos ?? 0}</div></div>
-        <div style="padding:12px;border:1px solid #e8eef3;border-radius:12px;background:#f8fbfd"><div style="font-size:11px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:0.05em">Completion</div><div style="font-size:22px;font-weight:900;color:#0f172a;margin-top:4px">${leadJob.required_completion_photos ?? 0}</div></div>
-        <div style="padding:12px;border:1px solid #e8eef3;border-radius:12px;background:#f8fbfd"><div style="font-size:11px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:0.05em">Cleanup</div><div style="font-size:22px;font-weight:900;color:#0f172a;margin-top:4px">${leadJob.required_cleanup_photos ?? 0}</div></div>
-        <div style="padding:12px;border:1px solid ${leadSignals?.missingProof ? '#fdba74' : '#bbf7d0'};border-radius:12px;background:${leadSignals?.missingProof ? '#fff7ed' : '#f0fdf4'}"><div style="font-size:11px;font-weight:800;color:${leadSignals?.missingProof ? '#c2410c' : '#166534'};text-transform:uppercase;letter-spacing:0.05em">Actual</div><div style="font-size:22px;font-weight:900;color:#0f172a;margin-top:4px">${leadSignals?.photoCount || 0}</div></div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px">
+        <div style="padding:14px;border:1px solid #e8eef3;border-radius:12px;background:#f8fbfd">
+          <div style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Lead Assigned</div>
+          <div style="font-size:14px;font-weight:800;color:${leadSignals?.missingLead ? '#b91c1c' : '#0f172a'}">${leadSignals?.missingLead ? 'Missing' : escapeHtml(leadJob.supervisor_name || 'Assigned')}</div>
+        </div>
+        <div style="padding:14px;border:1px solid #e8eef3;border-radius:12px;background:#f8fbfd">
+          <div style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Crew Assigned</div>
+          <div style="font-size:28px;font-weight:900;color:#0f172a">${Array.isArray(leadJob.assigned_crew) ? leadJob.assigned_crew.length : 0}</div>
+        </div>
+        <div style="padding:14px;border:1px solid #e8eef3;border-radius:12px;background:#f8fbfd">
+          <div style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Crew On Site</div>
+          <div style="font-size:28px;font-weight:900;color:#0f172a">${leadSignals?.onSiteCount || 0}</div>
+        </div>
+        <div style="padding:14px;border:1px solid ${leadJob.crew_plan_confirmed ? '#bbf7d0' : '#fdba74'};border-radius:12px;background:${leadJob.crew_plan_confirmed ? '#f0fdf4' : '#fff7ed'}">
+          <div style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Plan Confirmed</div>
+          <div style="font-size:14px;font-weight:800;color:${leadJob.crew_plan_confirmed ? '#166534' : '#c2410c'}">${leadJob.crew_plan_confirmed ? 'Confirmed' : 'Needs Confirm'}</div>
+        </div>
+        <div style="padding:14px;border:1px solid #e8eef3;border-radius:12px;background:#f8fbfd">
+          <div style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Checklist</div>
+          <div style="font-size:14px;font-weight:800;color:#0f172a">${leadChecklist.length} item${leadChecklist.length === 1 ? '' : 's'}</div>
+        </div>
+        <div style="padding:14px;border:1px solid ${leadSignals?.missingProof ? '#fdba74' : '#bbf7d0'};border-radius:12px;background:${leadSignals?.missingProof ? '#fff7ed' : '#f0fdf4'}">
+          <div style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Proof Photos</div>
+          <div style="font-size:14px;font-weight:800;color:${leadSignals?.missingProof ? '#c2410c' : '#166534'}">${leadSignals?.photoCount || 0} / ${leadSignals?.requiredPhotos || 0}</div>
+        </div>
       </div>
-      ${leadPhotos.length ? `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">${leadPhotos.map(photo => `<img src="${photo.photo_url}" onclick="window.open('${photo.photo_url}','_blank')" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:1px solid #e8e8e8;cursor:pointer">`).join('')}</div>` : '<div class="empty"><div class="e-icon">📷</div>No field photos uploaded yet for the lead job</div>'}
+      <div style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px">
+        <div style="padding:14px;border:1px solid #e8eef3;border-radius:12px;background:#f8fbfd">
+          <div style="font-size:11px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Owner Checklist</div>
+          ${leadChecklist.length ? `<div style="display:flex;flex-direction:column;gap:8px">${leadChecklist.map(item => `<div style="font-size:13px;color:#334155;line-height:1.7">• ${escapeHtml(item)}</div>`).join('')}</div>` : '<div style="font-size:13px;color:#94a3b8">No checklist saved yet.</div>'}
+        </div>
+        <div style="padding:14px;border:1px solid #e8eef3;border-radius:12px;background:#f8fbfd">
+          <div style="font-size:11px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Proof Targets</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#334155"><span>Before start</span><strong>${leadJob.required_before_photos ?? 0}</strong></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#334155"><span>Mid-job</span><strong>${leadJob.required_mid_job_photos ?? 0}</strong></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#334155"><span>Completion</span><strong>${leadJob.required_completion_photos ?? 0}</strong></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#334155"><span>Cleanup</span><strong>${leadJob.required_cleanup_photos ?? 0}</strong></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#334155"><span>Expected hours</span><strong>${leadJob.expected_duration_hours != null && leadJob.expected_duration_hours !== '' ? leadJob.expected_duration_hours : '—'}</strong></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#334155"><span>Actual photos</span><strong>${leadSignals?.photoCount || 0}</strong></div>
+          </div>
+        </div>
+      </div>
+      ${leadPhotos.length ? `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px">${leadPhotos.map(photo => `<img src="${photo.photo_url}" onclick="window.open('${photo.photo_url}','_blank')" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:1px solid #e8e8e8;cursor:pointer">`).join('')}</div>` : ''}
     `;
 
   const crewHtml = !crewRows.length
@@ -3484,11 +3604,37 @@ function renderRemoteControlBoard(jobs = []) {
       </div>
     `).join('');
 
+  const beforePhotosHtml = !leadJob
+    ? '<div class="empty"><div class="e-icon">📸</div>No lead job selected yet</div>'
+    : `<div style="font-size:30px;font-weight:900;color:#0f172a">${leadJob.required_before_photos ?? 0}</div><div style="font-size:12px;color:#64748b;margin-top:6px">Before-start proof required</div>`;
+
+  const midPhotosHtml = !leadJob
+    ? '<div class="empty"><div class="e-icon">📸</div>No lead job selected yet</div>'
+    : `<div style="font-size:30px;font-weight:900;color:#0f172a">${leadJob.required_mid_job_photos ?? 0}</div><div style="font-size:12px;color:#64748b;margin-top:6px">Mid-job proof required</div>`;
+
+  const completionPhotosHtml = !leadJob
+    ? '<div class="empty"><div class="e-icon">📸</div>No lead job selected yet</div>'
+    : `<div style="font-size:30px;font-weight:900;color:#0f172a">${leadJob.required_completion_photos ?? 0}</div><div style="font-size:12px;color:#64748b;margin-top:6px">Completion proof required</div>`;
+
+  const cleanupPhotosHtml = !leadJob
+    ? '<div class="empty"><div class="e-icon">📸</div>No lead job selected yet</div>'
+    : `<div style="font-size:30px;font-weight:900;color:#0f172a">${leadJob.required_cleanup_photos ?? 0}</div><div style="font-size:12px;color:#64748b;margin-top:6px">Cleanup proof required</div>`;
+
   const targets = {
     'remote-control-risk-list': riskHtml,
-    'remote-control-plan-card': planHtml,
+    'remote-control-plans-card': planHtml,
+    'remote-control-execution-card': executionHtml,
+    'remote-control-checklist-card': checklistHtml,
+    'remote-control-watchlist-card': watchlistHtml,
+    'remote-control-client-comms-card': clientCommsHtml,
+    'remote-control-duration-card': durationHtml,
+    'remote-control-confirmation-card': confirmationHtml,
     'remote-control-proof-card': proofHtml,
     'remote-control-crew-card': crewHtml,
+    'remote-control-before-photos-card': beforePhotosHtml,
+    'remote-control-mid-photos-card': midPhotosHtml,
+    'remote-control-completion-photos-card': completionPhotosHtml,
+    'remote-control-cleanup-photos-card': cleanupPhotosHtml,
     'remote-control-blockers-card': blockersHtml,
   };
   Object.entries(targets).forEach(([id, html]) => {
