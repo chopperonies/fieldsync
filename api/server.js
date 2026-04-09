@@ -2300,11 +2300,84 @@ async function notifyApptClient(appt, tenantId, type = 'confirmation') {
   }
 }
 
+async function notifyApptAssignedTeam(appt, tenantId) {
+  if (!appt?.job_id) return { push_sent: 0, sms_sent: 0, total_recipients: 0 };
+
+  const [{ data: job }, { data: assignments }, { data: tenant }] = await Promise.all([
+    supabaseAdmin.from('jobs')
+      .select('id, name, address')
+      .eq('id', appt.job_id)
+      .eq('tenant_id', tenantId)
+      .maybeSingle(),
+    supabaseAdmin.from('job_assignments')
+      .select('employee_id, employees(id, name, phone, push_token)')
+      .eq('job_id', appt.job_id)
+      .eq('tenant_id', tenantId),
+    supabaseAdmin.from('tenants')
+      .select('company_name, twilio_phone, twilio_account_sid, twilio_auth_token')
+      .eq('id', tenantId)
+      .single(),
+  ]);
+
+  if (!job) return { push_sent: 0, sms_sent: 0, total_recipients: 0 };
+
+  const recipients = (assignments || [])
+    .map(entry => entry.employees)
+    .filter(Boolean)
+    .filter((employee, index, arr) => arr.findIndex(other => other.id === employee.id) === index);
+
+  let push_sent = 0;
+  let sms_sent = 0;
+  const date = new Date(appt.start_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const time = new Date(appt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+  for (const employee of recipients) {
+    if (employee.push_token) {
+      try {
+        const pushRes = await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'Accept-encoding': 'gzip, deflate',
+          },
+          body: JSON.stringify({
+            to: employee.push_token,
+            sound: 'default',
+            title: 'New calendar event',
+            body: `"${appt.title}" is scheduled for ${date} at ${time}${job.name ? ` for ${job.name}` : ''}.`,
+            data: { type: 'appointment', appointment_id: appt.id, job_id: job.id },
+          }),
+        });
+        if (pushRes.ok) push_sent += 1;
+      } catch (e) {
+        console.error('[appt notify team] push error:', e.message);
+      }
+    }
+
+    if (employee.phone && tenant?.twilio_account_sid && tenant?.twilio_phone) {
+      try {
+        const twilioClient = twilio(tenant.twilio_account_sid, tenant.twilio_auth_token);
+        await twilioClient.messages.create({
+          to: employee.phone,
+          from: tenant.twilio_phone,
+          body: `${tenant.company_name || 'LinkCrew'} scheduled "${appt.title}" for ${date} at ${time}${job.name ? ` for ${job.name}` : ''}. Open the app for details.`,
+        });
+        sms_sent += 1;
+      } catch (e) {
+        console.error('[appt notify team] sms error:', e.message);
+      }
+    }
+  }
+
+  return { push_sent, sms_sent, total_recipients: recipients.length };
+}
+
 app.get('/api/appointments', auth, async (req, res) => {
   const { start, end } = req.query;
   let query = supabaseAdmin
     .from('appointments')
-    .select('*, clients(id, name, phone)')
+    .select('*, clients(id, name, phone), jobs(id, name)')
     .order('start_time');
   if (req.tenantId) query = query.eq('tenant_id', req.tenantId);
   if (start) query = query.gte('start_time', start);
@@ -2314,29 +2387,44 @@ app.get('/api/appointments', auth, async (req, res) => {
 });
 
 app.post('/api/appointments', auth, async (req, res) => {
-  const { title, start_time, end_time, client_id, notes, service_ids, send_confirmation } = req.body;
+  const { title, start_time, end_time, client_id, job_id, notes, service_ids, send_confirmation, notify_assigned_team } = req.body;
   if (!title || !start_time) return res.status(400).json({ error: 'Title and start time are required' });
+  if (job_id) {
+    const { data: job } = await supabaseAdmin.from('jobs').select('id').eq('id', job_id).eq('tenant_id', req.tenantId).maybeSingle();
+    if (!job) return res.status(400).json({ error: 'Selected job is invalid.' });
+  }
   const { data, error } = await supabaseAdmin.from('appointments')
-    .insert({ title, start_time, end_time: end_time || null, client_id: client_id || null, notes, service_ids: service_ids || [], tenant_id: req.tenantId })
-    .select('*, clients(id, name, email, phone)').single();
+    .insert({ title, start_time, end_time: end_time || null, client_id: client_id || null, job_id: job_id || null, notes, service_ids: service_ids || [], tenant_id: req.tenantId })
+    .select('*, clients(id, name, email, phone), jobs(id, name)').single();
   if (error) return res.status(400).json({ error: error.message });
   if (send_confirmation && data.clients) notifyApptClient(data, req.tenantId, 'confirmation').catch(() => {});
+  if (notify_assigned_team && data.job_id) notifyApptAssignedTeam(data, req.tenantId).catch(() => {});
   res.json(data);
 });
 
 app.patch('/api/appointments/:id', auth, async (req, res) => {
-  const { title, start_time, end_time, client_id, notes, service_ids, send_confirmation } = req.body;
+  const { title, start_time, end_time, client_id, job_id, notes, service_ids, send_confirmation, notify_assigned_team } = req.body;
   const updates = {};
   if (title !== undefined) updates.title = title;
   if (start_time !== undefined) updates.start_time = start_time;
   if (end_time !== undefined) updates.end_time = end_time || null;
   if (client_id !== undefined) updates.client_id = client_id || null;
+  if (job_id !== undefined) {
+    if (job_id) {
+      const { data: job } = await supabaseAdmin.from('jobs').select('id').eq('id', job_id).eq('tenant_id', req.tenantId).maybeSingle();
+      if (!job) return res.status(400).json({ error: 'Selected job is invalid.' });
+      updates.job_id = job_id;
+    } else {
+      updates.job_id = null;
+    }
+  }
   if (notes !== undefined) updates.notes = notes;
   if (service_ids !== undefined) updates.service_ids = service_ids;
   if (start_time !== undefined) updates.owner_reminded = false; // reset if time changed
-  const { data, error } = await supabaseAdmin.from('appointments').update(updates).eq('id', req.params.id).select('*, clients(id, name, email, phone)').single();
+  const { data, error } = await supabaseAdmin.from('appointments').update(updates).eq('id', req.params.id).select('*, clients(id, name, email, phone), jobs(id, name)').single();
   if (error) return res.status(400).json({ error: error.message });
   if (send_confirmation && data.clients) notifyApptClient(data, req.tenantId, 'confirmation').catch(() => {});
+  if (notify_assigned_team && data.job_id) notifyApptAssignedTeam(data, req.tenantId).catch(() => {});
   res.json(data);
 });
 

@@ -1632,14 +1632,27 @@
       </div>
     </div>
     <div class="form-group">
+      <label>Related Job</label>
+      <select id="appt-job" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 11px;font-size:13px;color:#17191c">
+        <option value="">No linked job</option>
+      </select>
+      <div style="margin-top:6px;font-size:12px;color:#64748b">Optional. Link this event to a current job if the assigned team should be notified.</div>
+    </div>
+    <div class="form-group">
       <label>Services</label>
       <div id="appt-services-checks" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"></div>
     </div>
     <div class="form-group"><label>Notes</label><textarea id="appt-notes" rows="3" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 11px;font-size:13px;color:#17191c;resize:vertical"></textarea></div>
     <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#17191c;cursor:pointer;margin-top:4px">
       <input type="checkbox" id="appt-notify" style="cursor:pointer">
-      Send confirmation to client (email/SMS)
+      Send client confirmation (external email/SMS)
     </label>
+    <div style="margin-top:6px;font-size:12px;color:#64748b">Use this only when the client should receive the appointment details. Client-facing notes may be visible to them in the message.</div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#17191c;cursor:pointer;margin-top:10px">
+      <input type="checkbox" id="appt-notify-team" style="cursor:pointer">
+      Notify assigned team for linked job (push/SMS)
+    </label>
+    <div style="margin-top:6px;font-size:12px;color:#64748b">Only applies when a related job is selected. Standalone calendar events like meetings or quote visits can remain private to the office.</div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
       <button id="appt-delete-btn" onclick="deleteAppt()" style="display:none;background:none;border:1px solid #dc2626;color:#dc2626;border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer">Delete</button>
       <div style="display:flex;gap:8px;margin-left:auto">
@@ -4643,7 +4656,7 @@ function getCalendarTimelineMarkup(dayAppts, { emptyCopy = 'No appointments sche
                 style="background:#eef5ff;border:1px solid #dbeafe;border-left:4px solid #0265dc;border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer">
                 <div style="font-size:11px;font-weight:700;color:#0265dc;text-transform:uppercase;letter-spacing:0.08em">${timeLabel}</div>
                 <div style="font-size:14px;font-weight:700;color:#17191c;margin-top:4px">${a.title}</div>
-                <div style="font-size:12px;color:#64748b;margin-top:4px">${a.clients ? a.clients.name : 'Internal appointment'}${a.clients?.phone ? ' · ' + a.clients.phone : ''}</div>
+                <div style="font-size:12px;color:#64748b;margin-top:4px">${a.clients ? a.clients.name : 'Internal appointment'}${a.clients?.phone ? ' · ' + a.clients.phone : ''}${a.jobs?.name ? ' · Job: ' + a.jobs.name : ''}</div>
                 ${a.notes ? `<div style="margin-top:8px;font-size:12px;color:#475569;line-height:1.5">${a.notes}</div>` : ''}
               </div>`;
           }).join('') : '<div style="height:12px"></div>'}
@@ -4663,7 +4676,7 @@ function getCalendarAgendaMarkup(dayAppts) {
           <div>
             <div style="font-size:11px;font-weight:700;color:#0265dc;text-transform:uppercase;letter-spacing:0.08em">${timeLabel}</div>
             <div style="font-size:15px;font-weight:700;color:#17191c;margin-top:4px">${a.title}</div>
-            <div style="font-size:12px;color:#737475;margin-top:4px">${a.clients ? a.clients.name : 'Internal appointment'}${a.clients?.phone ? ' · ' + a.clients.phone : ''}</div>
+            <div style="font-size:12px;color:#737475;margin-top:4px">${a.clients ? a.clients.name : 'Internal appointment'}${a.clients?.phone ? ' · ' + a.clients.phone : ''}${a.jobs?.name ? ' · Job: ' + a.jobs.name : ''}</div>
           </div>
           <div style="font-size:11px;color:#737475;font-weight:600">${(a.service_ids || []).length ? `${a.service_ids.length} service${a.service_ids.length === 1 ? '' : 's'}` : 'No services'}</div>
         </div>
@@ -4674,6 +4687,17 @@ function getCalendarAgendaMarkup(dayAppts) {
       No appointments are scheduled for this day. Use the button above to add one, or leave the space open for incoming jobs and travel flexibility.
     </div>
   `;
+}
+
+function buildAppointmentJobOptions(selectedJobId = '') {
+  const jobs = (allJobsData || [])
+    .filter(job => ['active', 'in_progress', 'scheduled'].includes(String(job.status || '').toLowerCase()))
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+  const options = ['<option value="">No linked job</option>'];
+  jobs.forEach(job => {
+    options.push(`<option value="${job.id}" ${job.id === selectedJobId ? 'selected' : ''}>${job.name}</option>`);
+  });
+  return options.join('');
 }
 
 function updateCalendarMetrics() {
@@ -5010,8 +5034,10 @@ function openApptModal(dateStr, apptId) {
 
   // Populate client dropdown
   const sel = document.getElementById('appt-client');
+  const jobSel = document.getElementById('appt-job');
   sel.innerHTML = '<option value="">No client</option>' +
     (allClientsData || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  if (jobSel) jobSel.innerHTML = buildAppointmentJobOptions();
 
   // Populate services checkboxes
   const checksEl = document.getElementById('appt-services-checks');
@@ -5030,8 +5056,10 @@ function openApptModal(dateStr, apptId) {
       document.getElementById('appt-start-time').value = localDate.toTimeString().slice(0,5);
       document.getElementById('appt-end-time').value = a.end_time ? new Date(a.end_time).toTimeString().slice(0,5) : '';
       document.getElementById('appt-client').value = a.client_id || '';
+      if (jobSel) jobSel.value = a.job_id || '';
       document.getElementById('appt-notes').value = a.notes || '';
       document.getElementById('appt-notify').checked = false;
+      document.getElementById('appt-notify-team').checked = false;
       (a.service_ids || []).forEach(sid => {
         const cb = checksEl.querySelector(`input[value="${sid}"]`);
         if (cb) cb.checked = true;
@@ -5043,8 +5071,10 @@ function openApptModal(dateStr, apptId) {
     document.getElementById('appt-start-time').value = '09:00';
     document.getElementById('appt-end-time').value = '10:00';
     document.getElementById('appt-client').value = '';
+    if (jobSel) jobSel.value = '';
     document.getElementById('appt-notes').value = '';
     document.getElementById('appt-notify').checked = false;
+    document.getElementById('appt-notify-team').checked = false;
   }
 
   modal.classList.add('visible');
@@ -5115,6 +5145,7 @@ async function saveAppt() {
   const startTime = document.getElementById('appt-start-time').value;
   const endTime = document.getElementById('appt-end-time').value;
   const clientId = document.getElementById('appt-client').value;
+  const jobId = document.getElementById('appt-job').value;
   const notes = document.getElementById('appt-notes').value.trim();
   const serviceIds = [...document.querySelectorAll('#appt-services-checks input:checked')].map(cb => cb.value);
 
@@ -5124,7 +5155,11 @@ async function saveAppt() {
   const end_time = endTime ? new Date(`${date}T${endTime}`).toISOString() : null;
 
   const send_confirmation = document.getElementById('appt-notify').checked;
-  const payload = { title, start_time, end_time, client_id: clientId || null, notes, service_ids: serviceIds, send_confirmation };
+  const notify_assigned_team = document.getElementById('appt-notify-team').checked;
+  if (notify_assigned_team && !jobId) {
+    return alert('Select a related job before notifying the assigned team.');
+  }
+  const payload = { title, start_time, end_time, client_id: clientId || null, job_id: jobId || null, notes, service_ids: serviceIds, send_confirmation, notify_assigned_team };
   const btn = document.getElementById('appt-save-btn');
   btn.disabled = true;
 
