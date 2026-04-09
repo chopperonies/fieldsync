@@ -794,7 +794,10 @@
 
   <nav class="sidebar-nav">
     <div class="sidebar-section-label">Workspace</div>
-    <div class="nav-item active" id="mtab-jobs" onclick="switchMainTab('jobs')">
+    <div class="nav-item active" id="mtab-remote-control" onclick="switchMainTab('remote-control')">
+      <i data-lucide="radar"></i><span>Remote Control</span>
+    </div>
+    <div class="nav-item" id="mtab-jobs" onclick="switchMainTab('jobs')">
       <i data-lucide="briefcase"></i><span>Jobs</span>
     </div>
     <div class="nav-item" id="mtab-team" onclick="switchMainTab('team')">
@@ -882,6 +885,75 @@
   </div>
 </div>
 
+<!-- Remote Control view -->
+<div id="remote-control-view">
+<div class="owner-page">
+  <div class="owner-page-shell">
+    <div class="owner-page-header">
+      <div class="owner-page-copy">
+        <div class="owner-page-eyebrow">Remote Control</div>
+        <div class="owner-page-title">Run the jobsite without the windshield time.</div>
+        <div class="owner-page-subtitle">This is the owner command center for proof, execution, crew readiness, and risk. If something here looks weak, that is the job most likely to pull you back to the site.</div>
+      </div>
+      <div class="owner-page-actions">
+        <button class="owner-btn" onclick="switchMainTab('jobs')">Open Jobs</button>
+        <button class="owner-btn primary" onclick="openAddJob()">+ Add Job</button>
+      </div>
+    </div>
+
+    <div class="owner-ops-layout">
+      <div class="owner-section-stack">
+        <div class="owner-card">
+          <div class="owner-card-header">
+            <div>
+              <div class="owner-card-title">Remote Control</div>
+              <div class="owner-card-headline">Site command center</div>
+              <div class="owner-card-sub">See which jobs are safe to manage remotely and which ones are still too loose on proof, crew readiness, or plan clarity.</div>
+            </div>
+          </div>
+          <div id="remote-control-list"><div class="empty"><div class="e-icon">🛰️</div>Loading remote control signals...</div></div>
+        </div>
+      </div>
+
+      <div class="owner-section-stack">
+        <div class="owner-signal-card">
+          <div class="owner-signal-label">Why This Matters</div>
+          <div class="owner-signal-title">The owner should only drive out for judgment, not verification.</div>
+          <div class="owner-signal-copy">Missing proof, unclear plans, or unconfirmed crews are the reasons jobs drift. This page is where those weak spots should surface first.</div>
+          <div class="owner-inline-list">
+            <div class="owner-inline-row"><span>Jobs in motion</span><strong id="rc-inline-active">—</strong></div>
+            <div class="owner-inline-row"><span>Crew currently on site</span><strong id="rc-inline-crew">—</strong></div>
+            <div class="owner-inline-row"><span>Open supply issues</span><strong id="rc-inline-supplies">—</strong></div>
+          </div>
+        </div>
+
+        <div class="owner-card">
+          <div class="owner-card-header">
+            <div>
+              <div class="owner-card-title">Client Requests</div>
+              <div class="owner-card-headline">New work entering the system</div>
+              <div class="owner-card-sub">Fresh requests often need the clearest plan and proof expectations from the start.</div>
+            </div>
+          </div>
+          <div id="rc-client-requests-list"><div class="empty"><div class="e-icon">✉️</div>Loading requests...</div></div>
+        </div>
+
+        <div class="owner-card">
+          <div class="owner-card-header">
+            <div>
+              <div class="owner-card-title">Recent Outcomes</div>
+              <div class="owner-card-headline">Completed and paid jobs</div>
+              <div class="owner-card-sub">Keep recent finished work visible for callbacks, warranty questions, and proof review.</div>
+            </div>
+          </div>
+          <div id="rc-recent-outcomes-list"><div class="empty"><div class="e-icon">✅</div>Loading recent outcomes...</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div><!-- end remote-control-view -->
+
 <!-- Jobs view -->
 <div id="jobs-view">
 
@@ -942,17 +1014,6 @@
 
     <div class="owner-ops-layout">
       <div class="owner-section-stack">
-        <div class="owner-card">
-          <div class="owner-card-header">
-            <div>
-              <div class="owner-card-title">Remote Control</div>
-              <div class="owner-card-headline">Site command center</div>
-              <div class="owner-card-sub">This is the owner-facing proof board: what is assigned, what is on site, what proof is missing, and which jobs are still risky enough to justify a drive.</div>
-            </div>
-          </div>
-          <div id="jobs-remote-control-list"><div class="empty"><div class="e-icon">🛰️</div>Loading remote control signals...</div></div>
-        </div>
-
         <div class="owner-card">
           <div class="owner-card-header">
             <div>
@@ -2458,7 +2519,7 @@ function updateSignedInAccountUI() {
 }
 
 function getAccessibleTabs() {
-  const tabs = ['jobs', 'team', 'clients', 'calendar', 'timesheets'];
+  const tabs = ['remote-control', 'jobs', 'team', 'clients', 'calendar', 'timesheets'];
   if (canViewFinancials()) {
     tabs.push('agreements', 'reports');
   }
@@ -2473,7 +2534,7 @@ function getAccessibleTabs() {
 
 function applyCapabilityUI() {
   const accessibleTabs = new Set(getAccessibleTabs());
-  ['jobs','team','clients','reports','agreements','calendar','timesheets','settings','ideas'].forEach(tab => {
+  ['remote-control','jobs','team','clients','reports','agreements','calendar','timesheets','settings','ideas'].forEach(tab => {
     const tabEl = document.getElementById(`mtab-${tab}`);
     if (tabEl) tabEl.style.display = accessibleTabs.has(tab) ? '' : 'none';
   });
@@ -3029,7 +3090,7 @@ function writeDashboardState(patch) {
 
 function getTabFromLocationHash() {
   const raw = window.location.hash.replace(/^#/, '').trim();
-  const allowed = new Set(['jobs','team','clients','reports','agreements','calendar','timesheets','settings','ideas']);
+  const allowed = new Set(['remote-control','jobs','team','clients','reports','agreements','calendar','timesheets','settings','ideas']);
   return allowed.has(raw) ? raw : null;
 }
 
@@ -3043,8 +3104,8 @@ async function init() {
   if (state.calendarWeekStart) calWeekStart = new Date(state.calendarWeekStart);
   if (state.calendarSelectedDate) calSelectedDate = state.calendarSelectedDate;
   const accessibleTabs = getAccessibleTabs();
-  const requestedTab = getTabFromLocationHash() || state.mainTab || 'jobs';
-  const restoredTab = accessibleTabs.includes(requestedTab) ? requestedTab : (accessibleTabs[0] || 'jobs');
+  const requestedTab = getTabFromLocationHash() || state.mainTab || 'remote-control';
+  const restoredTab = accessibleTabs.includes(requestedTab) ? requestedTab : (accessibleTabs[0] || 'remote-control');
   switchMainTab(restoredTab);
   if (restoredTab === 'clients') {
     const requestedClientsSubtab = state.clientsSubtab || 'all';
@@ -3241,19 +3302,14 @@ function isPortalRequestJob(job) {
 }
 
 function renderClientRequests(jobs = []) {
-  const list = document.getElementById('client-requests-list');
-  if (!list) return;
   const requests = (jobs || [])
     .filter(isPortalRequestJob)
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
     .slice(0, 8);
 
-  if (!requests.length) {
-    list.innerHTML = '<div class="empty"><div class="e-icon">✅</div>No new client requests waiting right now</div>';
-    return;
-  }
-
-  list.innerHTML = requests.map(job => `
+  const html = !requests.length
+    ? '<div class="empty"><div class="e-icon">✅</div>No new client requests waiting right now</div>'
+    : requests.map(job => `
     <div class="supply-item" style="cursor:pointer" onclick="openDetail('${job.id}','${String(job.name || '').replace(/'/g,"\\'")}')">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
         <div style="min-width:0">
@@ -3265,6 +3321,10 @@ function renderClientRequests(jobs = []) {
       </div>
     </div>
   `).join('');
+  ['client-requests-list', 'rc-client-requests-list'].forEach((id) => {
+    const list = document.getElementById(id);
+    if (list) list.innerHTML = html;
+  });
 }
 
 function getJobRemoteControlSignals(job) {
@@ -3285,20 +3345,15 @@ function getJobRemoteControlSignals(job) {
 }
 
 function renderRemoteControlBoard(jobs = []) {
-  const list = document.getElementById('jobs-remote-control-list');
-  if (!list) return;
   const scopedJobs = (jobs || [])
     .filter(job => ['quoted', 'scheduled', 'in_progress', 'active', 'on_hold'].includes(String(job?.status || '').toLowerCase()))
     .map(job => ({ job, signals: getJobRemoteControlSignals(job) }))
     .sort((a, b) => b.signals.riskCount - a.signals.riskCount || new Date(b.job.updated_at || b.job.created_at || 0) - new Date(a.job.updated_at || a.job.created_at || 0))
     .slice(0, 6);
 
-  if (!scopedJobs.length) {
-    list.innerHTML = '<div class="empty"><div class="e-icon">🛰️</div>No jobs need remote oversight right now</div>';
-    return;
-  }
-
-  list.innerHTML = scopedJobs.map(({ job, signals }) => `
+  const html = !scopedJobs.length
+    ? '<div class="empty"><div class="e-icon">🛰️</div>No jobs need remote oversight right now</div>'
+    : scopedJobs.map(({ job, signals }) => `
     <div class="supply-item" style="cursor:pointer" onclick="openDetail('${job.id}','${String(job.name || '').replace(/'/g,"\\'")}')">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
         <div style="min-width:0;flex:1">
@@ -3323,6 +3378,10 @@ function renderRemoteControlBoard(jobs = []) {
       </div>
     </div>
   `).join('');
+  ['remote-control-list'].forEach((id) => {
+    const list = document.getElementById(id);
+    if (list) list.innerHTML = html;
+  });
 }
 
 function renderJobsBoard(jobs = []) {
@@ -3396,8 +3455,6 @@ function renderJobsBoard(jobs = []) {
 
 function renderRecentOutcomes(jobs = []) {
   updateRecentOutcomeRangeUI();
-  const list = document.getElementById('recent-outcomes-list');
-  if (!list) return;
   const now = Date.now();
   const outcomes = (jobs || [])
     .filter(job => ['complete', 'invoiced'].includes(String(job?.status || '').toLowerCase()) || String(job?.payment_status || '').toLowerCase() === 'paid')
@@ -3409,12 +3466,9 @@ function renderRecentOutcomes(jobs = []) {
     .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))
     .slice(0, 8);
 
-  if (!outcomes.length) {
-    list.innerHTML = '<div class="empty"><div class="e-icon">✅</div>No completed or paid jobs in this range</div>';
-    return;
-  }
-
-  list.innerHTML = outcomes.map(job => `
+  const html = !outcomes.length
+    ? '<div class="empty"><div class="e-icon">✅</div>No completed or paid jobs in this range</div>'
+    : outcomes.map(job => `
     <div class="supply-item" style="cursor:pointer" onclick="openDetail('${job.id}','${String(job.name || '').replace(/'/g,"\\'")}')">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
         <div style="min-width:0">
@@ -3429,6 +3483,10 @@ function renderRecentOutcomes(jobs = []) {
       </div>
     </div>
   `).join('');
+  ['recent-outcomes-list', 'rc-recent-outcomes-list'].forEach((id) => {
+    const list = document.getElementById(id);
+    if (list) list.innerHTML = html;
+  });
 }
 
 async function loadDashboard() {
@@ -3500,6 +3558,9 @@ async function loadDashboard() {
   setText('jobs-crew-count', totalCrew);
   setText('jobs-supplies-count', totalSupplies);
   setText('jobs-bottlenecks-count', totalBottlenecks);
+  setText('rc-inline-active', active.length);
+  setText('rc-inline-crew', totalCrew);
+  setText('rc-inline-supplies', totalSupplies);
   updateJobsAttention(active.length, totalCrew, totalSupplies, totalBottlenecks, requestCount);
 }
 
@@ -4921,13 +4982,13 @@ function closeOverlay(e) {
 function switchMainTab(tab) {
   const accessibleTabs = getAccessibleTabs();
   if (!accessibleTabs.includes(tab)) {
-    tab = accessibleTabs[0] || 'jobs';
+    tab = accessibleTabs[0] || 'remote-control';
   }
-  const scrollableViews = ['team','settings','timesheets','calendar','reports','ideas'];
+  const scrollableViews = ['team','settings','timesheets','calendar','reports','ideas','remote-control'];
   const contentArea = document.querySelector('.content-area');
   writeDashboardState({ mainTab: tab });
   history.replaceState(null, '', `#${tab}`);
-  ['jobs','team','clients','reports','agreements','calendar','timesheets','settings','ideas'].forEach(t => {
+  ['remote-control','jobs','team','clients','reports','agreements','calendar','timesheets','settings','ideas'].forEach(t => {
     const view = document.getElementById(`${t}-view`);
     const tabEl = document.getElementById(`mtab-${t}`);
     if (view) view.style.display = t === tab ? 'block' : 'none';
@@ -4935,11 +4996,11 @@ function switchMainTab(tab) {
   });
   // Let full-height views (crm, ag, jobs) control their own overflow
   if (contentArea) {
-    contentArea.style.overflowY = ['jobs','clients','agreements'].includes(tab) ? 'hidden' : 'auto';
+    contentArea.style.overflowY = ['remote-control','jobs','clients','agreements'].includes(tab) ? 'hidden' : 'auto';
   }
-  // Stats bar only relevant on jobs view
+  // Stats bar relevant on Remote Control and Jobs
   const statsEl = document.querySelector('.stats');
-  if (statsEl) statsEl.style.display = tab === 'jobs' ? 'flex' : 'none';
+  if (statsEl) statsEl.style.display = ['remote-control','jobs'].includes(tab) ? 'flex' : 'none';
   if (tab === 'team') loadTeamInline();
   if (tab === 'clients' && !allClientsData.length) loadClients();
   if (tab === 'reports' && canViewFinancials()) loadReports(30);
