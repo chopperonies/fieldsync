@@ -908,6 +908,10 @@
         <div class="owner-page-subtitle">This becomes the owner operating layer for LinkCrew: active work, open requests, fresh site photos, and the jobs that need attention next.</div>
       </div>
       <div class="owner-page-actions">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button class="owner-mini-btn" id="jobs-mode-active-btn" onclick="setJobsViewMode('active')">Active Jobs</button>
+          <button class="owner-mini-btn" id="jobs-mode-history-btn" onclick="setJobsViewMode('history')">Job History</button>
+        </div>
         <button class="owner-btn" onclick="switchMainTab('calendar')">Open Calendar</button>
         <button class="owner-btn primary" onclick="openAddJob()">+ Add Job</button>
       </div>
@@ -942,8 +946,8 @@
           <div class="owner-card-header">
             <div>
               <div class="owner-card-title">Operations Board</div>
-              <div class="owner-card-headline">Active jobs</div>
-              <div class="owner-card-sub">Each card should answer the owner’s next question fast: status, crew presence, and whether materials are holding up the work.</div>
+              <div class="owner-card-headline" id="jobs-board-headline">Active jobs</div>
+              <div class="owner-card-sub" id="jobs-board-copy">Each card should answer the owner’s next question fast: status, crew presence, and whether materials are holding up the work.</div>
             </div>
             <div class="owner-card-actions">
               <button class="owner-mini-btn" onclick="showOverlay('jobs')">Quick View</button>
@@ -992,6 +996,22 @@
             </div>
           </div>
           <div id="client-requests-list"><div class="empty"><div class="e-icon">✉️</div>Loading requests...</div></div>
+        </div>
+
+        <div class="owner-card">
+          <div class="owner-card-header">
+            <div>
+              <div class="owner-card-title">Recent Outcomes</div>
+              <div class="owner-card-headline">Completed and paid jobs</div>
+              <div class="owner-card-sub">Keep recent finished work visible so warranty questions, callbacks, and payment follow-up never require digging through active operations.</div>
+            </div>
+            <div class="owner-card-actions">
+              <button class="owner-mini-btn" id="jobs-outcome-filter-7-btn" onclick="setRecentOutcomeRange(7)">7 Days</button>
+              <button class="owner-mini-btn" id="jobs-outcome-filter-30-btn" onclick="setRecentOutcomeRange(30)">30 Days</button>
+              <button class="owner-mini-btn" id="jobs-outcome-filter-all-btn" onclick="setRecentOutcomeRange(0)">All</button>
+            </div>
+          </div>
+          <div id="recent-outcomes-list"><div class="empty"><div class="e-icon">✅</div>Loading recent outcomes...</div></div>
         </div>
       </div>
     </div>
@@ -2969,6 +2989,8 @@ async function bootApp() {
 let selectedJobId = null;
 let allJobsData = [], allAssignmentsData = [], allSuppliesData = [], allUpdatesData = [];
 let ownerTwilioConfigured = false;
+let jobsViewMode = 'active';
+let recentOutcomeRangeDays = 7;
 const DASHBOARD_STATE_KEY = 'lc_owner_dashboard_state_v1';
 
 const updateIcons = {
@@ -3003,8 +3025,10 @@ function getTabFromLocationHash() {
 async function init() {
   const { supabaseUrl, supabaseKey } = await (await fetch('/api/config')).json();
   if (!supabaseClient) supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-  await Promise.all([loadDashboard(), loadSupplies(), loadPhotos(), loadOnboardingBanner(), loadClients(), loadAllEmployees(), loadNotificationCapabilities()]);
   const state = readDashboardState();
+  jobsViewMode = state.jobsViewMode === 'history' ? 'history' : 'active';
+  recentOutcomeRangeDays = Number.isFinite(state.recentOutcomeRangeDays) ? Number(state.recentOutcomeRangeDays) : 7;
+  await Promise.all([loadDashboard(), loadSupplies(), loadPhotos(), loadOnboardingBanner(), loadClients(), loadAllEmployees(), loadNotificationCapabilities()]);
   if (state.calendarWeekStart) calWeekStart = new Date(state.calendarWeekStart);
   if (state.calendarSelectedDate) calSelectedDate = state.calendarSelectedDate;
   const accessibleTabs = getAccessibleTabs();
@@ -3151,6 +3175,55 @@ function updateJobsAttention(activeCount, crewCount, supplyCount, bottleneckCoun
   setText('jobs-attention-copy', 'Operations are moving cleanly. Use this board to monitor fresh photos, crew presence, and the next job that needs office input.');
 }
 
+function isHistoricalJob(job) {
+  return !['active', 'in_progress', 'scheduled'].includes(String(job?.status || '').toLowerCase());
+}
+
+function updateJobsViewModeUI() {
+  const activeBtn = document.getElementById('jobs-mode-active-btn');
+  const historyBtn = document.getElementById('jobs-mode-history-btn');
+  const activeSelected = jobsViewMode === 'active';
+  if (activeBtn) {
+    activeBtn.style.background = activeSelected ? '#0265dc' : '#fff';
+    activeBtn.style.color = activeSelected ? '#fff' : '#0f172a';
+    activeBtn.style.borderColor = activeSelected ? '#0265dc' : '#dbe4f0';
+  }
+  if (historyBtn) {
+    historyBtn.style.background = !activeSelected ? '#0265dc' : '#fff';
+    historyBtn.style.color = !activeSelected ? '#fff' : '#0f172a';
+    historyBtn.style.borderColor = !activeSelected ? '#0265dc' : '#dbe4f0';
+  }
+  setText('jobs-board-headline', activeSelected ? 'Active jobs' : 'Job history');
+  setText('jobs-board-copy', activeSelected
+    ? 'Each card should answer the owner’s next question fast: status, crew presence, and whether materials are holding up the work.'
+    : 'Review quoted, completed, invoiced, paid, and on-hold work without losing the current-day operations board.');
+}
+
+function setJobsViewMode(mode) {
+  jobsViewMode = mode === 'history' ? 'history' : 'active';
+  writeDashboardState({ jobsViewMode });
+  updateJobsViewModeUI();
+  renderJobsBoard(allJobsData || []);
+}
+
+function updateRecentOutcomeRangeUI() {
+  [7, 30, 0].forEach((days) => {
+    const btn = document.getElementById(`jobs-outcome-filter-${days || 'all'}-btn`);
+    if (!btn) return;
+    const selected = recentOutcomeRangeDays === days;
+    btn.style.background = selected ? '#0265dc' : '#fff';
+    btn.style.color = selected ? '#fff' : '#0f172a';
+    btn.style.borderColor = selected ? '#0265dc' : '#dbe4f0';
+  });
+}
+
+function setRecentOutcomeRange(days) {
+  recentOutcomeRangeDays = Number(days) || 0;
+  writeDashboardState({ recentOutcomeRangeDays });
+  updateRecentOutcomeRangeUI();
+  renderRecentOutcomes(allJobsData || []);
+}
+
 function isPortalRequestJob(job) {
   return String(job?.status || '').toLowerCase() === 'quoted'
     && String(job?.name || '').startsWith('Request – ');
@@ -3183,20 +3256,127 @@ function renderClientRequests(jobs = []) {
   `).join('');
 }
 
+function renderJobsBoard(jobs = []) {
+  updateJobsViewModeUI();
+  const list = document.getElementById('jobs-list');
+  if (!list) return;
+
+  if (!jobs.length) {
+    list.innerHTML = '<div class="empty"><div class="e-icon">📋</div>No jobs yet.<br><span style="font-size:13px;color:#0265dc;cursor:pointer;font-weight:600" onclick="openAddJob()">+ Add your first job</span></div>';
+    return;
+  }
+
+  if (jobsViewMode === 'history') {
+    const historyJobs = jobs
+      .filter(isHistoricalJob)
+      .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
+    if (!historyJobs.length) {
+      list.innerHTML = '<div class="empty"><div class="e-icon">🗂️</div>No historical jobs yet.<br><span style="font-size:13px;color:#64748b">Completed, invoiced, paid, and quoted work will appear here.</span></div>';
+      return;
+    }
+    list.innerHTML = historyJobs.map(job => {
+      const status = getJobStatusChip(job.status);
+      const updated = new Date(job.updated_at || job.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const paymentBadge = job.invoice_amount > 0
+        ? `<span class="chip" style="background:${job.payment_status === 'paid' ? '#f0fdf4' : '#fefce8'};color:${job.payment_status === 'paid' ? '#166534' : '#92400e'}">${job.payment_status === 'paid' ? 'Paid' : 'Unpaid'}</span>`
+        : '';
+      return `
+        <div class="job-card ${selectedJobId === job.id ? 'selected' : ''}" onclick="openDetail('${job.id}','${String(job.name || '').replace(/'/g,"\\'")}')">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px">
+            <div style="min-width:0">
+              <div class="job-name">${job.name}</div>
+              <div class="job-address">📍 ${job.address || 'No address'}</div>
+            </div>
+            <span class="chip ${status.cls}">${status.label}</span>
+          </div>
+          <div class="job-meta" style="margin-bottom:8px">
+            ${paymentBadge}
+            <span class="chip chip-blue">${job.invoice_amount > 0 ? `$${parseFloat(job.invoice_amount).toFixed(2)}` : 'No invoice'}</span>
+          </div>
+          <div style="font-size:12px;color:#64748b">Last updated ${updated}</div>
+        </div>`;
+    }).join('');
+    return;
+  }
+
+  const activeJobs = jobs.filter(j => ['active','in_progress','scheduled'].includes(j.status));
+  if (!activeJobs.length) {
+    list.innerHTML = '<div class="empty"><div class="e-icon">✅</div>No active jobs right now.<br><span style="font-size:13px;color:#0265dc;cursor:pointer;font-weight:600" onclick="openAddJob()">+ Add a new job</span></div>';
+    return;
+  }
+
+  list.innerHTML = activeJobs.map(job => {
+    const status = getJobStatusChip(job.status);
+    return `
+      <div class="job-card ${selectedJobId === job.id ? 'selected' : ''}" onclick="openDetail('${job.id}','${String(job.name || '').replace(/'/g,"\\'")}')">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px">
+          <div style="min-width:0">
+            <div class="job-name">${job.name}</div>
+            <div class="job-address">📍 ${job.address || 'No address'}</div>
+          </div>
+          <span class="chip ${status.cls}">${status.label}</span>
+        </div>
+        <div class="job-meta">
+          <span class="chip chip-blue" id="crew-${job.id}">👷 ...</span>
+          <span class="chip chip-red" id="supply-${job.id}">📦 ...</span>
+          <span class="chip chip-yellow" id="bottleneck-${job.id}">⚠ ...</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderRecentOutcomes(jobs = []) {
+  updateRecentOutcomeRangeUI();
+  const list = document.getElementById('recent-outcomes-list');
+  if (!list) return;
+  const now = Date.now();
+  const outcomes = (jobs || [])
+    .filter(job => ['complete', 'invoiced'].includes(String(job?.status || '').toLowerCase()) || String(job?.payment_status || '').toLowerCase() === 'paid')
+    .filter(job => {
+      if (!recentOutcomeRangeDays) return true;
+      const ts = new Date(job.updated_at || job.created_at || 0).getTime();
+      return Number.isFinite(ts) && (now - ts) <= recentOutcomeRangeDays * 86400000;
+    })
+    .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))
+    .slice(0, 8);
+
+  if (!outcomes.length) {
+    list.innerHTML = '<div class="empty"><div class="e-icon">✅</div>No completed or paid jobs in this range</div>';
+    return;
+  }
+
+  list.innerHTML = outcomes.map(job => `
+    <div class="supply-item" style="cursor:pointer" onclick="openDetail('${job.id}','${String(job.name || '').replace(/'/g,"\\'")}')">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="min-width:0">
+          <div style="font-size:13px;font-weight:700;color:#0f172a">${job.name}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:4px">${job.address || 'No address provided'}</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:6px">${new Date(job.updated_at || job.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+          <span class="chip" style="background:${statusColors[job.status]||'#f5f5f5'};color:${statusTextColors[job.status]||'#737475'}">${String(job.status || 'unknown').replace('_',' ')}</span>
+          ${job.invoice_amount > 0 ? `<span class="chip" style="background:${job.payment_status === 'paid' ? '#f0fdf4' : '#fefce8'};color:${job.payment_status === 'paid' ? '#166534' : '#92400e'}">${job.payment_status === 'paid' ? 'Paid' : 'Unpaid'}</span>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
 async function loadDashboard() {
   const res = await authFetch('/api/jobs');
   const jobs = await res.json();
   allJobsData = jobs;
+  updateJobsViewModeUI();
+  updateRecentOutcomeRangeUI();
   renderClientRequests(jobs);
+  renderRecentOutcomes(jobs);
   const requestCount = jobs.filter(isPortalRequestJob).length;
 
   const active = jobs.filter(j => ['active','in_progress','scheduled'].includes(j.status));
   setText('stat-jobs', active.length);
   setText('jobs-active-count', active.length);
 
-  const list = document.getElementById('jobs-list');
   if (!jobs.length) {
-    list.innerHTML = '<div class="empty"><div class="e-icon">📋</div>No jobs yet.<br><span style="font-size:13px;color:#0265dc;cursor:pointer;font-weight:600" onclick="openAddJob()">+ Add your first job</span></div>';
     setText('stat-crew', 0);
     setText('stat-supplies', 0);
     setText('stat-bottlenecks', 0);
@@ -3204,31 +3384,10 @@ async function loadDashboard() {
     setText('jobs-supplies-count', 0);
     setText('jobs-bottlenecks-count', 0);
     updateJobsAttention(0, 0, 0, 0, 0);
+    renderJobsBoard(jobs);
     return;
   }
-
-  if (!active.length) {
-    list.innerHTML = '<div class="empty"><div class="e-icon">✅</div>No active jobs right now.<br><span style="font-size:13px;color:#0265dc;cursor:pointer;font-weight:600" onclick="openAddJob()">+ Add a new job</span></div>';
-  } else {
-    list.innerHTML = active.map(job => {
-      const status = getJobStatusChip(job.status);
-      return `
-    <div class="job-card ${selectedJobId === job.id ? 'selected' : ''}" onclick="openDetail('${job.id}','${job.name.replace(/'/g,"\\'")}')">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px">
-        <div style="min-width:0">
-          <div class="job-name">${job.name}</div>
-          <div class="job-address">📍 ${job.address || 'No address'}</div>
-        </div>
-        <span class="chip ${status.cls}">${status.label}</span>
-      </div>
-      <div class="job-meta">
-        <span class="chip chip-blue" id="crew-${job.id}">👷 ...</span>
-        <span class="chip chip-red" id="supply-${job.id}">📦 ...</span>
-        <span class="chip chip-yellow" id="bottleneck-${job.id}">⚠ ...</span>
-      </div>
-    </div>`;
-    }).join('');
-  }
+  renderJobsBoard(jobs);
 
   allAssignmentsData = []; allSuppliesData = []; allUpdatesData = [];
   let totalCrew = 0, totalSupplies = 0, totalBottlenecks = 0;
@@ -3688,6 +3847,11 @@ async function sendInvoice(jobId) {
   const res = await authFetch(`/api/jobs/${jobId}/invoice`, { method: 'POST', body: JSON.stringify({ amount }) });
   const json = await res.json();
   if (!res.ok) return alert('Error: ' + (json.error || 'Failed to save invoice'));
+  if (json.invoice_email_sent && json.invoice_emailed_to) {
+    alert(`Invoice emailed to ${json.invoice_emailed_to}`);
+  } else {
+    alert('Invoice saved. No client email was available, so nothing was sent.');
+  }
   openDetail(jobId, document.getElementById('detail-title').textContent);
 }
 
@@ -3712,6 +3876,25 @@ function openSetInvoice(jobId, current) {
         Update
       </button>
     </div>`;
+}
+
+async function createClientInvoice(clientId) {
+  const amount = parseFloat(document.getElementById(`client-invoice-amount-${clientId}`)?.value);
+  const description = document.getElementById(`client-invoice-desc-${clientId}`)?.value.trim() || '';
+  if (!amount || amount <= 0) return alert('Enter a valid amount');
+  const res = await authFetch(`/api/clients/${clientId}/invoice`, {
+    method: 'POST',
+    body: JSON.stringify({ amount, description }),
+  });
+  const json = await res.json();
+  if (!res.ok) return alert('Error: ' + (json.error || 'Failed to create invoice'));
+  if (json.invoice_email_sent && json.invoice_emailed_to) {
+    alert(`Invoice emailed to ${json.invoice_emailed_to}`);
+  } else {
+    alert('Invoice created. No client email was available, so nothing was sent.');
+  }
+  await openClientDetail(clientId);
+  await loadClients();
 }
 
 function closeDetail() {
@@ -6183,6 +6366,19 @@ async function openClientDetail(clientId) {
         : `<div class="cd-notes-empty">No notes yet — edit the client to add some.</div>`}
     </div>
 
+    ${canViewFinancials() ? `
+    <div class="cd-section">
+      <div class="cd-section-title">Create Invoice</div>
+      <div style="display:grid;grid-template-columns:1.2fr 0.8fr auto;gap:8px;align-items:center">
+        <input type="text" id="client-invoice-desc-${client.id}" placeholder="Invoice description (optional)"
+          style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c">
+        <input type="number" id="client-invoice-amount-${client.id}" placeholder="0.00" min="0" step="0.01"
+          style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c">
+        <button class="btn-save" onclick="createClientInvoice('${client.id}')">Send Invoice</button>
+      </div>
+      <div style="margin-top:8px;font-size:12px;color:#64748b">Creates a standalone invoice for this client without requiring an existing job.</div>
+    </div>` : ''}
+
     <!-- Follow-ups -->
     <div class="cd-section">
       <div class="cd-section-title">Follow-ups</div>
@@ -6253,7 +6449,13 @@ async function openClientDetail(clientId) {
             <div class="jh-name">${j.name}</div>
             <div class="jh-address">${j.address || 'No address'}</div>
           </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+            ${canViewFinancials() ? (j.invoice_amount > 0
+              ? `<a href="/invoice?job_id=${j.id}" target="_blank" style="font-size:12px;color:#0265dc;text-decoration:none;font-weight:600">View Invoice →</a>`
+              : `<button onclick="event.stopPropagation();openDetail('${j.id}','${String(j.name || '').replace(/'/g,"\\'")}');setTimeout(() => openSetInvoice('${j.id}', ${j.invoice_amount || 0}), 120)" style="background:none;border:none;color:#0265dc;cursor:pointer;font-size:12px;font-weight:700;padding:0">Invoice</button>`)}
+            : ''}
           <span class="jh-status" style="background:${statusColors[j.status]||'#f5f5f5'};color:${statusTextColors[j.status]||'#737475'}">${j.status.replace('_',' ')}</span>
+          </div>
         </div>
       `).join('') : '<div style="font-size:13px;color:#949596;font-style:italic">No jobs linked to this client yet.</div>'}
     </div>

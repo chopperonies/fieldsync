@@ -2127,6 +2127,59 @@ app.patch('/api/clients/:id', auth, requireOperationAccess, async (req, res) => 
   res.json(data);
 });
 
+app.post('/api/clients/:id/invoice', auth, requireFinancialAccess, async (req, res) => {
+  const { amount, description } = req.body;
+  if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+    return res.status(400).json({ error: 'Valid amount required' });
+  }
+
+  const clientId = req.params.id;
+  const [{ data: client }, { data: tenant }] = await Promise.all([
+    supabaseAdmin.from('clients').select('id, name, email, address').eq('id', clientId).eq('tenant_id', req.tenantId).single(),
+    supabaseAdmin.from('tenants').select('company_name').eq('id', req.tenantId).single(),
+  ]);
+  if (!client) return res.status(404).json({ error: 'Client not found' });
+
+  const invoiceName = description?.trim() || `Invoice for ${client.name || 'Client'}`;
+  const { data: job, error } = await supabaseAdmin.from('jobs')
+    .insert({
+      name: invoiceName,
+      address: client.address || '',
+      status: 'invoiced',
+      payment_status: 'unpaid',
+      invoice_amount: parseFloat(amount),
+      client_id: clientId,
+      tenant_id: req.tenantId,
+    })
+    .select('*, clients(name, email)')
+    .single();
+  if (error) return res.status(400).json({ error: error.message });
+
+  let invoiceEmailSent = false;
+  if (client.email) {
+    try {
+      const { data: clientUser } = await supabaseAdmin.from('client_users').select('portal_token').eq('client_id', clientId).single();
+      const host = `${req.protocol}://${req.get('host')}`;
+      const portalUrl = clientUser?.portal_token
+        ? `${host}/portal?token=${clientUser.portal_token}`
+        : `${host}/portal`;
+      await sendInvoiceToClient({
+        clientName: client.name,
+        clientEmail: client.email,
+        jobName: job.name,
+        amount: parseFloat(amount),
+        portalUrl,
+        tenantName: tenant?.company_name,
+      });
+      invoiceEmailSent = true;
+    } catch (emailErr) {
+      console.error('[client invoice] email error:', emailErr.message);
+    }
+  }
+
+  res.json({ job: redactJobsForRole(job, req), invoice_email_sent: invoiceEmailSent, invoice_emailed_to: invoiceEmailSent ? client.email : null });
+});
+
 // Bulk import clients from CSV
 app.post('/api/clients/import', auth, async (req, res) => {
   const { clients } = req.body; // array of { name, company, phone, email, address, notes }
@@ -2926,6 +2979,7 @@ app.post('/api/jobs/:id/invoice', auth, requireFinancialAccess, async (req, res)
 
   // Send invoice email to client if they have an email
   const client = data.clients;
+  let invoiceEmailSent = false;
   if (client?.email) {
     try {
       const tenantId = await getEffectiveTenantId(req);
@@ -2945,12 +2999,13 @@ app.post('/api/jobs/:id/invoice', auth, requireFinancialAccess, async (req, res)
         portalUrl,
         tenantName: tenant?.company_name,
       });
+      invoiceEmailSent = true;
     } catch (emailErr) {
       console.error('[invoice] email error:', emailErr.message);
     }
   }
 
-  res.json(redactJobsForRole(data, req));
+  res.json({ ...redactJobsForRole(data, req), invoice_email_sent: invoiceEmailSent, invoice_emailed_to: invoiceEmailSent ? client.email : null });
 });
 
 // Mark invoice as paid (cash / in-person payment)

@@ -17,6 +17,8 @@
       cursor: pointer; padding: 10px 22px; }
     .btn-print { background: #0265dc; color: #fff; }
     .btn-print:hover { background: #1b5abe; }
+    .btn-pay { background: #166534; color: #fff; }
+    .btn-pay:hover { background: #15803d; }
     .btn-back { background: #f5f5f5; color: #17191c; border: 1px solid #e8e8e8; }
     .btn-back:hover { background: #ebebeb; }
 
@@ -96,6 +98,7 @@
 
   <div class="actions" id="actions">
     <button class="btn btn-back" onclick="history.back()">← Back</button>
+    <button class="btn btn-pay" id="pay-btn" onclick="payInvoice()" style="display:none">Pay Now</button>
     <button class="btn btn-print" onclick="window.print()">Print / Save PDF</button>
   </div>
 
@@ -157,6 +160,27 @@
       renderInvoice(job, tenant);
     }
 
+    async function payInvoice() {
+      if (!isPortal) return;
+      try {
+        const token = localStorage.getItem('portal_token');
+        const res = await fetch('/portal/api/checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ job_id: jobId }),
+        });
+        const json = await res.json();
+        if (!res.ok || json.error) return alert(json.error || 'Unable to start payment');
+        if (!json.url) return alert('No checkout URL returned. Check Stripe keys.');
+        window.location.href = json.url;
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
     function fmt(amount) {
       return '$' + parseFloat(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
@@ -177,6 +201,8 @@
       const isPaid = job.payment_status === 'paid';
       const client = job.clients || {};
       const invDate = job.updated_at || job.created_at;
+      const payBtn = document.getElementById('pay-btn');
+      if (payBtn) payBtn.style.display = isPortal && !isPaid && parseFloat(job.invoice_amount || 0) > 0 ? 'inline-block' : 'none';
 
       document.title = `Invoice ${invNumber(job.id, invDate)} — LinkCrew`;
 
