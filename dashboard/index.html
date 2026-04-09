@@ -1645,17 +1645,18 @@
     <div class="form-group"><label>Notes</label><textarea id="appt-notes" rows="3" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 11px;font-size:13px;color:#17191c;resize:vertical"></textarea></div>
     <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#17191c;cursor:pointer;margin-top:4px">
       <input type="checkbox" id="appt-notify" style="cursor:pointer">
-      Send client confirmation (external email/SMS)
+      Email appointment details to client
     </label>
-    <div style="margin-top:6px;font-size:12px;color:#64748b">Use this only when the client should receive the appointment details. Client-facing notes may be visible to them in the message.</div>
+    <div style="margin-top:6px;font-size:12px;color:#64748b">Sends the client an email confirmation for this appointment. Client-facing notes may be visible to them in the message.</div>
     <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#17191c;cursor:pointer;margin-top:10px">
       <input type="checkbox" id="appt-notify-team" style="cursor:pointer">
-      Notify assigned team for linked job (push/SMS)
+      Notify assigned team in mobile app
     </label>
     <div style="margin-top:6px;font-size:12px;color:#64748b">Only applies when a related job is selected. Standalone calendar events like meetings or quote visits can remain private to the office.</div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
       <button id="appt-delete-btn" onclick="deleteAppt()" style="display:none;background:none;border:1px solid #dc2626;color:#dc2626;border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer">Delete</button>
       <div style="display:flex;gap:8px;margin-left:auto">
+        <button class="btn-cancel" id="appt-back-btn" onclick="returnToCalendarDayModal()" style="display:none">Back to Day</button>
         <button class="btn-cancel" onclick="closeApptModal()">Cancel</button>
         <button class="btn-save" id="appt-save-btn" onclick="saveAppt()">Save</button>
       </div>
@@ -2331,6 +2332,7 @@ let currentMaxUsers = 1;
 let currentExtraUsers = 0;
 let currentRole = 'owner';
 let currentUserEmail = '';
+let apptReturnToDay = false;
 let currentCapabilities = {
   can_access_dashboard: true,
   can_manage_operations: true,
@@ -4916,6 +4918,7 @@ function openCalendarDayModal() {
   titleEl.textContent = formatCalendarHeaderDate(selectedDate);
   subEl.textContent = `Review the full day and add work directly here. ${dayAppts.length} appointment${dayAppts.length === 1 ? '' : 's'} scheduled.`;
   const clientOptions = (allClientsData || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  const jobOptions = buildAppointmentJobOptions();
   const serviceOptions = calServices.length ? calServices.map(s => `
     <label style="display:flex;align-items:center;gap:6px;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px;font-weight:600;color:#17191c">
       <input type="checkbox" value="${s.id}" class="day-quick-service" onchange="syncQuickAddDurationFromServices()" style="cursor:pointer"> ${s.name}${s.price ? ' - $' + parseFloat(s.price).toFixed(2) : ''}${s.duration_minutes ? ' · ' + s.duration_minutes + ' min' : ''}
@@ -4953,10 +4956,20 @@ function openCalendarDayModal() {
           ${clientOptions}
         </select>
       </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Related Job</label>
+        <select id="day-quick-job" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 11px;font-size:13px;color:#17191c">
+          ${jobOptions}
+        </select>
+      </div>
       <div class="form-group" style="margin-bottom:0"><label>Notes</label><textarea id="day-quick-notes" rows="4" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 11px;font-size:13px;color:#17191c;resize:vertical"></textarea></div>
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#17191c;cursor:pointer">
         <input type="checkbox" id="day-quick-notify" style="cursor:pointer">
-        Send confirmation to client
+        Email appointment details to client
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#17191c;cursor:pointer">
+        <input type="checkbox" id="day-quick-notify-team" style="cursor:pointer">
+        Notify assigned team in mobile app
       </label>
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
         <div id="day-quick-status" style="font-size:12px;color:#737475"></div>
@@ -5027,10 +5040,12 @@ function renderServicesList() {
 
 function openApptModal(dateStr, apptId) {
   closeCalendarDayModal();
+  apptReturnToDay = !!(dateStr || calSelectedDate);
   editingApptId = apptId || null;
   const modal = document.getElementById('appt-modal');
   document.getElementById('appt-modal-title').textContent = apptId ? 'Edit Appointment' : 'Add Appointment';
   document.getElementById('appt-delete-btn').style.display = apptId ? 'inline-block' : 'none';
+  document.getElementById('appt-back-btn').style.display = apptReturnToDay ? 'inline-block' : 'none';
 
   // Populate client dropdown
   const sel = document.getElementById('appt-client');
@@ -5084,6 +5099,12 @@ function openApptModal(dateStr, apptId) {
 function closeApptModal() {
   document.getElementById('appt-modal').classList.remove('visible');
   editingApptId = null;
+  apptReturnToDay = false;
+}
+
+function returnToCalendarDayModal() {
+  closeApptModal();
+  openCalendarDayModal();
 }
 
 async function saveCalendarQuickAdd() {
@@ -5094,12 +5115,19 @@ async function saveCalendarQuickAdd() {
   const startTime = document.getElementById('day-quick-start').value || '09:00';
   const endTime = document.getElementById('day-quick-end').value || '';
   const clientId = document.getElementById('day-quick-client').value;
+  const jobId = document.getElementById('day-quick-job').value;
   const notes = document.getElementById('day-quick-notes').value.trim();
   const send_confirmation = document.getElementById('day-quick-notify').checked;
+  const notify_assigned_team = document.getElementById('day-quick-notify-team').checked;
   const serviceIds = [...document.querySelectorAll('.day-quick-service:checked')].map(cb => cb.value);
   if (!title) {
     statusEl.style.color = '#dc2626';
     statusEl.textContent = 'Title is required.';
+    return;
+  }
+  if (notify_assigned_team && !jobId) {
+    statusEl.style.color = '#dc2626';
+    statusEl.textContent = 'Select a related job before notifying the assigned team.';
     return;
   }
   const payload = {
@@ -5107,9 +5135,11 @@ async function saveCalendarQuickAdd() {
     start_time: new Date(`${calSelectedDate}T${startTime}`).toISOString(),
     end_time: endTime ? new Date(`${calSelectedDate}T${endTime}`).toISOString() : null,
     client_id: clientId || null,
+    job_id: jobId || null,
     notes,
     service_ids: serviceIds,
     send_confirmation,
+    notify_assigned_team,
   };
   btn.disabled = true;
   statusEl.style.color = '#737475';
@@ -5129,8 +5159,10 @@ async function saveCalendarQuickAdd() {
     document.getElementById('day-quick-title').value = '';
     setCalendarQuickTime(calQuickStartTime || '09:00');
     document.getElementById('day-quick-client').value = '';
+    document.getElementById('day-quick-job').value = '';
     document.getElementById('day-quick-notes').value = '';
     document.getElementById('day-quick-notify').checked = false;
+    document.getElementById('day-quick-notify-team').checked = false;
     document.querySelectorAll('.day-quick-service:checked').forEach(cb => { cb.checked = false; });
     statusEl.style.color = '#16a34a';
     statusEl.textContent = 'Saved.';

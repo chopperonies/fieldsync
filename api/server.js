@@ -2301,9 +2301,9 @@ async function notifyApptClient(appt, tenantId, type = 'confirmation') {
 }
 
 async function notifyApptAssignedTeam(appt, tenantId) {
-  if (!appt?.job_id) return { push_sent: 0, sms_sent: 0, total_recipients: 0 };
+  if (!appt?.job_id) return { push_sent: 0, total_recipients: 0 };
 
-  const [{ data: job }, { data: assignments }, { data: tenant }] = await Promise.all([
+  const [{ data: job }, { data: assignments }] = await Promise.all([
     supabaseAdmin.from('jobs')
       .select('id, name, address')
       .eq('id', appt.job_id)
@@ -2313,13 +2313,9 @@ async function notifyApptAssignedTeam(appt, tenantId) {
       .select('employee_id, employees(id, name, phone, push_token)')
       .eq('job_id', appt.job_id)
       .eq('tenant_id', tenantId),
-    supabaseAdmin.from('tenants')
-      .select('company_name, twilio_phone, twilio_account_sid, twilio_auth_token')
-      .eq('id', tenantId)
-      .single(),
   ]);
 
-  if (!job) return { push_sent: 0, sms_sent: 0, total_recipients: 0 };
+  if (!job) return { push_sent: 0, total_recipients: 0 };
 
   const recipients = (assignments || [])
     .map(entry => entry.employees)
@@ -2327,7 +2323,6 @@ async function notifyApptAssignedTeam(appt, tenantId) {
     .filter((employee, index, arr) => arr.findIndex(other => other.id === employee.id) === index);
 
   let push_sent = 0;
-  let sms_sent = 0;
   const date = new Date(appt.start_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   const time = new Date(appt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
@@ -2354,23 +2349,9 @@ async function notifyApptAssignedTeam(appt, tenantId) {
         console.error('[appt notify team] push error:', e.message);
       }
     }
-
-    if (employee.phone && tenant?.twilio_account_sid && tenant?.twilio_phone) {
-      try {
-        const twilioClient = twilio(tenant.twilio_account_sid, tenant.twilio_auth_token);
-        await twilioClient.messages.create({
-          to: employee.phone,
-          from: tenant.twilio_phone,
-          body: `${tenant.company_name || 'LinkCrew'} scheduled "${appt.title}" for ${date} at ${time}${job.name ? ` for ${job.name}` : ''}. Open the app for details.`,
-        });
-        sms_sent += 1;
-      } catch (e) {
-        console.error('[appt notify team] sms error:', e.message);
-      }
-    }
   }
 
-  return { push_sent, sms_sent, total_recipients: recipients.length };
+  return { push_sent, total_recipients: recipients.length };
 }
 
 app.get('/api/appointments', auth, async (req, res) => {
