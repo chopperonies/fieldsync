@@ -3294,6 +3294,15 @@ function setText(id, value) {
   if (el) el.textContent = value;
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function getJobStatusChip(status) {
   const normalized = String(status || '').toLowerCase();
   if (!normalized) return { cls: 'chip-green', label: 'Active' };
@@ -3544,7 +3553,7 @@ function renderRemoteControlBoard(jobs = []) {
         </div>
         <div style="padding:14px;border:1px solid #e8eef3;border-radius:12px;background:#f8fbfd">
           <div style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Crew Assigned</div>
-          <div style="font-size:28px;font-weight:900;color:#0f172a">${Array.isArray(leadJob.assigned_crew) ? leadJob.assigned_crew.length : 0}</div>
+          <div style="font-size:28px;font-weight:900;color:#0f172a">${Array.isArray(leadJob.assignments) ? leadJob.assignments.length : 0}</div>
         </div>
         <div style="padding:14px;border:1px solid #e8eef3;border-radius:12px;background:#f8fbfd">
           <div style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Crew On Site</div>
