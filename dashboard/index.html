@@ -178,6 +178,15 @@
       transform: translateY(-1px);
     }
 
+    /* Quick add dropdown */
+    .quick-add-item {
+      display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 10px;
+      background: none; border: none; border-radius: 7px; font-size: 13px; font-weight: 600;
+      color: var(--text-soft); cursor: pointer; font-family: inherit; text-align: left;
+      transition: background 0.1s, color 0.1s;
+    }
+    .quick-add-item:hover { background: var(--bg); color: var(--text); }
+
     /* Active filter buttons */
     .owner-mini-btn.active {
       background: #0369a1 !important;
@@ -1365,14 +1374,16 @@
       <div class="topbar-title" id="topbar-title">Dashboard</div>
       <div class="topbar-subtitle" id="topbar-subtitle">Run the day without bouncing between jobs, clients, and billing.</div>
     </div>
-    <label class="topbar-search">
-      <span>Search</span>
-      <input id="global-dashboard-search" type="text" placeholder="Jump to a job or client" onkeydown="if(event.key==='Enter') handleGlobalSearch()">
+    <label class="topbar-search" style="display:flex;align-items:center;gap:0">
+      <i data-lucide="search" style="width:14px;height:14px;color:var(--muted);flex-shrink:0;margin-right:8px"></i>
+      <input id="global-dashboard-search" type="text" placeholder="Jump to a job or client" onkeydown="if(event.key==='Enter') handleGlobalSearch()" style="flex:1">
+      <button onclick="handleGlobalSearch()" style="background:none;border:none;cursor:pointer;padding:2px 4px;color:var(--muted);font-size:11px;font-weight:700;white-space:nowrap;font-family:inherit" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">↵</button>
     </label>
   </div>
-  <div class="header-right">
-    <button class="hdr-btn" onclick="handleGlobalSearch()">Go</button>
-    <button class="hdr-btn accent" id="topbar-create-btn" onclick="runPrimaryCreateAction()">+ Create</button>
+  <div class="header-right" style="position:relative">
+    <button id="quick-add-btn" onclick="toggleQuickAdd(event)"
+      style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:#0284c7;color:#fff;border:none;cursor:pointer;font-size:20px;font-weight:300;line-height:1;transition:background 0.12s;flex-shrink:0"
+      title="Quick create" onmouseover="this.style.background='#0369a1'" onmouseout="this.style.background='#0284c7'">+</button>
   </div>
 </div>
 
@@ -1398,48 +1409,57 @@
 <div id="dashboard-view">
   <div class="owner-page">
     <div class="owner-page-shell">
-      <!-- Compact dashboard header -->
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:20px">
-        <div style="flex:0 0 auto">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">LinkCrew</div>
-          <div style="font-size:19px;font-weight:900;color:var(--text);letter-spacing:-0.02em;line-height:1.15;margin-top:2px">Dashboard</div>
-        </div>
-        <div style="display:flex;gap:16px;align-items:center;margin-left:auto;flex-wrap:wrap">
-          <div style="text-align:center;cursor:pointer" onclick="showOverlay('jobs')" title="Active jobs">
-            <div style="font-size:18px;font-weight:900;color:var(--text);line-height:1" id="stat-jobs">—</div>
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-top:1px">Active</div>
-          </div>
-          <div style="text-align:center;cursor:pointer" onclick="showOverlay('crew')" title="Crew on site">
-            <div style="font-size:18px;font-weight:900;color:var(--text);line-height:1" id="stat-crew">—</div>
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-top:1px">On Site</div>
-          </div>
-          <div style="text-align:center;cursor:pointer" onclick="showOverlay('supplies')" title="Supply requests">
-            <div style="font-size:18px;font-weight:900;color:#ef4444;line-height:1" id="stat-supplies">—</div>
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-top:1px">Supplies</div>
-          </div>
-          <div style="text-align:center;cursor:pointer" onclick="showOverlay('bottlenecks')" title="Bottlenecks">
-            <div style="font-size:18px;font-weight:900;color:#f59e0b;line-height:1" id="stat-bottlenecks">—</div>
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-top:1px">Blockers</div>
-          </div>
-          <div style="width:1px;height:28px;background:var(--border)"></div>
-          <!-- nav shortcuts -->
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="owner-mini-btn" onclick="switchMainTab('jobs')" style="display:flex;align-items:center;gap:5px">
-              Jobs <span id="dashboard-active-count" style="background:rgba(14,165,233,0.12);color:var(--accent);border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
-            </button>
-            <button class="owner-mini-btn" onclick="switchMainTab('requests')" style="display:flex;align-items:center;gap:5px">
-              Requests <span id="dashboard-request-count" style="background:rgba(14,165,233,0.12);color:var(--accent);border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
-            </button>
-            <button class="owner-mini-btn" onclick="switchMainTab('quotes')" style="display:flex;align-items:center;gap:5px">
-              Quotes <span id="dashboard-quote-count" style="background:rgba(14,165,233,0.12);color:var(--accent);border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
-            </button>
-            <button class="owner-mini-btn" onclick="switchMainTab('invoices')" style="display:flex;align-items:center;gap:5px">
-              Billing <span id="dashboard-invoice-count" style="background:rgba(14,165,233,0.12);color:var(--accent);border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      <!-- Dashboard hero header -->
+      <div style="position:relative;overflow:hidden;padding:22px 28px 20px;border-bottom:1px solid rgba(14,165,233,0.1);margin-bottom:0;background:linear-gradient(180deg,#e8f4fd 0%,#f0f9ff 30%,#f7fbff 60%,#fdfdfc 100%)">
+        <!-- Subtle dot grid -->
+        <div style="position:absolute;inset:0;opacity:0.06;background-image:radial-gradient(circle,#0ea5e9 1px,transparent 1px);background-size:22px 22px;pointer-events:none"></div>
+        <!-- Soft glow -->
+        <div style="position:absolute;top:-40px;right:-20px;width:220px;height:180px;background:radial-gradient(ellipse,rgba(14,165,233,0.12),transparent 70%);pointer-events:none"></div>
 
+        <div style="position:relative;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <div style="flex:0 0 auto">
+            <div id="dash-greeting-label" style="font-size:11px;font-weight:700;color:#0369a1;opacity:0.75;margin-bottom:2px">Good morning</div>
+            <div id="dash-greeting-date" style="font-size:18px;font-weight:800;color:#0f172a;letter-spacing:-0.025em;line-height:1.2">Today</div>
+          </div>
+          <div style="display:flex;gap:16px;align-items:center;margin-left:auto;flex-wrap:wrap">
+            <div style="text-align:center;cursor:pointer" onclick="showOverlay('jobs')" title="Active jobs">
+              <div style="font-size:20px;font-weight:900;color:#0f172a;line-height:1" id="stat-jobs">—</div>
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-top:2px">Active</div>
+            </div>
+            <div style="text-align:center;cursor:pointer" onclick="showOverlay('crew')" title="Crew on site">
+              <div style="font-size:20px;font-weight:900;color:#0f172a;line-height:1" id="stat-crew">—</div>
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-top:2px">On Site</div>
+            </div>
+            <div style="text-align:center;cursor:pointer" onclick="showOverlay('supplies')" title="Supply requests">
+              <div style="font-size:20px;font-weight:900;color:#ef4444;line-height:1" id="stat-supplies">—</div>
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-top:2px">Supplies</div>
+            </div>
+            <div style="text-align:center;cursor:pointer" onclick="showOverlay('bottlenecks')" title="Bottlenecks">
+              <div style="font-size:20px;font-weight:900;color:#f59e0b;line-height:1" id="stat-bottlenecks">—</div>
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-top:2px">Blockers</div>
+            </div>
+            <div style="width:1px;height:28px;background:rgba(14,165,233,0.2)"></div>
+            <!-- nav shortcuts -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="owner-mini-btn" onclick="switchMainTab('jobs')" style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.7);border-color:rgba(14,165,233,0.2)">
+                Jobs <span id="dashboard-active-count" style="background:rgba(14,165,233,0.12);color:#0369a1;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
+              </button>
+              <button class="owner-mini-btn" onclick="switchMainTab('requests')" style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.7);border-color:rgba(14,165,233,0.2)">
+                Requests <span id="dashboard-request-count" style="background:rgba(14,165,233,0.12);color:#0369a1;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
+              </button>
+              <button class="owner-mini-btn" onclick="switchMainTab('quotes')" style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.7);border-color:rgba(14,165,233,0.2)">
+                Quotes <span id="dashboard-quote-count" style="background:rgba(14,165,233,0.12);color:#0369a1;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
+              </button>
+              <button class="owner-mini-btn" onclick="switchMainTab('invoices')" style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.7);border-color:rgba(14,165,233,0.2)">
+                Billing <span id="dashboard-invoice-count" style="background:rgba(14,165,233,0.12);color:#0369a1;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
+              </button>
+            </div>
+          </div>
+      </div>
+      </div><!-- end dashboard hero -->
+
+      <!-- Fade bridge: carries the blue tint down through first row -->
+      <div style="background:linear-gradient(180deg,#f7fbff 0%,#fdfdfc 100%);padding-bottom:1px">
       <div class="owner-ops-layout">
         <div class="owner-section-stack">
           <div class="owner-card">
@@ -1478,6 +1498,7 @@
           </div>
         </div>
       </div>
+      </div><!-- end fade bridge -->
 
       <div class="owner-ops-layout" style="margin-top:0">
         <div class="owner-section-stack">
@@ -2917,30 +2938,37 @@
           </div>
 
           <div id="ts-self-punch-panel" class="owner-card" style="margin-bottom:0;display:none">
-            <div class="owner-card-header">
-              <div>
-                <div class="owner-card-title">My Shift</div>
-                <div class="owner-card-headline">Clock yourself in or out</div>
-                <div class="owner-card-sub">Use this when a supervisor or manager needs to log their own time from the web dashboard.</div>
-              </div>
+            <div class="owner-card-title">My Shift</div>
+            <!-- State display -->
+            <div id="ts-self-punch-summary" style="display:flex;align-items:center;gap:10px;margin:10px 0 14px;padding:12px 14px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+              <i data-lucide="clock" style="width:16px;height:16px;color:var(--muted);flex-shrink:0"></i>
+              <span style="font-size:13px;color:var(--text-soft);flex:1">Checking your current punch status...</span>
             </div>
-            <div id="ts-self-punch-summary" style="font-size:13px;color:#64748b;line-height:1.6;margin-bottom:12px">Checking your current punch status...</div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
               <div>
-                <div style="font-size:11px;font-weight:600;color:#737475;margin-bottom:5px">Job (optional)</div>
-                <select id="ts-self-punch-job" onchange="syncTimesheetWorkTypeState('ts-self-punch-job','ts-self-punch-work-type')" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c;min-width:180px">
+                <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px">Job (optional)</div>
+                <select id="ts-self-punch-job" onchange="syncTimesheetWorkTypeState('ts-self-punch-job','ts-self-punch-work-type')" style="background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px 12px;font-size:13px;color:var(--text);min-width:180px;font-family:inherit">
                   <option value="">No specific job</option>
                 </select>
               </div>
               <div>
-                <div style="font-size:11px;font-weight:600;color:#737475;margin-bottom:5px">Work Type</div>
-                <select id="ts-self-punch-work-type" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c;min-width:180px">
+                <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px">Work Type</div>
+                <select id="ts-self-punch-work-type" style="background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px 12px;font-size:13px;color:var(--text);min-width:180px;font-family:inherit">
                   <option value="">No work type</option>
                 </select>
               </div>
-              <button id="ts-self-punch-in-btn" onclick="selfPunchIn()" style="background:#166534;color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">Punch In</button>
-              <button id="ts-self-punch-out-btn" onclick="selfPunchOut()" style="background:#dc2626;color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">Punch Out</button>
-              <span id="ts-self-punch-status" style="font-size:13px;color:#4ade80"></span>
+              <!-- Single contextual button — JS shows/hides each -->
+              <button id="ts-self-punch-in-btn" onclick="selfPunchIn()"
+                style="display:flex;align-items:center;gap:7px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background 0.12s"
+                onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">
+                <i data-lucide="play-circle" style="width:15px;height:15px"></i> Start Shift
+              </button>
+              <button id="ts-self-punch-out-btn" onclick="selfPunchOut()"
+                style="display:none;align-items:center;gap:7px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background 0.12s"
+                onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+                <i data-lucide="stop-circle" style="width:15px;height:15px"></i> End Shift
+              </button>
+              <span id="ts-self-punch-status" style="font-size:12px;color:#15803d;font-weight:600"></span>
             </div>
           </div>
 
@@ -2948,32 +2976,42 @@
             <div class="owner-card-header">
               <div>
                 <div class="owner-card-title">Manual Punch</div>
-                <div class="owner-card-headline">Add or close time manually</div>
-                <div class="owner-card-sub">Keep this available for lower-tier workflows or back-office corrections.</div>
+                <div class="owner-card-headline">Override punch for a crew member</div>
+                <div class="owner-card-sub">Use when crew forgot to clock in or out. Select the person, optionally tag a job, then clock them in or out.</div>
               </div>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
               <div>
-                <div style="font-size:11px;font-weight:600;color:#737475;margin-bottom:5px">Crew Member</div>
-                <select id="ts-punch-employee" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c;min-width:160px">
+                <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px">Crew Member</div>
+                <select id="ts-punch-employee" style="background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px 12px;font-size:13px;color:var(--text);min-width:160px;font-family:inherit">
                   <option value="">Select crew...</option>
                 </select>
               </div>
               <div>
-                <div style="font-size:11px;font-weight:600;color:#737475;margin-bottom:5px">Job (optional)</div>
-                <select id="ts-punch-job" onchange="syncTimesheetWorkTypeState('ts-punch-job','ts-punch-work-type')" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c;min-width:160px">
+                <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px">Job (optional)</div>
+                <select id="ts-punch-job" onchange="syncTimesheetWorkTypeState('ts-punch-job','ts-punch-work-type')" style="background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px 12px;font-size:13px;color:var(--text);min-width:160px;font-family:inherit">
                   <option value="">No specific job</option>
                 </select>
               </div>
               <div>
-                <div style="font-size:11px;font-weight:600;color:#737475;margin-bottom:5px">Work Type</div>
-                <select id="ts-punch-work-type" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:7px;padding:8px 12px;font-size:13px;color:#17191c;min-width:180px">
+                <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px">Work Type</div>
+                <select id="ts-punch-work-type" style="background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px 12px;font-size:13px;color:var(--text);min-width:180px;font-family:inherit">
                   <option value="">No work type</option>
                 </select>
               </div>
-              <button onclick="manualPunchIn()" style="background:#166534;color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">Punch In</button>
-              <button onclick="manualPunchOut()" style="background:#dc2626;color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer">Punch Out</button>
-              <span id="ts-punch-status" style="font-size:13px;color:#4ade80"></span>
+              <div style="display:flex;gap:8px;padding-top:18px">
+                <button onclick="manualPunchIn()"
+                  style="display:flex;align-items:center;gap:7px;background:transparent;color:#166534;border:1.5px solid #86efac;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background 0.12s,border-color 0.12s"
+                  onmouseover="this.style.background='#f0fdf4';this.style.borderColor='#4ade80'" onmouseout="this.style.background='transparent';this.style.borderColor='#86efac'">
+                  <i data-lucide="log-in" style="width:14px;height:14px"></i> Clock In
+                </button>
+                <button onclick="manualPunchOut()"
+                  style="display:flex;align-items:center;gap:7px;background:transparent;color:#991b1b;border:1.5px solid #fca5a5;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background 0.12s,border-color 0.12s"
+                  onmouseover="this.style.background='#fef2f2';this.style.borderColor='#f87171'" onmouseout="this.style.background='transparent';this.style.borderColor='#fca5a5'">
+                  <i data-lucide="log-out" style="width:14px;height:14px"></i> Clock Out
+                </button>
+              </div>
+              <span id="ts-punch-status" style="font-size:12px;color:#15803d;font-weight:600;padding-top:18px"></span>
             </div>
           </div>
         </div>
@@ -5150,6 +5188,7 @@ function renderRecentOutcomes(jobs = []) {
 }
 
 async function loadDashboard() {
+  updateDashboardGreeting();
   const res = await authFetch('/api/jobs');
   const jobs = await res.json();
   allJobsData = jobs;
@@ -6849,7 +6888,7 @@ function closeOverlay(e) {
 
 function updateWorkspaceHeader(tab) {
   const header = {
-    dashboard: ['Owner Workspace', 'Dashboard', 'Run the day without bouncing between jobs, clients, and billing.'],
+    dashboard: ['LinkCrew', 'Command Center', 'Active jobs, crew, billing, and live feed in one place.'],
     requests: ['Owner Workspace', 'Requests', 'Review inbound work before it turns into active production.'],
     quotes: ['Owner Workspace', 'Quotes', 'Estimate-stage work stays separate from scheduled jobs.'],
     jobs: ['Owner Workspace', 'Jobs', 'Track active work, field updates, and operational blockers.'],
@@ -7008,6 +7047,72 @@ function shareReferral(channel) {
 }
 
 // ── Main Tab Navigation ───────────────────────────────────────────────────────
+// ── Dashboard greeting ────────────────────────────────────────────────────
+
+function updateDashboardGreeting() {
+  const h = new Date().getHours();
+  const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const date = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const labelEl = document.getElementById('dash-greeting-label');
+  const dateEl  = document.getElementById('dash-greeting-date');
+  if (labelEl) labelEl.textContent = greeting;
+  if (dateEl)  dateEl.textContent  = date;
+}
+
+// ── Quick Add ─────────────────────────────────────────────────────────────
+
+function toggleQuickAdd(e) {
+  e.stopPropagation();
+  const btn = document.getElementById('quick-add-btn');
+  if (!btn) return;
+
+  // Remove any existing menu
+  const existing = document.getElementById('quick-add-menu');
+  if (existing) { existing.remove(); return; }
+
+  // Build menu on document.body — fully outside any stacking context
+  const menu = document.createElement('div');
+  menu.id = 'quick-add-menu';
+  menu.style.cssText = 'position:fixed;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 28px rgba(15,23,42,0.14);min-width:185px;overflow:hidden;z-index:99999;padding:6px';
+
+  const items = [
+    ['briefcase',    'job',     'New Job'],
+    ['receipt-text', 'invoice', 'New Invoice'],
+    ['building-2',   'client',  'New Client'],
+    ['wallet-cards', 'expense', 'New Expense'],
+    ['inbox',        'request', 'New Request'],
+  ];
+  items.forEach(([icon, type, label]) => {
+    const b = document.createElement('button');
+    b.className = 'quick-add-item';
+    b.innerHTML = `<i data-lucide="${icon}" style="width:14px;height:14px;flex-shrink:0"></i> ${label}`;
+    b.onclick = () => quickAdd(type);
+    menu.appendChild(b);
+  });
+
+  // Position below the + button
+  const rect = btn.getBoundingClientRect();
+  menu.style.top = (rect.bottom + 6) + 'px';
+  menu.style.right = (window.innerWidth - rect.right) + 'px';
+
+  document.body.appendChild(menu);
+  lucide.createIcons({ nodes: [menu] });
+
+  // Close on outside click
+  const close = (ev) => {
+    if (!menu.contains(ev.target) && ev.target !== btn) {
+      menu.remove();
+      document.removeEventListener('click', close);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', close), 0);
+}
+
+function quickAdd(type) {
+  document.getElementById('quick-add-menu').style.display = 'none';
+  quickLaunchCreate(type);
+}
+
 // ── Jobs Sidebar Group ────────────────────────────────────────────────────────
 
 function setJobsSidebarExpanded(open) {
@@ -8601,7 +8706,11 @@ async function loadSelfPunchState() {
   const punchInBtn = document.getElementById('ts-self-punch-in-btn');
   const punchOutBtn = document.getElementById('ts-self-punch-out-btn');
   if (!summaryEl || !canSelfPunchTimesheets()) return;
-  summaryEl.textContent = 'Checking your current punch status...';
+  const setStatus = (icon, color, text) => {
+    summaryEl.innerHTML = `<i data-lucide="${icon}" style="width:15px;height:15px;color:${color};flex-shrink:0"></i><span style="font-size:13px;color:var(--text-soft);flex:1">${text}</span>`;
+    lucide.createIcons({ nodes: [summaryEl] });
+  };
+  setStatus('clock', 'var(--muted)', 'Checking your current punch status...');
   try {
     const res = await authFetch('/api/timesheets/my-active');
     const json = await res.json();
@@ -8609,9 +8718,9 @@ async function loadSelfPunchState() {
     if (active?.checked_in_at) {
       const started = new Date(active.checked_in_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
       const label = active.jobs?.name || (active.work_type ? getTimesheetWorkTypeLabel(active.work_type) : 'No specific job');
-      summaryEl.textContent = `You are currently clocked in on ${label} since ${started}.`;
-      if (punchInBtn) punchInBtn.disabled = true;
-      if (punchOutBtn) punchOutBtn.disabled = false;
+      setStatus('clock', '#15803d', `On the clock — ${label} since ${started}.`);
+      if (punchInBtn) punchInBtn.style.display = 'none';
+      if (punchOutBtn) punchOutBtn.style.display = 'flex';
       const selfJobSel = document.getElementById('ts-self-punch-job');
       if (selfJobSel && active.job_id) selfJobSel.value = active.job_id;
       const selfTypeSel = document.getElementById('ts-self-punch-work-type');
@@ -8619,13 +8728,13 @@ async function loadSelfPunchState() {
       syncTimesheetWorkTypeState('ts-self-punch-job', 'ts-self-punch-work-type');
       return;
     }
-    summaryEl.textContent = 'You are currently clocked out. Choose an optional job, then punch in when work starts.';
-    if (punchInBtn) punchInBtn.disabled = false;
-    if (punchOutBtn) punchOutBtn.disabled = true;
+    setStatus('clock-off', 'var(--muted)', 'Currently off the clock. Pick a job and start your shift when ready.');
+    if (punchInBtn) punchInBtn.style.display = 'flex';
+    if (punchOutBtn) punchOutBtn.style.display = 'none';
   } catch (err) {
-    summaryEl.textContent = 'Could not load your current punch status.';
-    if (punchInBtn) punchInBtn.disabled = false;
-    if (punchOutBtn) punchOutBtn.disabled = false;
+    setStatus('alert-circle', '#dc2626', 'Could not load your current punch status.');
+    if (punchInBtn) punchInBtn.style.display = 'flex';
+    if (punchOutBtn) punchOutBtn.style.display = 'flex';
   }
 }
 
