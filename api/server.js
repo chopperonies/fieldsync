@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const http = require('http');
+const https = require('https');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -60,6 +61,69 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
 });
+
+function getDashboardAppUrl() {
+  const raw = String(process.env.APP_URL || process.env.SITE_URL || 'https://linkcrew.io').trim();
+  const normalized = raw.endsWith('/app') ? raw : `${raw.replace(/\/$/, '')}/app`;
+  return normalized.replace(/\/$/, '');
+}
+
+function getTelegramApprovalMeta(job = {}) {
+  const normalizedStatus = String(job.status || '').trim().toLowerCase();
+  if (normalizedStatus === 'quoted') {
+    return {
+      type: 'quote',
+      title: 'Quote Approval',
+      summary: job.estimate_amount ? `Estimate: $${Number(job.estimate_amount).toFixed(2)}` : 'Estimate amount not set',
+    };
+  }
+  if ((job.invoice_amount && Number(job.invoice_amount) > 0) || normalizedStatus === 'invoiced') {
+    return {
+      type: 'invoice',
+      title: 'Invoice Approval',
+      summary: job.invoice_amount ? `Invoice: $${Number(job.invoice_amount).toFixed(2)}` : 'Invoice amount not set',
+    };
+  }
+  return {
+    type: 'job',
+    title: 'Job Approval',
+    summary: `Status: ${String(job.status || 'open').replace(/_/g, ' ')}`,
+  };
+}
+
+async function sendTelegramBotMessage(payload) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) throw new Error('Telegram bot token is not configured.');
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify(payload);
+    const req = https.request({
+      hostname: 'api.telegram.org',
+      path: `/bot${token}/sendMessage`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body),
+      },
+    }, res => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data || '{}');
+          if (!res.statusCode || res.statusCode >= 400 || parsed.ok === false) {
+            return reject(new Error(parsed.description || 'Telegram request failed.'));
+          }
+          resolve(parsed.result || parsed);
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
 
 // Regular client (anon key) — used for realtime/public config
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
@@ -1675,6 +1739,61 @@ app.get('/api/jobs/:id', auth, async (req, res) => {
   res.json({ job: redactJobsForRole(job, req), assignments, supplies, updates });
 });
 
+app.post('/api/jobs/:id/telegram-approval', auth, requireSettingsAccess, async (req, res) => {
+  const managerChatId = process.env.MANAGER_TELEGRAM_ID;
+  if (!managerChatId) {
+    return res.status(400).json({ error: 'MANAGER_TELEGRAM_ID is not configured.' });
+  }
+  const { id } = req.params;
+  const [{ data: job }, { data: tenant }] = await Promise.all([
+    supabaseAdmin
+      .from('jobs')
+      .select('id, name, address, status, estimate_amount, invoice_amount, payment_status, client_id, clients(name)')
+      .eq('id', id)
+      .eq('tenant_id', req.tenantId)
+      .single(),
+    supabaseAdmin
+      .from('tenants')
+      .select('company_name')
+      .eq('id', req.tenantId)
+      .single(),
+  ]);
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+
+  const approval = getTelegramApprovalMeta(job);
+  const dashboardUrl = `${getDashboardAppUrl()}?job=${encodeURIComponent(job.id)}#job-detail`;
+  const summaryLines = [
+    `LinkCrew ${approval.title}`,
+    '',
+    `Company: ${tenant?.company_name || 'LinkCrew'}`,
+    `Job: ${job.name || 'Untitled job'}`,
+    job.clients?.name ? `Client: ${job.clients.name}` : null,
+    job.address ? `Address: ${job.address}` : null,
+    approval.summary,
+    job.payment_status ? `Payment: ${String(job.payment_status).replace(/_/g, ' ')}` : null,
+    '',
+    'Tap Approve to push it forward, or Reply to send notes back into the job.',
+  ].filter(Boolean);
+
+  await sendTelegramBotMessage({
+    chat_id: managerChatId,
+    text: summaryLines.join('\n'),
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: 'Approve', callback_data: `approval|approve|${approval.type}|${job.id}` },
+          { text: 'Reply', callback_data: `approval|reply|${approval.type}|${job.id}` },
+        ],
+        [
+          { text: 'Open In LinkCrew', url: dashboardUrl },
+        ],
+      ],
+    },
+  });
+
+  res.json({ ok: true, message: `${approval.title} sent to Telegram.` });
+});
+
 app.get('/api/photos/recent', auth, async (req, res) => {
   if (!req.tenantId) return res.json([]);
   const { data: jobs } = await supabaseAdmin
@@ -1746,9 +1865,11 @@ app.post('/api/jobs', auth, requireOperationAccess, ensureFinancialFieldsAllowed
     manager_email,
     description,
     estimate_amount,
+    status,
     primary_supervisor_employee_id,
     initial_employee_ids = []
   } = req.body;
+  const normalizedStatus = normalizeJobStatus(status || 'active');
   const requestedEmployeeIds = Array.isArray(initial_employee_ids)
     ? [...new Set(initial_employee_ids.filter(id => typeof id === 'string' && id.trim()))]
     : [];
@@ -1791,7 +1912,7 @@ app.post('/api/jobs', auth, requireOperationAccess, ensureFinancialFieldsAllowed
       address,
       manager_email,
       description,
-      status: normalizeJobStatus('active'),
+      status: normalizedStatus,
       estimate_amount: estimate_amount || null,
       primary_supervisor_employee_id: primary_supervisor_employee_id || null,
       tenant_id: req.tenantId
@@ -4574,6 +4695,130 @@ app.patch('/api/recurring-invoices/:id', auth, requireFinancialAccess, async (re
 app.delete('/api/recurring-invoices/:id', auth, requireFinancialAccess, async (req, res) => {
   await supabaseAdmin.from('recurring_invoices')
     .delete().eq('id', req.params.id).eq('tenant_id', req.tenantId);
+  res.json({ ok: true });
+});
+
+// ── Receipt Upload ────────────────────────────────────────────────────────────
+
+app.post('/api/expenses/:id/receipt', auth, requireFinancialAccess, upload.single('receipt'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const { id } = req.params;
+  const { data: expense } = await supabaseAdmin.from('expenses').select('id').eq('id', id).eq('tenant_id', req.tenantId).single();
+  if (!expense) return res.status(404).json({ error: 'Expense not found' });
+  const ext = (req.file.originalname.split('.').pop() || 'jpg').toLowerCase();
+  const filePath = `expenses/${req.tenantId}/${id}.${ext}`;
+  const { error: upErr } = await supabaseAdmin.storage.from('receipts')
+    .upload(filePath, req.file.buffer, { contentType: req.file.mimetype, upsert: true });
+  if (upErr) return res.status(400).json({ error: upErr.message });
+  const { data: { publicUrl } } = supabaseAdmin.storage.from('receipts').getPublicUrl(filePath);
+  await supabaseAdmin.from('expenses').update({ receipt_url: publicUrl }).eq('id', id).eq('tenant_id', req.tenantId);
+  res.json({ receipt_url: publicUrl });
+});
+
+app.post('/api/jobs/:id/receipt', auth, requireFinancialAccess, upload.single('receipt'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const { id } = req.params;
+  const { data: job } = await supabaseAdmin.from('jobs').select('id').eq('id', id).eq('tenant_id', req.tenantId).single();
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  const ext = (req.file.originalname.split('.').pop() || 'jpg').toLowerCase();
+  const filePath = `invoices/${req.tenantId}/${id}.${ext}`;
+  const { error: upErr } = await supabaseAdmin.storage.from('receipts')
+    .upload(filePath, req.file.buffer, { contentType: req.file.mimetype, upsert: true });
+  if (upErr) return res.status(400).json({ error: upErr.message });
+  const { data: { publicUrl } } = supabaseAdmin.storage.from('receipts').getPublicUrl(filePath);
+  await supabaseAdmin.from('jobs').update({ receipt_url: publicUrl }).eq('id', id).eq('tenant_id', req.tenantId);
+  res.json({ receipt_url: publicUrl });
+});
+
+// ── Service Catalog ───────────────────────────────────────────────────────────
+
+app.get('/api/service-catalog', auth, async (req, res) => {
+  const { data, error } = await supabaseAdmin.from('service_catalog')
+    .select('*').eq('tenant_id', req.tenantId).eq('active', true)
+    .order('sort_order').order('name');
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data || []);
+});
+
+app.post('/api/service-catalog', auth, requireSettingsAccess, async (req, res) => {
+  const { name, description, unit_price, category } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+  const { data, error } = await supabaseAdmin.from('service_catalog').insert({
+    name: name.trim(), description: description?.trim() || null,
+    unit_price: parseFloat(unit_price) || 0, category: category || 'service',
+    tenant_id: req.tenantId,
+  }).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+app.patch('/api/service-catalog/:id', auth, requireSettingsAccess, async (req, res) => {
+  const allowed = ['name', 'description', 'unit_price', 'category', 'active', 'sort_order'];
+  const updates = {};
+  for (const key of allowed) { if (req.body[key] !== undefined) updates[key] = req.body[key]; }
+  if (updates.unit_price !== undefined) updates.unit_price = parseFloat(updates.unit_price) || 0;
+  const { data, error } = await supabaseAdmin.from('service_catalog')
+    .update(updates).eq('id', req.params.id).eq('tenant_id', req.tenantId).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+app.delete('/api/service-catalog/:id', auth, requireSettingsAccess, async (req, res) => {
+  await supabaseAdmin.from('service_catalog').delete().eq('id', req.params.id).eq('tenant_id', req.tenantId);
+  res.json({ ok: true });
+});
+
+// ── Expenses ──────────────────────────────────────────────────────────────────
+
+app.get('/api/expenses', auth, requireFinancialAccess, async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from('expenses')
+    .select('*, employees(name), jobs(name)')
+    .eq('tenant_id', req.tenantId)
+    .order('date', { ascending: false })
+    .order('created_at', { ascending: false });
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data || []);
+});
+
+app.post('/api/expenses', auth, requireFinancialAccess, async (req, res) => {
+  const { date, amount, name, details, category, reimburse_to, reimburse_employee_id, job_id } = req.body;
+  if (!amount || isNaN(amount) || parseFloat(amount) <= 0)
+    return res.status(400).json({ error: 'Valid amount required' });
+  if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+  if (!date) return res.status(400).json({ error: 'Date required' });
+  const { data, error } = await supabaseAdmin.from('expenses').insert({
+    date,
+    amount: parseFloat(amount),
+    name: name.trim(),
+    details: details?.trim() || null,
+    category: category || 'other',
+    reimburse_to: reimburse_to || 'none',
+    reimburse_employee_id: reimburse_employee_id || null,
+    job_id: job_id || null,
+    tenant_id: req.tenantId,
+    status: 'pending',
+  }).select('*, employees(name), jobs(name)').single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+app.patch('/api/expenses/:id', auth, requireFinancialAccess, async (req, res) => {
+  const allowed = ['date', 'amount', 'name', 'details', 'category', 'reimburse_to', 'reimburse_employee_id', 'job_id', 'status', 'receipt_url'];
+  const updates = {};
+  for (const key of allowed) { if (req.body[key] !== undefined) updates[key] = req.body[key]; }
+  if (updates.amount !== undefined) updates.amount = parseFloat(updates.amount);
+  const { data, error } = await supabaseAdmin.from('expenses')
+    .update(updates).eq('id', req.params.id).eq('tenant_id', req.tenantId)
+    .select('*, employees(name), jobs(name)').single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+app.delete('/api/expenses/:id', auth, requireFinancialAccess, async (req, res) => {
+  const { error } = await supabaseAdmin.from('expenses')
+    .delete().eq('id', req.params.id).eq('tenant_id', req.tenantId);
+  if (error) return res.status(400).json({ error: error.message });
   res.json({ ok: true });
 });
 
