@@ -2555,22 +2555,22 @@
       </div>
 
       <div class="owner-kpi-grid">
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="setTeamFilter('all')" style="cursor:pointer" title="Show all team members">
           <div class="owner-kpi-label">Team Members</div>
           <div class="owner-kpi-value" id="team-total-count">—</div>
           <div class="owner-kpi-meta">Everyone currently added to this owner account.</div>
         </div>
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="setTeamFilter('crew')" style="cursor:pointer" title="Filter to crew only">
           <div class="owner-kpi-label">Crew Roles</div>
           <div class="owner-kpi-value" id="team-crew-count">—</div>
           <div class="owner-kpi-meta">Field crew available for assignments and mobile updates.</div>
         </div>
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="setTeamFilter('manager')" style="cursor:pointer" title="Filter to managers, supervisors, and owners">
           <div class="owner-kpi-label">Managers</div>
           <div class="owner-kpi-value" id="team-manager-count">—</div>
           <div class="owner-kpi-meta">Managers or owners helping run jobs and scheduling.</div>
         </div>
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="location.href='/pricing'" style="cursor:pointer" title="View plans to add seats">
           <div class="owner-kpi-label">Capacity Left</div>
           <div class="owner-kpi-value" id="team-capacity-count">—</div>
           <div class="owner-kpi-meta">Remaining crew seats before this plan hits its limit.</div>
@@ -2689,22 +2689,22 @@
       </div>
 
       <div class="owner-kpi-grid">
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="showAllClientsOverview()" style="cursor:pointer" title="Show all clients overview">
           <div class="owner-kpi-label">Clients</div>
           <div class="owner-kpi-value" id="clients-total-count">—</div>
           <div class="owner-kpi-meta">Total accounts currently tracked in LinkCrew.</div>
         </div>
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="showAllClientsOverview()" style="cursor:pointer" title="Review open follow-ups">
           <div class="owner-kpi-label">Follow-Ups Due</div>
           <div class="owner-kpi-value" id="clients-followup-count">—</div>
           <div class="owner-kpi-meta">Open relationship tasks that still need owner action.</div>
         </div>
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="showAllClientsOverview()" style="cursor:pointer" title="Jump to overdue follow-ups">
           <div class="owner-kpi-label">Overdue Follow-Ups</div>
           <div class="owner-kpi-value" id="clients-overdue-count">—</div>
           <div class="owner-kpi-meta">Items that have already slipped past their due date.</div>
         </div>
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="if (canViewFinancials()) switchClientsTab('recurring'); else showAllClientsOverview();" style="cursor:pointer" title="Open recurring invoice plans">
           <div class="owner-kpi-label">Recurring Invoice Plans</div>
           <div class="owner-kpi-value" id="clients-recurring-count">—</div>
           <div class="owner-kpi-meta">Active recurring billing relationships tied to clients.</div>
@@ -2910,22 +2910,22 @@
       </div>
 
       <div class="owner-kpi-grid">
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="setAgreementFilter('active')" style="cursor:pointer" title="Filter to active agreements">
           <div class="owner-kpi-label">Active Agreements</div>
           <div class="owner-kpi-value" id="ag-active-count">—</div>
           <div class="owner-kpi-meta">Contracts currently in force and contributing to recurring work.</div>
         </div>
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="setAgreementFilter('active')" style="cursor:pointer" title="Review active agreements driving MRR">
           <div class="owner-kpi-label">Est. MRR</div>
           <div class="owner-kpi-value" id="ag-mrr-count">—</div>
           <div class="owner-kpi-meta">Approximate monthly recurring value across active agreements.</div>
         </div>
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="setAgreementFilter('overdue')" style="cursor:pointer" title="Filter to overdue renewals">
           <div class="owner-kpi-label">Overdue Renewals</div>
           <div class="owner-kpi-value" id="ag-overdue-count">—</div>
           <div class="owner-kpi-meta">Agreements that already passed the next due date.</div>
         </div>
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="setAgreementFilter('upcoming')" style="cursor:pointer" title="Filter to upcoming renewals">
           <div class="owner-kpi-label">Due in 30 Days</div>
           <div class="owner-kpi-value" id="ag-upcoming-count">—</div>
           <div class="owner-kpi-meta">Active agreements that need attention soon.</div>
@@ -3002,22 +3002,22 @@
       </div>
 
       <div class="owner-kpi-grid">
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="setTimesheetFilter('all')" style="cursor:pointer" title="Show all timesheet entries">
           <div class="owner-kpi-label">Entries</div>
           <div class="owner-kpi-value" id="ts-entry-count">—</div>
           <div class="owner-kpi-meta">Timesheet rows in the current filtered period.</div>
         </div>
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="setTimesheetFilter('closed')" style="cursor:pointer" title="Show only completed shifts">
           <div class="owner-kpi-label">Hours Logged</div>
           <div class="owner-kpi-value" id="ts-hours-count">—</div>
           <div class="owner-kpi-meta">Tracked labor hours with both punch-in and punch-out.</div>
         </div>
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="setTimesheetFilter('open')" style="cursor:pointer" title="Show crew still clocked in">
           <div class="owner-kpi-label">Still Clocked In</div>
           <div class="owner-kpi-value" id="ts-open-count">—</div>
           <div class="owner-kpi-meta">Entries that are still open and may need follow-up.</div>
         </div>
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="setTimesheetFilter('manual')" style="cursor:pointer" title="Show manually edited entries">
           <div class="owner-kpi-label">Manual Entries</div>
           <div class="owner-kpi-value" id="ts-manual-count">—</div>
           <div class="owner-kpi-meta">Entries created outside the mobile punch flow.</div>
@@ -6867,6 +6867,35 @@ function closeTeam() {
   applyCapabilityUI();
 }
 let currentEmployeeCount = 0;
+let teamRoleFilter = 'all';
+
+function applyTeamFilter(employees = []) {
+  if (teamRoleFilter === 'all') return employees;
+  if (teamRoleFilter === 'crew') return employees.filter(e => e.role === 'crew');
+  if (teamRoleFilter === 'manager') return employees.filter(e => e.role === 'manager' || e.role === 'supervisor' || e.role === 'owner');
+  return employees;
+}
+
+function setTeamFilter(f) {
+  teamRoleFilter = f;
+  setTeamListExpanded(true);
+  const employees = window._allEmployees || [];
+  const filtered = applyTeamFilter(employees);
+  const el = document.getElementById('team-list');
+  if (el) {
+    el.innerHTML = filtered.length
+      ? filtered.map(e => renderTeamRow(e)).join('')
+      : '<div class="empty" style="padding:12px">No team members match this filter.</div>';
+  }
+  const inline = document.getElementById('team-list-inline');
+  if (inline) {
+    inline.innerHTML = filtered.length
+      ? filtered.map(e => renderTeamRow(e, true)).join('')
+      : '<div class="empty" style="padding:12px">No team members match this filter.</div>';
+  }
+  document.getElementById('team-roster-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 async function loadTeam() {
   const el = document.getElementById('team-list');
   try {
@@ -6882,7 +6911,10 @@ async function loadTeam() {
       el.innerHTML = '<div class="empty" style="padding:12px">No employees yet. Add one below.</div>';
       return;
     }
-    el.innerHTML = employees.map(e => renderTeamRow(e)).join('');
+    const filtered = applyTeamFilter(employees);
+    el.innerHTML = filtered.length
+      ? filtered.map(e => renderTeamRow(e)).join('')
+      : '<div class="empty" style="padding:12px">No team members match this filter.</div>';
   } catch (err) {
     renderTeamSummary([]);
     if (el) {
@@ -8888,6 +8920,26 @@ async function initTimesheets() {
   tsInitialized = true;
 }
 
+let timesheetFilter = 'all';
+window._allTimesheetEntries = [];
+
+function applyTimesheetFilter(entries = []) {
+  if (timesheetFilter === 'all') return entries;
+  if (timesheetFilter === 'open') return entries.filter(e => e.checked_in_at && !e.checked_out_at);
+  if (timesheetFilter === 'closed') return entries.filter(e => e.checked_in_at && e.checked_out_at);
+  if (timesheetFilter === 'manual') return entries.filter(e => e.manual_punch);
+  return entries;
+}
+
+function setTimesheetFilter(f) {
+  timesheetFilter = f;
+  const all = window._allTimesheetEntries || [];
+  const filtered = applyTimesheetFilter(all);
+  renderTimesheetSummary(filtered);
+  renderTimesheetTable(filtered);
+  document.getElementById('ts-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 async function loadTimesheets() {
   const start = document.getElementById('ts-start').value;
   const end = document.getElementById('ts-end').value;
@@ -8900,9 +8952,11 @@ async function loadTimesheets() {
 
   const res = await authFetch(url);
   const entries = await res.json();
+  window._allTimesheetEntries = entries;
   updateTimesheetMetrics(entries);
-  renderTimesheetSummary(entries);
-  renderTimesheetTable(entries);
+  const filtered = applyTimesheetFilter(entries);
+  renderTimesheetSummary(filtered);
+  renderTimesheetTable(filtered);
 }
 
 function updateTimesheetMetrics(entries) {
@@ -9855,6 +9909,15 @@ async function loadClients() {
   renderCrmEmptyState();
 }
 
+function showAllClientsOverview() {
+  selectedClientId = null;
+  const activeRow = document.querySelector('.client-row.active');
+  if (activeRow) activeRow.classList.remove('active');
+  if (typeof switchClientsTab === 'function') switchClientsTab('all');
+  renderCrmEmptyState();
+  document.getElementById('crm-detail-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function updateClientMetrics() {
   const today = new Date().toISOString().split('T')[0];
   const allFu = allClientsData.flatMap(c => c.client_follow_ups || []);
@@ -10582,6 +10645,17 @@ function filterAgreements(q) {
     (a.clients?.name || '').toLowerCase().includes(q.toLowerCase())
   );
   renderAgreementList(filtered);
+}
+
+function setAgreementFilter(bucket) {
+  const today = new Date().toISOString().split('T')[0];
+  const in30 = new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0];
+  let filtered = allAgreementsData;
+  if (bucket === 'active') filtered = allAgreementsData.filter(a => a.status === 'active');
+  else if (bucket === 'overdue') filtered = allAgreementsData.filter(a => a.status === 'active' && a.next_due && a.next_due < today);
+  else if (bucket === 'upcoming') filtered = allAgreementsData.filter(a => a.status === 'active' && a.next_due && a.next_due >= today && a.next_due <= in30);
+  renderAgreementList(filtered);
+  document.querySelector('.ag-list-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function openAgreementDetail(id) {
