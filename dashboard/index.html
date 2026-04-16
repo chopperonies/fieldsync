@@ -1924,9 +1924,9 @@
               </div>
             </div>
 
-            <!-- Aging buckets -->
+            <!-- Aging buckets (clickable — filter the queue) -->
             <div style="display:grid;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px">
-              <div id="ar-bucket-current" class="ar-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);background:#f0fdf4">
+              <div id="ar-bucket-current" class="ar-row" onclick="setInvoicesAgeFilter('current')" title="Filter queue to invoices 0–30 days old" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);background:#f0fdf4;cursor:pointer;transition:filter 0.12s">
                 <div>
                   <div style="font-size:11px;font-weight:700;color:#15803d">CURRENT</div>
                   <div style="font-size:11px;color:var(--text-soft);margin-top:2px">0–30 days</div>
@@ -1936,7 +1936,7 @@
                   <div id="ar-current-count" style="font-size:11px;color:var(--text-soft);margin-top:2px">0 invoices</div>
                 </div>
               </div>
-              <div id="ar-bucket-aging" class="ar-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);background:#fefce8">
+              <div id="ar-bucket-aging" class="ar-row" onclick="setInvoicesAgeFilter('aging')" title="Filter queue to invoices 31–60 days old" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);background:#fefce8;cursor:pointer;transition:filter 0.12s">
                 <div>
                   <div style="font-size:11px;font-weight:700;color:#a16207">AGING</div>
                   <div style="font-size:11px;color:var(--text-soft);margin-top:2px">31–60 days</div>
@@ -1946,7 +1946,7 @@
                   <div id="ar-aging-count" style="font-size:11px;color:var(--text-soft);margin-top:2px">0 invoices</div>
                 </div>
               </div>
-              <div id="ar-bucket-overdue" class="ar-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#fef2f2">
+              <div id="ar-bucket-overdue" class="ar-row" onclick="setInvoicesAgeFilter('overdue')" title="Filter queue to invoices 60+ days old" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#fef2f2;cursor:pointer;transition:filter 0.12s">
                 <div>
                   <div style="font-size:11px;font-weight:700;color:#991b1b">OVERDUE</div>
                   <div style="font-size:11px;color:var(--text-soft);margin-top:2px">60+ days</div>
@@ -2496,22 +2496,22 @@
       </div>
 
       <div class="owner-kpi-grid">
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="setJobRecordsFilter('completed')" style="cursor:pointer" title="Filter to completed jobs">
           <div class="owner-kpi-label">Completed</div>
           <div class="owner-kpi-value" id="job-records-completed-count">—</div>
           <div class="owner-kpi-meta">Work that finished and may still need billing or warranty follow-up.</div>
         </div>
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="setJobRecordsFilter('saved_for_later')" style="cursor:pointer" title="Filter to saved-for-later">
           <div class="owner-kpi-label">Saved For Later</div>
           <div class="owner-kpi-value" id="job-records-saved-count">—</div>
           <div class="owner-kpi-meta">Deferred jobs that are still valid opportunities for later scheduling.</div>
         </div>
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="setJobRecordsFilter('cancelled')" style="cursor:pointer" title="Filter to cancelled jobs">
           <div class="owner-kpi-label">Cancelled</div>
           <div class="owner-kpi-value" id="job-records-cancelled-count">—</div>
           <div class="owner-kpi-meta">Jobs that are closed with no more work expected.</div>
         </div>
-        <div class="owner-kpi-card">
+        <div class="owner-kpi-card" onclick="setJobRecordsFilter('archived')" style="cursor:pointer" title="Filter to archived jobs">
           <div class="owner-kpi-label">Archived</div>
           <div class="owner-kpi-value" id="job-records-archived-count">—</div>
           <div class="owner-kpi-meta">Older records hidden from daily workflows but kept for reference.</div>
@@ -5609,10 +5609,22 @@ function renderScheduleWorkspace(jobs = []) {
 }
 
 let invoicesFilter = 'all';
+let invoicesAgeFilter = 'all';
 
 function setInvoicesFilter(f) {
   invoicesFilter = f;
+  invoicesAgeFilter = 'all';
   renderInvoicesWorkspace(allJobsData || []);
+}
+
+function setInvoicesAgeFilter(bucket) {
+  invoicesAgeFilter = (invoicesAgeFilter === bucket) ? 'all' : bucket;
+  invoicesFilter = (invoicesAgeFilter === 'all') ? invoicesFilter : 'unpaid';
+  renderInvoicesWorkspace(allJobsData || []);
+  const queueCard = document.getElementById('invoices-queue-list');
+  if (queueCard && invoicesAgeFilter !== 'all') {
+    queueCard.closest('.owner-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 function renderInvoicesWorkspace(jobs = []) {
@@ -5646,10 +5658,25 @@ function renderInvoicesWorkspace(jobs = []) {
   setText('invoice-composer-missing', String(invoiceJobs.filter(job => !(parseFloat(job?.invoice_amount) > 0)).length));
   setText('invoice-composer-paid-cycle', `$${paidAmount.toFixed(2)}`);
 
+  const nowTs = Date.now();
+  const ageBucket = (job) => {
+    const created = job.created_at || job.updated_at;
+    if (!created) return null;
+    const days = (nowTs - new Date(created).getTime()) / 86400000;
+    if (days <= 30) return 'current';
+    if (days <= 60) return 'aging';
+    return 'overdue';
+  };
+
   const filteredJobs = invoiceJobs.filter(job => {
     const isPaid = String(job?.payment_status || '').toLowerCase() === 'paid';
-    if (invoicesFilter === 'unpaid') return !isPaid;
-    if (invoicesFilter === 'paid')   return isPaid;
+    if (invoicesFilter === 'unpaid' && isPaid) return false;
+    if (invoicesFilter === 'paid' && !isPaid) return false;
+    if (invoicesAgeFilter !== 'all') {
+      if (isPaid) return false;
+      if (!(parseFloat(job?.invoice_amount) > 0)) return false;
+      if (ageBucket(job) !== invoicesAgeFilter) return false;
+    }
     return true;
   });
 
@@ -5692,6 +5719,14 @@ function renderArAging(invoiceJobs) {
   setText('ar-aging-count', buckets.aging.n + ' invoice' + (buckets.aging.n === 1 ? '' : 's'));
   setText('ar-overdue-amount', fmt(buckets.overdue.amt));
   setText('ar-overdue-count', buckets.overdue.n + ' invoice' + (buckets.overdue.n === 1 ? '' : 's'));
+
+  // Highlight the active age-filter bucket
+  ['current', 'aging', 'overdue'].forEach(k => {
+    const row = document.getElementById(`ar-bucket-${k}`);
+    if (!row) return;
+    row.style.filter = invoicesAgeFilter === k ? 'brightness(0.92)' : 'none';
+    row.style.boxShadow = invoicesAgeFilter === k ? 'inset 3px 0 0 0 #0369a1' : 'none';
+  });
 
   const subEl = document.getElementById('ar-total-sub');
   if (subEl) subEl.textContent = totalUnpaid > 0 ? 'Total unpaid balance across all invoices.' : 'You\'re all caught up — no unpaid invoices.';
