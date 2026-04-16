@@ -163,16 +163,30 @@
     .chip-red { background: #fef2f2; color: #991b1b; }
     .chip-grey { background: #f8fafc; color: #64748b; border-color: #e2e8f0; }
 
-    /* Primary button — clean, no glow overkill */
+    /* Primary button — smaller, cleaner, matches mini-btn weight */
     .owner-btn.primary {
-      background: #0284c7;
-      box-shadow: 0 1px 3px rgba(2,132,199,0.3);
-      transition: background 0.12s, box-shadow 0.12s, transform 0.12s;
+      background: #0369a1;
+      color: #fff;
+      border: 1px solid #0369a1;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      box-shadow: none;
+      border-radius: 6px;
+      transition: background 0.12s, border-color 0.12s;
     }
     .owner-btn.primary:hover {
-      background: #0369a1;
-      box-shadow: 0 4px 12px rgba(2,132,199,0.35);
-      transform: translateY(-1px);
+      background: #075985;
+      border-color: #075985;
+      box-shadow: none;
+      transform: none;
+    }
+    /* Match base .owner-btn to the same compact size */
+    .owner-btn:not(.primary) {
+      padding: 6px 12px;
+      font-size: 11px;
+      border-radius: 6px;
+      box-shadow: none;
     }
 
     /* Quick add dropdown */
@@ -1243,7 +1257,7 @@
       <span class="nav-group-chevron" id="jobs-nav-chevron" onclick="event.stopPropagation();toggleJobsSidebarGroup()">⌄</span>
     </div>
     <div class="nav-submenu" id="jobs-nav-submenu">
-      <div class="nav-subitem" id="jobs-sub-records" onclick="switchMainTab('jobs-records')">Job Records</div>
+      <div class="nav-subitem" id="jobs-sub-records" onclick="switchMainTab('jobs-records')">Job History</div>
     </div>
     <div class="nav-item nav-group-trigger" id="mtab-quotes">
       <div class="nav-group-main" onclick="switchMainTab('quotes');setQuotesSidebarExpanded(true);">
@@ -1818,8 +1832,7 @@
           </div>
         </div>
         <div class="owner-page-actions">
-          <button class="owner-btn" onclick="switchMainTab('reports')">Open Reports</button>
-          <button class="owner-btn primary" onclick="openInvoiceWorksheet()">Create Invoice</button>
+          <button class="owner-btn primary" onclick="openInvoiceWorksheet()">+ New Invoice</button>
         </div>
       </div>
       <div class="workspace-summary-grid" id="invoices-summary-grid"></div>
@@ -1837,28 +1850,54 @@
           </div>
         </div>
         <div class="owner-section-stack">
-          <div class="owner-signal-card">
-            <div class="owner-signal-label">Billing Snapshot</div>
-            <div class="owner-signal-title">Keep cash movement visible while jobs are still fresh in memory.</div>
-            <div class="owner-signal-copy">The billing lane should tell the owner what can be invoiced today, what needs a client follow-up, and what should already be marked paid instead of hiding those answers in completed jobs.</div>
-            <div class="owner-inline-list">
-              <div class="owner-inline-row"><span>Send fast</span><strong>Completed jobs with ready totals</strong></div>
-              <div class="owner-inline-row"><span>Review next</span><strong>Unpaid work older than expected</strong></div>
-              <div class="owner-inline-row"><span>Close out</span><strong>Paid jobs still sitting in the queue</strong></div>
-            </div>
-          </div>
+          <!-- AR Aging: real data, real action -->
           <div class="owner-card">
             <div class="owner-card-header">
               <div>
-                <div class="owner-card-title">Collections Rhythm</div>
-                <div class="owner-card-headline">Make the next billing action obvious.</div>
-                <div class="owner-card-sub">This page should support a simple billing cadence: issue invoices quickly, watch unpaid balances, and keep follow-up clean instead of reactive.</div>
+                <div class="owner-card-title">Outstanding</div>
+                <div class="owner-card-headline" id="ar-total-outstanding">$0</div>
+                <div class="owner-card-sub" id="ar-total-sub">Total unpaid balance across all invoices.</div>
               </div>
             </div>
-            <div class="owner-inline-list">
-              <div class="owner-inline-row"><span>1</span><strong>Invoice finished work immediately</strong></div>
-              <div class="owner-inline-row"><span>2</span><strong>Follow up on aging unpaid balances</strong></div>
-              <div class="owner-inline-row"><span>3</span><strong>Mark paid and remove billing drag</strong></div>
+
+            <!-- Aging buckets -->
+            <div style="display:grid;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px">
+              <div id="ar-bucket-current" class="ar-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);background:#f0fdf4">
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:#15803d">CURRENT</div>
+                  <div style="font-size:11px;color:var(--text-soft);margin-top:2px">0–30 days</div>
+                </div>
+                <div style="text-align:right">
+                  <div id="ar-current-amount" style="font-size:14px;font-weight:800;color:var(--text)">$0</div>
+                  <div id="ar-current-count" style="font-size:11px;color:var(--text-soft);margin-top:2px">0 invoices</div>
+                </div>
+              </div>
+              <div id="ar-bucket-aging" class="ar-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);background:#fefce8">
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:#a16207">AGING</div>
+                  <div style="font-size:11px;color:var(--text-soft);margin-top:2px">31–60 days</div>
+                </div>
+                <div style="text-align:right">
+                  <div id="ar-aging-amount" style="font-size:14px;font-weight:800;color:var(--text)">$0</div>
+                  <div id="ar-aging-count" style="font-size:11px;color:var(--text-soft);margin-top:2px">0 invoices</div>
+                </div>
+              </div>
+              <div id="ar-bucket-overdue" class="ar-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#fef2f2">
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:#991b1b">OVERDUE</div>
+                  <div style="font-size:11px;color:var(--text-soft);margin-top:2px">60+ days</div>
+                </div>
+                <div style="text-align:right">
+                  <div id="ar-overdue-amount" style="font-size:14px;font-weight:800;color:var(--text)">$0</div>
+                  <div id="ar-overdue-count" style="font-size:11px;color:var(--text-soft);margin-top:2px">0 invoices</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Smart next action -->
+            <div id="ar-next-action" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px">
+              <i data-lucide="check-circle" style="width:14px;height:14px;color:#15803d;flex-shrink:0"></i>
+              <span style="font-size:12px;color:var(--text-soft);line-height:1.5">All invoices in good standing.</span>
             </div>
           </div>
         </div>
@@ -2382,7 +2421,7 @@
     <div class="owner-page-shell">
       <div class="owner-page-header">
         <div class="owner-page-copy">
-          <div class="owner-page-eyebrow">Job Records</div>
+          <div class="owner-page-eyebrow">Job History</div>
           <div class="owner-page-title">Closed, deferred, cancelled, and archived work.</div>
           <div class="owner-page-subtitle">Keep current operations on the main Jobs page and move finished or deferred work into a dedicated records workspace that stays searchable and easy to manage later.</div>
         </div>
@@ -2697,43 +2736,94 @@
         </div>
       </div>
 
-      <div class="owner-signal-card" style="margin-bottom:18px">
-        <div class="owner-signal-label">Executive Summary</div>
-        <div class="owner-signal-title" id="reports-summary-title">Loading the latest reporting view.</div>
-        <div class="owner-signal-copy" id="reports-summary-copy">Once report data loads, this summary will translate the period into plain operational language.</div>
-        <div class="owner-inline-list" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-          <div class="owner-inline-row"><span>Jobs in period</span><strong id="reports-inline-total">—</strong></div>
-          <div class="owner-inline-row"><span>Completed</span><strong id="reports-inline-completed">—</strong></div>
-          <div class="owner-inline-row"><span>Bottlenecks</span><strong id="reports-inline-bottlenecks">—</strong></div>
+      <!-- Money headline strip -->
+      <div style="display:flex;align-items:stretch;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:#fdfdfc">
+        <div style="flex:1;padding:18px 24px;border-right:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Revenue</div>
+          <div style="font-size:28px;font-weight:900;color:var(--text);margin-top:4px;letter-spacing:-0.03em" id="rep-revenue">—</div>
+          <div style="font-size:11px;color:var(--text-soft);margin-top:3px" id="rep-revenue-delta">vs previous period</div>
+        </div>
+        <div style="flex:1;padding:18px 24px;border-right:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Expenses</div>
+          <div style="font-size:28px;font-weight:900;color:#b45309;margin-top:4px;letter-spacing:-0.03em" id="rep-expenses">—</div>
+          <div style="font-size:11px;color:var(--text-soft);margin-top:3px" id="rep-expenses-sub">paid out this period</div>
+        </div>
+        <div style="flex:1;padding:18px 24px;border-right:1px solid var(--border);background:#f0f9ff">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#0369a1">Net Profit</div>
+          <div style="font-size:28px;font-weight:900;color:#0369a1;margin-top:4px;letter-spacing:-0.03em" id="rep-profit">—</div>
+          <div style="font-size:11px;color:var(--text-soft);margin-top:3px" id="rep-profit-delta">revenue minus expenses</div>
+        </div>
+        <div style="flex:1;padding:18px 24px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Outstanding</div>
+          <div style="font-size:28px;font-weight:900;color:var(--text);margin-top:4px;letter-spacing:-0.03em" id="rep-outstanding">—</div>
+          <div style="font-size:11px;color:var(--text-soft);margin-top:3px">unpaid invoices total</div>
         </div>
       </div>
 
-      <div class="report-stat-grid">
-        <div class="report-stat"><div class="rs-val" id="rs-total">—</div><div class="rs-label">Total Jobs</div></div>
-        <div class="report-stat"><div class="rs-val" id="rs-completed" style="color:#16a34a">—</div><div class="rs-label">Completed</div></div>
-        <div class="report-stat"><div class="rs-val" id="rs-hours" style="color:#0265dc">—</div><div class="rs-label">Crew Hours Logged</div></div>
-        <div class="report-stat"><div class="rs-val" id="rs-bottlenecks" style="color:#dc2626">—</div><div class="rs-label">Bottlenecks</div><div class="rs-sub" id="rs-period-label">last 30 days</div></div>
-      </div>
+      <!-- Main grid: revenue trend + top clients -->
+      <div class="owner-ops-layout">
+        <div class="owner-section-stack">
+          <!-- Revenue trend -->
+          <div class="owner-card">
+            <div class="owner-card-header">
+              <div>
+                <div class="owner-card-title">Revenue</div>
+                <div class="owner-card-headline">Last 6 months</div>
+              </div>
+            </div>
+            <div style="height:240px"><canvas id="chart-revenue"></canvas></div>
+          </div>
 
-      <div class="charts-row">
-        <div class="chart-card">
-          <div class="chart-card-title">Jobs by Status</div>
-          <div class="chart-wrap"><canvas id="chart-status"></canvas></div>
+          <!-- Conversion funnel -->
+          <div class="owner-card">
+            <div class="owner-card-header">
+              <div>
+                <div class="owner-card-title">Conversion Funnel</div>
+                <div class="owner-card-headline" id="rep-funnel-headline">Where leads are turning into money</div>
+              </div>
+            </div>
+            <div id="rep-funnel" style="display:grid;gap:8px;margin-top:6px"></div>
+          </div>
         </div>
-        <div class="chart-card">
-          <div class="chart-card-title">Jobs Completed — Last 6 Months</div>
-          <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
-        </div>
-      </div>
 
-      <div class="charts-row">
-        <div class="chart-card">
-          <div class="chart-card-title">Crew Hours (period)</div>
-          <div class="chart-wrap"><canvas id="chart-crew"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-card-title">Supply Requests (period)</div>
-          <div style="margin-top:16px" id="supply-bars-container"></div>
+        <div class="owner-section-stack">
+          <!-- Top clients -->
+          <div class="owner-card">
+            <div class="owner-card-header">
+              <div>
+                <div class="owner-card-title">Top Clients</div>
+                <div class="owner-card-headline">Where revenue concentrates</div>
+              </div>
+            </div>
+            <div id="rep-top-clients"><div class="empty">No paid invoices in this period yet.</div></div>
+          </div>
+
+          <!-- Expense breakdown -->
+          <div class="owner-card">
+            <div class="owner-card-header">
+              <div>
+                <div class="owner-card-title">Expenses by Category</div>
+                <div class="owner-card-headline" id="rep-expense-total-label">$0 total spend</div>
+              </div>
+            </div>
+            <div id="rep-expense-cats"><div class="empty">No expenses logged in this period.</div></div>
+          </div>
+
+          <!-- Operational signals -->
+          <div class="owner-card">
+            <div class="owner-card-header">
+              <div>
+                <div class="owner-card-title">Operational Signals</div>
+                <div class="owner-card-headline">Worth a second look</div>
+              </div>
+            </div>
+            <div class="owner-inline-list">
+              <div class="owner-inline-row"><span>Revenue per crew hour</span><strong id="rep-rev-per-hour">—</strong></div>
+              <div class="owner-inline-row"><span>Crew hours logged</span><strong id="rep-crew-hours">—</strong></div>
+              <div class="owner-inline-row"><span>Bottlenecks reported</span><strong id="rep-bottlenecks">—</strong></div>
+              <div class="owner-inline-row"><span>Jobs completed</span><strong id="rep-completed">—</strong></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -5367,6 +5457,13 @@ function renderScheduleWorkspace(jobs = []) {
   }), '📆', 'No schedule-stage work is waiting right now.');
 }
 
+let invoicesFilter = 'all';
+
+function setInvoicesFilter(f) {
+  invoicesFilter = f;
+  renderInvoicesWorkspace(allJobsData || []);
+}
+
 function renderInvoicesWorkspace(jobs = []) {
   const invoiceJobs = (jobs || []).filter(job => normalizeJobStatus(job?.status) === 'completed' || normalizeJobStatus(job?.status) === 'invoiced' || String(job?.payment_status || '').toLowerCase() === 'paid');
   const unpaid = invoiceJobs.filter(job => String(job?.payment_status || '').toLowerCase() !== 'paid').length;
@@ -5377,17 +5474,35 @@ function renderInvoicesWorkspace(jobs = []) {
     .reduce((sum, job) => sum + (parseFloat(job?.invoice_amount) || 0), 0);
   const unpaidAmount = Math.max(totalAmount - paidAmount, 0);
   const summary = document.getElementById('invoices-summary-grid');
+  const activeStyle = 'background:#f0f9ff;border-bottom:2px solid #0369a1';
   if (summary) summary.innerHTML = `
-    <div class="workspace-summary-card"><div class="workspace-summary-label">Billing Queue</div><div class="workspace-summary-value">${invoiceJobs.length}</div><div class="workspace-summary-sub">Completed, invoiced, or paid jobs.</div></div>
-    <div class="workspace-summary-card"><div class="workspace-summary-label">Unpaid</div><div class="workspace-summary-value">${unpaid}</div><div class="workspace-summary-sub">Jobs still waiting for payment.</div></div>
-    <div class="workspace-summary-card"><div class="workspace-summary-label">Paid</div><div class="workspace-summary-value">${paid}</div><div class="workspace-summary-sub">Closed billing items already settled.</div></div>
+    <div class="workspace-summary-card" onclick="setInvoicesFilter('all')" style="cursor:pointer;${invoicesFilter==='all'?activeStyle:''}">
+      <div class="workspace-summary-label">All Invoices</div><div class="workspace-summary-value">${invoiceJobs.length}</div>
+      <div class="workspace-summary-sub">Click to view all billing items.</div>
+    </div>
+    <div class="workspace-summary-card" onclick="setInvoicesFilter('unpaid')" style="cursor:pointer;${invoicesFilter==='unpaid'?activeStyle:''}">
+      <div class="workspace-summary-label">Unpaid</div><div class="workspace-summary-value" style="color:#b45309">${unpaid}</div>
+      <div class="workspace-summary-sub">Click to filter unpaid only.</div>
+    </div>
+    <div class="workspace-summary-card" onclick="setInvoicesFilter('paid')" style="cursor:pointer;${invoicesFilter==='paid'?activeStyle:''}">
+      <div class="workspace-summary-label">Paid</div><div class="workspace-summary-value" style="color:#15803d">${paid}</div>
+      <div class="workspace-summary-sub">Click to filter paid only.</div>
+    </div>
   `;
   setText('invoice-composer-subtotal', `$${totalAmount.toFixed(2)}`);
   setText('invoice-composer-balance', `$${unpaidAmount.toFixed(2)}`);
   setText('invoice-composer-paid', `$${paidAmount.toFixed(2)}`);
   setText('invoice-composer-missing', String(invoiceJobs.filter(job => !(parseFloat(job?.invoice_amount) > 0)).length));
   setText('invoice-composer-paid-cycle', `$${paidAmount.toFixed(2)}`);
-  renderWorkspaceRows('invoices-queue-list', invoiceJobs.map(job => `
+
+  const filteredJobs = invoiceJobs.filter(job => {
+    const isPaid = String(job?.payment_status || '').toLowerCase() === 'paid';
+    if (invoicesFilter === 'unpaid') return !isPaid;
+    if (invoicesFilter === 'paid')   return isPaid;
+    return true;
+  });
+
+  renderWorkspaceRows('invoices-queue-list', filteredJobs.map(job => `
     <div class="workspace-row" onclick="openDetail('${job.id}','${String(job.name || '').replace(/'/g,"\\'")}')" style="cursor:pointer">
       <div class="workspace-row-main">
         <div class="workspace-row-title">${job.name || 'Untitled invoice item'}</div>
@@ -5396,6 +5511,59 @@ function renderInvoicesWorkspace(jobs = []) {
       <div class="workspace-row-meta"><span class="chip ${String(job?.payment_status || '').toLowerCase() === 'paid' ? 'chip-green' : 'chip-yellow'}">${String(job?.payment_status || '').toLowerCase() === 'paid' ? 'Paid' : 'Unpaid'}</span></div>
     </div>
   `), '💳', 'No billing items are queued right now.');
+
+  renderArAging(invoiceJobs);
+}
+
+function renderArAging(invoiceJobs) {
+  const fmt = (n) => '$' + Math.round(n).toLocaleString();
+  const now = Date.now();
+  const buckets = { current: { amt: 0, n: 0 }, aging: { amt: 0, n: 0 }, overdue: { amt: 0, n: 0 } };
+  let totalUnpaid = 0;
+
+  invoiceJobs.forEach(job => {
+    if (String(job?.payment_status || '').toLowerCase() === 'paid') return;
+    const amt = parseFloat(job?.invoice_amount) || 0;
+    if (amt <= 0) return;
+    const created = job.created_at || job.updated_at;
+    if (!created) return;
+    const ageDays = (now - new Date(created).getTime()) / 86400000;
+    totalUnpaid += amt;
+    if (ageDays <= 30) { buckets.current.amt += amt; buckets.current.n++; }
+    else if (ageDays <= 60) { buckets.aging.amt += amt; buckets.aging.n++; }
+    else { buckets.overdue.amt += amt; buckets.overdue.n++; }
+  });
+
+  setText('ar-total-outstanding', fmt(totalUnpaid));
+  setText('ar-current-amount', fmt(buckets.current.amt));
+  setText('ar-current-count', buckets.current.n + ' invoice' + (buckets.current.n === 1 ? '' : 's'));
+  setText('ar-aging-amount', fmt(buckets.aging.amt));
+  setText('ar-aging-count', buckets.aging.n + ' invoice' + (buckets.aging.n === 1 ? '' : 's'));
+  setText('ar-overdue-amount', fmt(buckets.overdue.amt));
+  setText('ar-overdue-count', buckets.overdue.n + ' invoice' + (buckets.overdue.n === 1 ? '' : 's'));
+
+  const subEl = document.getElementById('ar-total-sub');
+  if (subEl) subEl.textContent = totalUnpaid > 0 ? 'Total unpaid balance across all invoices.' : 'You\'re all caught up — no unpaid invoices.';
+
+  const action = document.getElementById('ar-next-action');
+  if (action) {
+    let icon, color, msg;
+    if (buckets.overdue.n > 0) {
+      icon = 'alert-triangle'; color = '#dc2626';
+      msg = `<strong style="color:#991b1b">${buckets.overdue.n} overdue invoice${buckets.overdue.n===1?'':'s'}</strong> — call these clients today.`;
+    } else if (buckets.aging.n > 0) {
+      icon = 'clock'; color = '#a16207';
+      msg = `<strong style="color:#854d0e">${buckets.aging.n} invoice${buckets.aging.n===1?'':'s'} aging</strong> — send a friendly reminder.`;
+    } else if (totalUnpaid > 0) {
+      icon = 'check-circle'; color = '#15803d';
+      msg = 'All unpaid invoices are within 30 days — no action needed yet.';
+    } else {
+      icon = 'check-circle'; color = '#15803d';
+      msg = 'All invoices in good standing.';
+    }
+    action.innerHTML = `<i data-lucide="${icon}" style="width:14px;height:14px;color:${color};flex-shrink:0"></i><span style="font-size:12px;color:var(--text-soft);line-height:1.5">${msg}</span>`;
+    if (window.lucide) lucide.createIcons({ nodes: [action] });
+  }
 }
 
 async function loadSupplies() {
@@ -6870,7 +7038,7 @@ function updateWorkspaceHeader(tab) {
     referrals: ['Growth', 'Refer & Save', 'Share LinkCrew and track referral rewards.'],
     timesheets: ['People', 'Timesheets', 'Labor records, open punches, and payroll review.'],
     calendar: ['Operations', 'Schedule', 'Lay out the week and place work where it belongs.'],
-    'jobs-records': ['Archive', 'Job Records', 'Completed, deferred, cancelled, and archived work.'],
+    'jobs-records': ['Archive', 'Job History', 'Completed, deferred, cancelled, and archived work.'],
     agreements: ['Billing', 'Agreements', 'Recurring client agreements and contract history.'],
     'service-catalog': ['Billing', 'Service Catalog', 'Pre-defined services for fast invoice line items.'],
   }[tab] || ['Owner Workspace', 'Dashboard', 'Run the day without bouncing between jobs, clients, and billing.'];
@@ -9679,28 +9847,147 @@ function updateReportsSummary(d, days) {
 
 async function loadReports(days = 30) {
   if (!canViewFinancials()) return;
-  // Tier gate disabled during beta — all plans have full access
-
   document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
   const labels = { 7: '7 days', 30: '30 days', 90: '90 days' };
   document.querySelectorAll('.period-btn').forEach(b => {
     if (b.textContent === labels[days]) b.classList.add('active');
   });
-  document.getElementById('rs-period-label').textContent = `last ${days} days`;
 
   const res = await authFetch(`/api/reports?period=${days}`);
   const d = await res.json();
+  if (!res.ok) return;
 
-  document.getElementById('rs-total').textContent = d.totalJobs;
-  document.getElementById('rs-completed').textContent = d.completedJobs;
-  document.getElementById('rs-hours').textContent = d.totalCrewHours;
-  document.getElementById('rs-bottlenecks').textContent = d.bottlenecksCount;
-  updateReportsSummary(d, days);
+  const fmt = (n) => '$' + Math.round(n).toLocaleString();
+  setText('rep-revenue', fmt(d.revenue || 0));
+  setText('rep-expenses', fmt(d.expensesTotal || 0));
+  setText('rep-profit', fmt(d.profit || 0));
+  setText('rep-outstanding', fmt(d.outstandingTotal || 0));
 
-  renderStatusChart(d.jobsByStatus);
-  renderTrendChart(d.trend);
-  renderCrewChart(d.crewHours);
-  renderSupplyBars(d.supplyStats);
+  // Deltas
+  const revDelta = document.getElementById('rep-revenue-delta');
+  if (revDelta) {
+    if (d.revChangePct === null || d.revChangePct === undefined) {
+      revDelta.textContent = 'No prior period to compare';
+    } else {
+      const up = d.revChangePct >= 0;
+      revDelta.innerHTML = `<span style="color:${up?'#15803d':'#b91c1c'};font-weight:700">${up?'▲':'▼'} ${Math.abs(d.revChangePct)}%</span> vs prev ${days}d`;
+    }
+  }
+  const profDelta = document.getElementById('rep-profit-delta');
+  if (profDelta) {
+    if (d.profitChangePct === null || d.profitChangePct === undefined) {
+      profDelta.textContent = 'revenue minus expenses';
+    } else {
+      const up = d.profitChangePct >= 0;
+      profDelta.innerHTML = `<span style="color:${up?'#15803d':'#b91c1c'};font-weight:700">${up?'▲':'▼'} ${Math.abs(d.profitChangePct)}%</span> vs prev period`;
+    }
+  }
+
+  // Operational signals
+  setText('rep-rev-per-hour', d.revPerHour ? '$' + d.revPerHour.toFixed(2) : '$0.00');
+  setText('rep-crew-hours', (d.totalCrewHours || 0) + ' hrs');
+  setText('rep-bottlenecks', String(d.bottlenecksCount || 0));
+  setText('rep-completed', String(d.completedJobs || 0));
+
+  renderRevenueTrend(d.revTrend || {});
+  renderTopClients(d.topClients || []);
+  renderExpenseCats(d.expenseByCategory || {}, d.expensesTotal || 0);
+  renderConversionFunnel(d.funnel || {});
+}
+
+let chartRevenue = null;
+function renderRevenueTrend(trend) {
+  const ctx = document.getElementById('chart-revenue')?.getContext('2d');
+  if (!ctx) return;
+  if (chartRevenue) chartRevenue.destroy();
+  const labels = Object.keys(trend);
+  const values = Object.values(trend);
+  chartRevenue = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: 'Revenue', data: values, backgroundColor: '#0ea5e9', borderRadius: 6 }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => '$' + c.parsed.y.toLocaleString() } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 11 } } },
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', font: { size: 11 }, callback: v => '$' + v.toLocaleString() } },
+      },
+    },
+  });
+}
+
+function renderTopClients(clients) {
+  const el = document.getElementById('rep-top-clients');
+  if (!el) return;
+  if (!clients.length) { el.innerHTML = '<div class="empty">No paid invoices in this period yet.</div>'; return; }
+  const max = Math.max(...clients.map(c => c.total));
+  el.innerHTML = clients.map(c => {
+    const pct = max > 0 ? Math.round((c.total / max) * 100) : 0;
+    return `
+      <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">${c.name}</span>
+          <span style="font-size:13px;font-weight:800;color:var(--text)">$${Math.round(c.total).toLocaleString()}</span>
+        </div>
+        <div style="height:5px;background:var(--bg);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#0ea5e9,#0369a1);border-radius:3px"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderExpenseCats(cats, total) {
+  const el = document.getElementById('rep-expense-cats');
+  const totalLabel = document.getElementById('rep-expense-total-label');
+  if (totalLabel) totalLabel.textContent = '$' + Math.round(total).toLocaleString() + ' total spend';
+  if (!el) return;
+  const entries = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) { el.innerHTML = '<div class="empty">No expenses logged in this period.</div>'; return; }
+  const labels = { materials:'Materials', labor:'Labor', equipment:'Equipment', fuel:'Fuel', tools:'Tools', food:'Food', travel:'Travel', other:'Other' };
+  const colors = { materials:'#0ea5e9', labor:'#a855f7', equipment:'#f59e0b', fuel:'#ef4444', tools:'#10b981', food:'#ec4899', travel:'#3b82f6', other:'#94a3b8' };
+  el.innerHTML = entries.map(([cat, amt]) => {
+    const pct = total > 0 ? Math.round((amt / total) * 100) : 0;
+    return `
+      <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <span style="font-size:12px;color:var(--text-soft);font-weight:600">${labels[cat] || cat}</span>
+          <span style="font-size:12px;font-weight:700;color:var(--text)">$${Math.round(amt).toLocaleString()} <span style="color:var(--muted);font-weight:600">· ${pct}%</span></span>
+        </div>
+        <div style="height:4px;background:var(--bg);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${colors[cat]||'#94a3b8'};border-radius:2px"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderConversionFunnel(f) {
+  const el = document.getElementById('rep-funnel');
+  if (!el) return;
+  const stages = [
+    ['Quotes sent', f.quotes || 0, '#3b82f6'],
+    ['Won (scheduled+)', f.won || 0, '#0ea5e9'],
+    ['Paid', f.paid || 0, '#15803d'],
+  ];
+  const max = Math.max(...stages.map(s => s[1]), 1);
+  const winRate = f.quotes > 0 ? Math.round((f.won / f.quotes) * 100) : 0;
+  setText('rep-funnel-headline', f.quotes > 0 ? `${winRate}% win rate · ${f.paid}/${f.won} jobs paid` : 'Where leads are turning into money');
+  el.innerHTML = stages.map(([label, count, color]) => {
+    const pct = Math.round((count / max) * 100);
+    return `
+      <div style="display:grid;grid-template-columns:140px 1fr 60px;gap:10px;align-items:center">
+        <span style="font-size:12px;color:var(--text-soft);font-weight:600">${label}</span>
+        <div style="height:22px;background:var(--bg);border-radius:5px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:5px;transition:width 0.4s"></div>
+        </div>
+        <span style="font-size:14px;font-weight:800;color:var(--text);text-align:right">${count}</span>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderStatusChart(jobsByStatus) {

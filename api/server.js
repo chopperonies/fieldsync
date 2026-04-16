@@ -2808,8 +2808,11 @@ app.get('/api/reports', auth, requireFinancialAccess, async (req, res) => {
   since.setDate(since.getDate() - days);
   const sinceISO = since.toISOString();
 
-  const [{ data: allJobs }, { data: assignments }, { data: supplies }, { data: bottlenecks }] = await Promise.all([
-    scoped(supabaseAdmin.from('jobs').select('id, name, status, created_at'), req.tenantId),
+  const prevSince = new Date(); prevSince.setDate(prevSince.getDate() - days * 2);
+  const prevSinceISO = prevSince.toISOString();
+
+  const [{ data: allJobs }, { data: assignments }, { data: bottlenecks }, { data: expensesData }] = await Promise.all([
+    scoped(supabaseAdmin.from('jobs').select('id, name, status, created_at, updated_at, invoice_amount, payment_status, client_id, clients(name)'), req.tenantId),
     scoped(
       supabaseAdmin.from('job_assignments')
         .select('employee_id, checked_in_at, checked_out_at, employees(name)')
@@ -2818,8 +2821,8 @@ app.get('/api/reports', auth, requireFinancialAccess, async (req, res) => {
         .gte('checked_in_at', sinceISO),
       req.tenantId
     ),
-    scoped(supabaseAdmin.from('supply_requests').select('status').gte('created_at', sinceISO), req.tenantId),
     scoped(supabaseAdmin.from('job_updates').select('id').eq('type', 'bottleneck').gte('created_at', sinceISO), req.tenantId),
+    scoped(supabaseAdmin.from('expenses').select('amount, category, date').gte('date', prevSince.toISOString().split('T')[0]), req.tenantId),
   ]);
 
   // Jobs by status
@@ -2851,22 +2854,104 @@ app.get('/api/reports', auth, requireFinancialAccess, async (req, res) => {
     .map(([name, h]) => ({ name, hours: Math.round(h * 10) / 10 }))
     .sort((a, b) => b.hours - a.hours).slice(0, 8);
 
-  // Supply stats
-  const supplyStats = { pending: 0, ordered: 0, delivered: 0 };
-  (supplies || []).forEach(s => { if (s.status in supplyStats) supplyStats[s.status]++; });
-
   const totalCrewHours = Math.round(Object.values(crewHours).reduce((a, b) => a + b, 0) * 10) / 10;
 
+  // ── Money: revenue, expenses, profit ──
+  const inPeriod = (ts) => ts && new Date(ts) >= since;
+  const inPrevPeriod = (ts) => {
+    if (!ts) return false;
+    const t = new Date(ts);
+    return t >= prevSince && t < since;
+  };
+
+  let revenue = 0, prevRevenue = 0, outstandingTotal = 0;
+  const clientRevenue = {};
+  (allJobs || []).forEach(j => {
+    const amt = parseFloat(j.invoice_amount) || 0;
+    if (amt <= 0) return;
+    const isPaid = String(j.payment_status || '').toLowerCase() === 'paid';
+    const refDate = j.updated_at || j.created_at;
+    if (isPaid) {
+      if (inPeriod(refDate)) revenue += amt;
+      else if (inPrevPeriod(refDate)) prevRevenue += amt;
+    } else {
+      outstandingTotal += amt;
+    }
+    if (isPaid && inPeriod(refDate)) {
+      const name = j.clients?.name || 'No client';
+      clientRevenue[name] = (clientRevenue[name] || 0) + amt;
+    }
+  });
+
+  let expensesTotal = 0, prevExpensesTotal = 0;
+  const expenseByCategory = {};
+  (expensesData || []).forEach(e => {
+    const amt = parseFloat(e.amount) || 0;
+    const dt = e.date;
+    if (!dt) return;
+    if (dt >= since.toISOString().split('T')[0]) {
+      expensesTotal += amt;
+      const c = e.category || 'other';
+      expenseByCategory[c] = (expenseByCategory[c] || 0) + amt;
+    } else {
+      prevExpensesTotal += amt;
+    }
+  });
+
+  const profit = revenue - expensesTotal;
+  const prevProfit = prevRevenue - prevExpensesTotal;
+  const revChangePct = prevRevenue > 0 ? Math.round(((revenue - prevRevenue) / prevRevenue) * 100) : null;
+  const profitChangePct = prevProfit !== 0 ? Math.round(((profit - prevProfit) / Math.abs(prevProfit)) * 100) : null;
+
+  const topClients = Object.entries(clientRevenue)
+    .map(([name, total]) => ({ name, total: Math.round(total * 100) / 100 }))
+    .sort((a, b) => b.total - a.total).slice(0, 5);
+
+  // Conversion funnel: requests → quotes → jobs → paid (in period)
+  const inPeriodJobs = (allJobs || []).filter(j => inPeriod(j.created_at));
+  const requestsCount = inPeriodJobs.filter(j => normalizeJobStatus(j.status) === 'quoted').length;
+  const quotesCount = inPeriodJobs.filter(j => ['quoted','scheduled','active','in_progress','completed','invoiced'].includes(normalizeJobStatus(j.status))).length;
+  const wonCount = inPeriodJobs.filter(j => ['scheduled','active','in_progress','completed','invoiced'].includes(normalizeJobStatus(j.status))).length;
+  const paidCount = inPeriodJobs.filter(j => String(j.payment_status || '').toLowerCase() === 'paid').length;
+
+  const revPerHour = totalCrewHours > 0 ? Math.round((revenue / totalCrewHours) * 100) / 100 : 0;
+
+  // Revenue trend last 6 months (paid invoices grouped by month)
+  const revTrend = {};
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
+    revTrend[d.toLocaleString('default', { month: 'short', year: '2-digit' })] = 0;
+  }
+  (allJobs || []).forEach(j => {
+    if (String(j.payment_status || '').toLowerCase() !== 'paid') return;
+    const amt = parseFloat(j.invoice_amount) || 0;
+    if (amt <= 0) return;
+    const ref = j.updated_at || j.created_at;
+    const key = new Date(ref).toLocaleString('default', { month: 'short', year: '2-digit' });
+    if (revTrend[key] !== undefined) revTrend[key] += amt;
+  });
+
   res.json({
-    jobsByStatus,
-    trend,
+    // Money
+    revenue: Math.round(revenue * 100) / 100,
+    prevRevenue: Math.round(prevRevenue * 100) / 100,
+    revChangePct,
+    expensesTotal: Math.round(expensesTotal * 100) / 100,
+    prevExpensesTotal: Math.round(prevExpensesTotal * 100) / 100,
+    profit: Math.round(profit * 100) / 100,
+    profitChangePct,
+    outstandingTotal: Math.round(outstandingTotal * 100) / 100,
+    expenseByCategory,
+    topClients,
+    revTrend,
+    revPerHour,
+    // Funnel
+    funnel: { requests: requestsCount, quotes: quotesCount, won: wonCount, paid: paidCount },
+    // Operational signals
     crewHours: crewHoursSorted,
-    supplyStats,
     bottlenecksCount: (bottlenecks || []).length,
-    totalJobs: (allJobs || []).length,
-    completedJobs: (allJobs || []).filter(j => normalizeJobStatus(j.status) === 'completed').length,
-    activeJobs: (allJobs || []).filter(j => ACTIVE_JOB_STATUSES.includes(normalizeJobStatus(j.status))).length,
     totalCrewHours,
+    completedJobs: (allJobs || []).filter(j => normalizeJobStatus(j.status) === 'completed').length,
   });
 });
 
