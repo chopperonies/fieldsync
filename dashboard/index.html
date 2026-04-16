@@ -8450,7 +8450,7 @@ function renderCalendarGrid() {
       <div role="button" tabindex="0" onclick="selectCalendarDate('${dateStr}', true); this.blur();"
         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectCalendarDate('${dateStr}', true)}"
         class="cal-day-cell${isSelected ? ' cal-day-cell-selected' : ''}"
-        style="text-align:left;background:${isSelected ? '#eff6ff' : '#fff'};border:${isSelected ? '2px' : '1px'} solid ${isSelected ? '#0369a1' : 'var(--border)'};border-radius:8px;height:140px;overflow:hidden;padding:0;cursor:pointer;display:flex;flex-direction:column;box-shadow:${isSelected ? '0 2px 8px rgba(3,105,161,0.16)' : 'none'};-webkit-tap-highlight-color:transparent;outline:none">
+        style="text-align:left;background:${isSelected ? '#dbeafe' : '#fff'};border:${isSelected ? '2px' : '1px'} solid ${isSelected ? '#0369a1' : 'var(--border)'};border-radius:8px;height:140px;overflow:hidden;padding:0;cursor:pointer;display:flex;flex-direction:column;box-shadow:${isSelected ? '0 0 0 3px rgba(3,105,161,0.22), 0 4px 14px rgba(3,105,161,0.18)' : 'none'};transition:background 0.15s, box-shadow 0.15s, border-color 0.15s;-webkit-tap-highlight-color:transparent;outline:none">
         <div style="padding:6px 10px;background:${headerBg};border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:6px;flex-shrink:0">
           <div style="display:flex;align-items:baseline;gap:5px">
             <span style="font-size:9px;font-weight:700;color:${headerColor};text-transform:uppercase;letter-spacing:0.05em">${days[i % 7]}</span>
@@ -8484,7 +8484,18 @@ function selectCalendarDate(dateStr, openModal = false) {
   updateCalendarMetrics();
   renderCalendarGrid();
   renderCalendarAgenda();
-  if (openModal) openCalendarDayModal();
+  // Keep selected cell in view after re-render (scroll container is the planner grid on mobile)
+  const grid = document.getElementById('cal-grid');
+  if (grid) {
+    const sel = grid.querySelector('.cal-day-cell-selected');
+    if (sel && typeof sel.scrollIntoView === 'function') {
+      try { sel.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' }); } catch (_) {}
+    }
+  }
+  if (openModal) {
+    // Brief delay so the user sees the cell light up before the modal covers it
+    setTimeout(openCalendarDayModal, 180);
+  }
 }
 
 function openCalendarDayModal() {
