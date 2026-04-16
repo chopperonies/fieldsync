@@ -187,6 +187,50 @@ bot.on('callback_query', async (query) => {
 
   bot.answerCallbackQuery(query.id);
 
+  if (data.startsWith('approval|')) {
+    const [, action, approvalType, jobId] = data.split('|');
+    const { data: job } = await supabase.from('jobs').select('id, name, status, invoice_amount, payment_status').eq('id', jobId).single();
+    if (!job) {
+      return bot.sendMessage(telegramId, 'That job could not be found anymore.');
+    }
+
+    if (action === 'approve') {
+      const updates = {};
+      if (approvalType === 'quote' && job.status === 'quoted') {
+        updates.status = 'scheduled';
+      } else if (approvalType === 'invoice' && Number(job.invoice_amount || 0) > 0 && job.payment_status !== 'paid' && job.status !== 'invoiced') {
+        updates.status = 'invoiced';
+      }
+      if (Object.keys(updates).length) {
+        await supabase.from('jobs').update(updates).eq('id', jobId);
+      }
+      await supabase.from('job_updates').insert({
+        job_id: jobId,
+        type: 'note',
+        message: `Telegram ${approvalType} approved by ${query.from.first_name || 'Owner'}.`
+      });
+      if (query.message?.message_id) {
+        bot.editMessageReplyMarkup({ inline_keyboard: [] }, {
+          chat_id: telegramId,
+          message_id: query.message.message_id
+        }).catch(() => {});
+      }
+      return bot.sendMessage(telegramId, `✅ ${job.name} approved in Telegram.`);
+    }
+
+    if (action === 'reply') {
+      userState[telegramId] = {
+        action: 'approval_reply',
+        approvalType,
+        jobId,
+        jobName: job.name
+      };
+      return bot.sendMessage(telegramId, `Reply with your notes for *${job.name}*. I’ll add them to LinkCrew.`, {
+        parse_mode: 'Markdown'
+      });
+    }
+  }
+
   // Job selected
   if (data.startsWith('job_')) {
     const jobId = data.replace('job_', '');
@@ -296,6 +340,15 @@ bot.on('message', async (msg) => {
         ]]
       }
     });
+
+  } else if (state.action === 'approval_reply') {
+    await supabase.from('job_updates').insert({
+      job_id: state.jobId,
+      type: 'note',
+      message: `Telegram ${state.approvalType} reply from ${msg.from.first_name || 'Owner'}: ${text}`
+    });
+    userState[telegramId] = {};
+    bot.sendMessage(telegramId, `📝 Saved your reply on *${state.jobName}*.`, { parse_mode: 'Markdown' });
 
   } else if (state.action === 'bottleneck_desc') {
     const { jobId, job, employee } = state;

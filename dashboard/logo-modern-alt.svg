@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="tile" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F8AEF"/>
+      <stop offset="1" stop-color="#035CC7"/>
+    </linearGradient>
+    <linearGradient id="pin" x1="32" y1="14" x2="32" y2="45" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E8F4FF"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#tile)"/>
+  <rect x="4.75" y="4.75" width="54.5" height="54.5" rx="15.25" stroke="rgba(255,255,255,0.16)"/>
+
+  <path d="M32 14C24.54 14 18.5 20.04 18.5 27.5C18.5 37.98 32 49.5 32 49.5C32 49.5 45.5 37.98 45.5 27.5C45.5 20.04 39.46 14 32 14Z" fill="url(#pin)"/>
+  <circle cx="32" cy="27.5" r="6.25" fill="#0569D7"/>
+
+  <path d="M25.8 19.5C27.27 17.98 29.48 17 32 17" stroke="#9BD2FF" stroke-width="2" stroke-linecap="round"/>
+  <path d="M37.75 41.15L42.65 45.2" stroke="#9BD2FF" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M21.35 45.2L26.25 41.15" stroke="#9BD2FF" stroke-width="2.2" stroke-linecap="round"/>
+</svg>
