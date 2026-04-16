@@ -1110,7 +1110,37 @@
       body { overflow-y: auto; }
       #mobile-user-menu-btn { display: flex !important; }
       .mobile-brand { display: flex !important; }
+
+      /* Calendar — horizontal scroll so days stay readable on phones */
+      #cal-5day-outlook {
+        grid-template-columns: repeat(5, 140px) !important;
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+      }
+      #cal-5day-outlook > div { scroll-snap-align: start; }
+      #cal-grid {
+        grid-template-columns: repeat(7, 108px) !important;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+        padding-bottom: 4px;
+      }
+      #cal-grid > div[role="button"] {
+        height: 112px !important;
+        scroll-snap-align: start;
+      }
+      .mobile-scroll-hint {
+        display: block !important;
+        font-size: 11px;
+        color: var(--muted);
+        margin: 4px 0 6px;
+        font-style: italic;
+      }
     }
+
+    .mobile-scroll-hint { display: none; }
 
     .mobile-brand {
       display: none;
@@ -3208,6 +3238,7 @@
             </div>
           </div>
         </div>
+        <div class="mobile-scroll-hint">← Swipe to scroll days →</div>
         <div id="cal-5day-outlook" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--border);border-radius:10px;overflow:hidden;min-height:220px;background:#fff"></div>
         <span id="cal-attention-copy" style="display:none"></span>
         <span id="cal-inline-selected" style="display:none"></span>
@@ -3230,6 +3261,7 @@
                 <button class="owner-btn primary" onclick="openApptModal()" style="padding:6px 14px;font-size:12px">+ Add Appointment</button>
               </div>
             </div>
+            <div class="mobile-scroll-hint">← Swipe to scroll weeks →</div>
             <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px"></div>
           </div>
         </div>
