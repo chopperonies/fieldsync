@@ -3986,7 +3986,11 @@
     <div class="form-group"><label>Job Name</label><input type="text" id="new-job-name" placeholder="e.g. Downtown Office Renovation"></div>
     <div class="form-group"><label>Address</label><input type="text" id="new-job-address" placeholder="e.g. 123 Main St, Miami FL"></div>
     <div class="form-group"><label>Scope of Work / Description</label><textarea id="new-job-desc" placeholder="Describe the work to be done, materials, timeline..." rows="3" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 10px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit"></textarea></div>
-    <div class="form-group" id="new-job-estimate-wrap"><label>Estimate Amount ($)</label><input type="number" id="new-job-estimate" placeholder="0.00" min="0" step="0.01"></div>
+    <div class="form-group" id="new-job-estimate-wrap"><label>Estimate Amount</label>
+      <input type="text" inputmode="decimal" id="new-job-estimate" placeholder="$0.00"
+        onfocus="unformatMoneyInput(this)" onblur="formatMoneyInput(this)"
+        style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 10px;font-size:13px;color:#17191c">
+    </div>
     <div class="form-group">
       <label>Primary Lead / Supervisor</label>
       <select id="new-job-supervisor" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 10px;font-size:13px;color:#17191c"></select>
@@ -3994,16 +3998,11 @@
     </div>
     <div class="form-group">
       <label>Initial Crew</label>
-      <div style="position:relative">
-        <button type="button" id="new-job-crew-toggle" onclick="toggleNewJobCrewPicker()"
-          style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 10px;font-size:13px;color:#17191c;text-align:left;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-family:inherit">
-          <span id="new-job-crew-label">Select crew…</span>
-          <span style="color:#64748b;font-size:11px">▾</span>
-        </button>
-        <div id="new-job-crew-panel" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:10;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.08);max-height:220px;overflow-y:auto;padding:8px">
-          <div id="new-job-crew-list" style="display:flex;flex-direction:column;gap:6px"></div>
-        </div>
-      </div>
+      <div id="new-job-crew-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:6px"></div>
+      <select id="new-job-crew-select" onchange="addNewJobCrewFromSelect(this)"
+        style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 10px;font-size:13px;color:#17191c">
+        <option value="">+ Add crew member…</option>
+      </select>
       <div style="margin-top:6px;font-size:12px;color:#64748b">Optional. Pick crew members who should already be assigned when the job is created.</div>
     </div>
     <div class="modal-actions">
@@ -6567,29 +6566,55 @@ function openAddJob(mode = 'job', presetClientId = '') {
         .map(c => `<option value="${c.id}" ${c.id === presetClientId ? 'selected' : ''}>${c.name}</option>`));
     clientSelect.innerHTML = clientOptions.join('');
   }
-  renderNewJobCrewChecklist();
-  updateNewJobCrewLabel();
-  document.getElementById('new-job-crew-panel').style.display = 'none';
+  _newJobCrewSelected = [];
+  renderNewJobCrewChips();
   modal.classList.add('visible');
 }
 
-function toggleNewJobCrewPicker() {
-  const panel = document.getElementById('new-job-crew-panel');
-  if (!panel) return;
-  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+let _newJobCrewSelected = [];
+
+function renderNewJobCrewChips() {
+  const chipsEl = document.getElementById('new-job-crew-chips');
+  const selectEl = document.getElementById('new-job-crew-select');
+  if (chipsEl) {
+    chipsEl.innerHTML = _newJobCrewSelected.map(id => {
+      const emp = (window._allEmployees || []).find(e => e.id === id);
+      const name = emp?.name || 'Crew member';
+      const phone = emp?.phone ? ` <span style="font-weight:500;color:#3b82f6">· ${emp.phone}</span>` : '';
+      return `<span style="display:inline-flex;align-items:center;gap:6px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:999px;padding:4px 10px 4px 12px;font-size:12px;font-weight:700">
+        <span>${name}${phone}</span>
+        <button type="button" onclick="removeNewJobCrew('${id}')" title="Remove"
+          style="background:transparent;border:none;color:#1d4ed8;cursor:pointer;font-size:14px;line-height:1;padding:0;margin-left:2px">×</button>
+      </span>`;
+    }).join('');
+  }
+  if (selectEl) {
+    const crew = (window._allEmployees || [])
+      .filter(employeeIsAssignable)
+      .filter(e => e.role === 'crew')
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    const remaining = crew.filter(e => !_newJobCrewSelected.includes(e.id));
+    selectEl.innerHTML = '<option value="">+ Add crew member…</option>'
+      + remaining.map(e => `<option value="${e.id}">${e.name || 'Crew member'}${e.phone ? ' · ' + e.phone : ''}</option>`).join('');
+    if (!remaining.length && crew.length) {
+      selectEl.innerHTML = '<option value="">All crew already assigned</option>';
+    } else if (!crew.length) {
+      selectEl.innerHTML = '<option value="">No crew members added yet</option>';
+    }
+  }
 }
 
-function updateNewJobCrewLabel() {
-  const ids = getSelectedNewJobCrewIds();
-  const label = document.getElementById('new-job-crew-label');
-  if (!label) return;
-  if (!ids.length) { label.textContent = 'Select crew…'; return; }
-  const names = ids
-    .map(id => (window._allEmployees || []).find(e => e.id === id)?.name)
-    .filter(Boolean);
-  label.textContent = names.length <= 2
-    ? names.join(', ')
-    : `${names.length} crew selected`;
+function addNewJobCrewFromSelect(selectEl) {
+  const id = selectEl?.value;
+  if (!id) return;
+  if (!_newJobCrewSelected.includes(id)) _newJobCrewSelected.push(id);
+  selectEl.value = '';
+  renderNewJobCrewChips();
+}
+
+function removeNewJobCrew(id) {
+  _newJobCrewSelected = _newJobCrewSelected.filter(x => x !== id);
+  renderNewJobCrewChips();
 }
 function closeAddJob() { document.getElementById('add-job-modal').classList.remove('visible'); }
 async function saveJob() {
@@ -6598,7 +6623,7 @@ async function saveJob() {
   const address = document.getElementById('new-job-address').value.trim();
   const description = document.getElementById('new-job-desc').value.trim();
   const estimateInput = document.getElementById('new-job-estimate');
-  const estimate_amount = canManageFinancials() ? (parseFloat(estimateInput?.value) || null) : undefined;
+  const estimate_amount = canManageFinancials() ? (parseMoneyInputValue(estimateInput) || null) : undefined;
   const primary_supervisor_employee_id = getSelectedSupervisorId('new-job-supervisor');
   const initial_employee_ids = getSelectedNewJobCrewIds();
   const client_id = document.getElementById('new-job-client')?.value || null;
@@ -6617,8 +6642,8 @@ async function saveJob() {
   if (clientSelect) clientSelect.value = '';
   const supervisorSelect = document.getElementById('new-job-supervisor');
   if (supervisorSelect) supervisorSelect.innerHTML = buildSupervisorSelectOptions();
-  renderNewJobCrewChecklist();
-  updateNewJobCrewLabel();
+  _newJobCrewSelected = [];
+  renderNewJobCrewChips();
   currentJobCreateMode = 'job';
   await loadDashboard();
 }
@@ -6866,13 +6891,12 @@ function buildInitialCrewChecklist(selectedIds = []) {
 }
 
 function renderNewJobCrewChecklist(selectedIds = []) {
-  const list = document.getElementById('new-job-crew-list');
-  if (!list) return;
-  list.innerHTML = buildInitialCrewChecklist(selectedIds);
+  _newJobCrewSelected = (selectedIds || []).filter(Boolean);
+  renderNewJobCrewChips();
 }
 
 function getSelectedNewJobCrewIds() {
-  return Array.from(document.querySelectorAll('.new-job-crew-checkbox:checked')).map(input => input.value);
+  return [..._newJobCrewSelected];
 }
 
 function buildEmployeeRoleOptions(selectedRole = 'crew') {
