@@ -1142,6 +1142,11 @@
 
     .mobile-scroll-hint { display: none; }
 
+    /* Job detail modal: stack the 2-col action grid on mobile */
+    @media (max-width: 768px) {
+      .detail-action-grid { grid-template-columns: 1fr !important; }
+    }
+
     .mobile-brand {
       display: none;
       align-items: center; gap: 8px;
@@ -4015,23 +4020,46 @@
       <h3 style="margin:0;font-size:16px;" id="detail-title">Job Detail</h3>
       <button class="btn-cancel" onclick="closeDetail()" style="padding:8px 12px;font-size:13px;font-weight:800;border-radius:999px;border-color:#cbd5e1;background:#fff">Close ✕</button>
     </div>
-    <div style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,0.9fr);gap:18px">
-      <div style="min-width:0">
-        <div id="detail-overview" style="margin-bottom:16px;"></div>
-        <div id="detail-workorder" style="margin-bottom:16px;"></div>
-        <div id="detail-notes" style="margin-bottom:16px;"></div>
-        <div id="detail-supplies" style="margin-bottom:16px;"></div>
-        <div id="detail-bottlenecks" style="margin-bottom:16px;"></div>
-        <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
-          <div class="panel-title">Recent Activity</div>
-          <div id="detail-updates"></div>
-        </div>
-      </div>
-      <div style="min-width:0">
-        <div id="detail-employees" style="margin-bottom:16px;"></div>
-        <div id="detail-client" style="margin-bottom:16px;"></div>
-        <div id="detail-invoice" style="margin-bottom:16px;"></div>
-      </div>
+    <!-- Overview (landscape, full width) -->
+    <div id="detail-overview" style="margin-bottom:16px"></div>
+
+    <!-- Actionable 2x2 grid: Client | Invoice  /  Employees | Work Order -->
+    <div class="detail-action-grid" style="display:grid;grid-template-columns:repeat(2, minmax(0,1fr));gap:16px;margin-bottom:16px">
+      <div id="detail-client" style="min-width:0"></div>
+      <div id="detail-invoice" style="min-width:0"></div>
+      <div id="detail-employees" style="min-width:0"></div>
+      <div id="detail-workorder" style="min-width:0"></div>
+    </div>
+
+    <!-- Recent Activity (full width) -->
+    <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft);margin-bottom:16px">
+      <div class="panel-title">Recent Activity</div>
+      <div id="detail-updates"></div>
+    </div>
+
+    <!-- Secondary sections — collapsible, side by side when there's room -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+      <details id="detail-notes-wrapper" style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow-soft);overflow:hidden">
+        <summary style="padding:14px 18px;cursor:pointer;font-weight:700;font-size:14px;color:var(--text);list-style:none;display:flex;align-items:center;justify-content:space-between">
+          <span>📝 Owner Notes <span id="detail-notes-count" style="font-size:11px;color:var(--muted);font-weight:600;margin-left:6px"></span></span>
+          <span style="color:var(--muted);font-size:12px">▾</span>
+        </summary>
+        <div id="detail-notes" style="padding:0 18px 18px"></div>
+      </details>
+      <details id="detail-supplies-wrapper" style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow-soft);overflow:hidden">
+        <summary style="padding:14px 18px;cursor:pointer;font-weight:700;font-size:14px;color:var(--text);list-style:none;display:flex;align-items:center;justify-content:space-between">
+          <span>📦 Supplies <span id="detail-supplies-count" style="font-size:11px;color:var(--muted);font-weight:600;margin-left:6px"></span></span>
+          <span style="color:var(--muted);font-size:12px">▾</span>
+        </summary>
+        <div id="detail-supplies" style="padding:0 18px 18px"></div>
+      </details>
+      <details id="detail-bottlenecks-wrapper" style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow-soft);overflow:hidden">
+        <summary style="padding:14px 18px;cursor:pointer;font-weight:700;font-size:14px;color:var(--text);list-style:none;display:flex;align-items:center;justify-content:space-between">
+          <span>⚠️ Bottlenecks <span id="detail-bottlenecks-count" style="font-size:11px;color:var(--muted);font-weight:600;margin-left:6px"></span></span>
+          <span style="color:var(--muted);font-size:12px">▾</span>
+        </summary>
+        <div id="detail-bottlenecks" style="padding:0 18px 18px"></div>
+      </details>
     </div>
     <div style="position:sticky;bottom:0;display:flex;justify-content:flex-end;margin-top:18px;padding-top:12px;border-top:1px solid var(--border);background:linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(250,250,250,0.96) 30%, rgba(250,250,250,0.98) 100%)">
       <button class="btn-cancel" onclick="closeDetail()" style="padding:10px 16px;font-size:12px;font-weight:800;border-radius:12px;background:#fff">Close Job Panel</button>
@@ -5157,6 +5185,16 @@ function switchSideTab(tab) {
   document.getElementById('stab-photos').classList.toggle('active', tab === 'photos');
 }
 
+function setDetailsState(wrapperId, countId, count) {
+  const wrapper = document.getElementById(wrapperId);
+  const counter = document.getElementById(countId);
+  if (counter) counter.textContent = count ? `(${count})` : '';
+  if (wrapper) {
+    if (count > 0) wrapper.open = true;
+    else wrapper.open = false;
+  }
+}
+
 function formatMoneyInput(input) {
   if (!input) return;
   const raw = String(input.value || '').replace(/[^0-9.]/g, '');
@@ -6187,67 +6225,60 @@ async function openDetail(jobId, jobName) {
 
   const notesEl = document.getElementById('detail-notes');
   notesEl.innerHTML = `
-    <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
-      <div class="panel-title">Owner Notes</div>
-      <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:14px">
-        <textarea id="detail-note-input" rows="3" placeholder="Add owner notes, scope clarifications, client context, or next steps..." style="flex:1;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit"></textarea>
-        <button class="btn-save" onclick="addJobUpdate('${job.id}','note')">Add Note</button>
-      </div>
-      ${noteUpdates.length ? noteUpdates.map(u => `
-        <div class="update-item">
-          <div class="update-icon ui-update">📝</div>
-          <div class="update-body">
-            <div class="ub-name" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-              <span>${u.employees?.name||'Owner note'}</span>
-              <button data-message="${encodeInlineData(u.message || '')}" onclick="editJobNote('${job.id}','${u.id}', decodeURIComponent(this.dataset.message || ''))" style="background:#fff;border:1px solid #cbd5e1;color:#334155;cursor:pointer;font-size:11px;font-weight:700;padding:4px 8px;border-radius:999px">Edit</button>
-            </div>
-            <div class="ub-msg">${u.message||''}</div>
-            <div class="ub-time">${new Date(u.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div>
-          </div>
-        </div>
-      `).join('') : '<div style="font-size:13px;color:#949596;font-style:italic">No owner notes yet.</div>'}
+    <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:14px">
+      <textarea id="detail-note-input" rows="3" placeholder="Add owner notes, scope clarifications, client context, or next steps..." style="flex:1;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit"></textarea>
+      <button class="btn-save" onclick="addJobUpdate('${job.id}','note')">Add Note</button>
     </div>
+    ${noteUpdates.length ? noteUpdates.map(u => `
+      <div class="update-item">
+        <div class="update-icon ui-update">📝</div>
+        <div class="update-body">
+          <div class="ub-name" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <span>${u.employees?.name||'Owner note'}</span>
+            <button data-message="${encodeInlineData(u.message || '')}" onclick="editJobNote('${job.id}','${u.id}', decodeURIComponent(this.dataset.message || ''))" style="background:#fff;border:1px solid #cbd5e1;color:#334155;cursor:pointer;font-size:11px;font-weight:700;padding:4px 8px;border-radius:999px">Edit</button>
+          </div>
+          <div class="ub-msg">${u.message||''}</div>
+          <div class="ub-time">${new Date(u.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div>
+        </div>
+      </div>
+    `).join('') : '<div style="font-size:13px;color:#949596;font-style:italic">No owner notes yet.</div>'}
   `;
+  setDetailsState('detail-notes-wrapper', 'detail-notes-count', noteUpdates.length);
 
   const suppliesEl = document.getElementById('detail-supplies');
-  suppliesEl.innerHTML = `
-    <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
-      <div class="panel-title">Supplies Missing / Requested</div>
-      ${(supplies || []).length ? supplies.map(s => `
-        <div class="supply-item" style="margin-bottom:8px" id="detail-supply-${s.id}">
-          <div class="si-job">${s.urgency ? s.urgency.replace('_',' ').toUpperCase() : 'REQUEST'}${s.status ? ` • ${s.status.toUpperCase()}` : ''}</div>
-          <div class="si-items">${s.items || 'No items listed'}</div>
-          <div class="si-meta">
-            <span class="si-by">👷 ${s.employees?.name || 'Unknown'}</span>
-            <div style="display:flex;gap:5px">
-              ${s.status === 'pending' ? `<button class="status-btn btn-prepare" onclick="updateSupply('${s.id}','preparing')">Preparing</button><button class="status-btn btn-delivered" onclick="updateSupply('${s.id}','delivered')">Delivered ✓</button>` : `<span style="font-size:11px;color:#737475">${s.status || '—'}</span>`}
-            </div>
-          </div>
+  const suppliesArr = supplies || [];
+  suppliesEl.innerHTML = suppliesArr.length ? suppliesArr.map(s => `
+    <div class="supply-item" style="margin-bottom:8px" id="detail-supply-${s.id}">
+      <div class="si-job">${s.urgency ? s.urgency.replace('_',' ').toUpperCase() : 'REQUEST'}${s.status ? ` • ${s.status.toUpperCase()}` : ''}</div>
+      <div class="si-items">${s.items || 'No items listed'}</div>
+      <div class="si-meta">
+        <span class="si-by">👷 ${s.employees?.name || 'Unknown'}</span>
+        <div style="display:flex;gap:5px">
+          ${s.status === 'pending' ? `<button class="status-btn btn-prepare" onclick="updateSupply('${s.id}','preparing')">Preparing</button><button class="status-btn btn-delivered" onclick="updateSupply('${s.id}','delivered')">Delivered ✓</button>` : `<span style="font-size:11px;color:#737475">${s.status || '—'}</span>`}
         </div>
-      `).join('') : '<div style="font-size:13px;color:#949596;font-style:italic">No supply issues recorded on this job yet.</div>'}
+      </div>
     </div>
-  `;
+  `).join('') : '<div style="font-size:13px;color:#949596;font-style:italic">No supply issues recorded on this job yet.</div>';
+  setDetailsState('detail-supplies-wrapper', 'detail-supplies-count', suppliesArr.length);
 
   const bottleneckEl = document.getElementById('detail-bottlenecks');
   bottleneckEl.innerHTML = `
-    <div style="background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow-soft)">
-      <div class="panel-title">Bottlenecks / Blockers</div>
-      <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:14px">
-        <textarea id="detail-bottleneck-input" rows="3" placeholder="Log missing materials, access issues, blockers, delays, or anything preventing the job from moving..." style="flex:1;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit"></textarea>
-        <button class="btn-save" onclick="addJobUpdate('${job.id}','bottleneck')">Add Blocker</button>
-      </div>
-      ${bottleneckUpdates.length ? bottleneckUpdates.map(u => `
-        <div class="update-item">
-          <div class="update-icon ui-bottleneck">⚠️</div>
-          <div class="update-body">
-            <div class="ub-name">${u.employees?.name||'Job update'}</div>
-            <div class="ub-msg">${u.message||''}</div>
-            <div class="ub-time">${new Date(u.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div>
-          </div>
-        </div>
-      `).join('') : '<div style="font-size:13px;color:#949596;font-style:italic">No bottlenecks recorded for this job.</div>'}
+    <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:14px">
+      <textarea id="detail-bottleneck-input" rows="3" placeholder="Log missing materials, access issues, blockers, delays, or anything preventing the job from moving..." style="flex:1;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit"></textarea>
+      <button class="btn-save" onclick="addJobUpdate('${job.id}','bottleneck')">Add Blocker</button>
     </div>
+    ${bottleneckUpdates.length ? bottleneckUpdates.map(u => `
+      <div class="update-item">
+        <div class="update-icon ui-bottleneck">⚠️</div>
+        <div class="update-body">
+          <div class="ub-name">${u.employees?.name||'Job update'}</div>
+          <div class="ub-msg">${u.message||''}</div>
+          <div class="ub-time">${new Date(u.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div>
+        </div>
+      </div>
+    `).join('') : '<div style="font-size:13px;color:#949596;font-style:italic">No bottlenecks recorded for this job.</div>'}
   `;
+  setDetailsState('detail-bottlenecks-wrapper', 'detail-bottlenecks-count', bottleneckUpdates.length);
 
   const updEl = document.getElementById('detail-updates');
   updEl.innerHTML = (updates||[]).length ? updates.map(u => {
