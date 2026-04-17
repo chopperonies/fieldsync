@@ -3021,6 +3021,23 @@ async function portalAuth(req, res, next) {
   next();
 }
 
+// Public: fetch tenant branding from a portal token (used by login page pre-auth)
+app.get('/portal/api/branding', async (req, res) => {
+  const token = String(req.query?.token || '').trim();
+  if (!token) return res.json({});
+  const { data: clientUser } = await supabaseAdmin
+    .from('client_users')
+    .select('tenant_id')
+    .eq('portal_token', token)
+    .maybeSingle();
+  if (!clientUser?.tenant_id) return res.json({});
+  const { data: tenant } = await supabaseAdmin.from('tenants')
+    .select('company_name, logo_url')
+    .eq('id', clientUser.tenant_id)
+    .maybeSingle();
+  res.json({ company_name: tenant?.company_name || null, logo_url: tenant?.logo_url || null });
+});
+
 // Generate (or regenerate) a portal invite link for a client
 app.post('/api/clients/:id/invite', auth, async (req, res) => {
   const { id } = req.params;

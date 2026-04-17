@@ -1721,6 +1721,19 @@
           </div>
         </div>
 
+        <div class="owner-card" id="jobs-recently-closed-card" style="margin-top:14px">
+          <div class="owner-card-header">
+            <div>
+              <div class="owner-card-title">Recently Closed</div>
+              <div class="owner-card-headline" id="jobs-recently-closed-headline">Last 7 days</div>
+              <div class="owner-card-sub">Jobs marked paid, completed, or cancelled in the past week — quick access without hunting through history.</div>
+            </div>
+            <div class="owner-card-actions">
+              <button class="owner-mini-btn" onclick="switchMainTab('jobs-records')">View all →</button>
+            </div>
+          </div>
+          <div id="jobs-recently-closed-list"><div class="empty" style="padding:14px"><div class="e-icon">📭</div>Loading recent closures…</div></div>
+        </div>
       </div>
 </div>
 </div>
@@ -5377,6 +5390,62 @@ function renderJobsBoard(jobs = []) {
   }).join('');
 }
 
+function renderRecentlyClosedJobs(jobs = []) {
+  const list = document.getElementById('jobs-recently-closed-list');
+  if (!list) return;
+  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const closedStatuses = new Set(['completed', 'cancelled', 'archived']);
+  const recent = (jobs || [])
+    .filter(j => {
+      const st = normalizeJobStatus(j.status);
+      const isPaid = String(j.payment_status || '').toLowerCase() === 'paid';
+      const isClosed = closedStatuses.has(st) || isPaid;
+      if (!isClosed) return false;
+      const when = new Date(j.updated_at || j.created_at || 0).getTime();
+      return isFinite(when) && when >= cutoff;
+    })
+    .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))
+    .slice(0, 8);
+
+  if (!recent.length) {
+    list.innerHTML = '<div class="empty" style="padding:14px"><div class="e-icon">📭</div>No jobs closed in the last 7 days.</div>';
+    return;
+  }
+
+  const fmtDay = (iso) => {
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    return `${diff}d ago`;
+  };
+  const closeChip = (j) => {
+    const st = normalizeJobStatus(j.status);
+    const isPaid = String(j.payment_status || '').toLowerCase() === 'paid';
+    if (isPaid) return '<span class="chip chip-green">Paid</span>';
+    if (st === 'completed') return '<span class="chip chip-green">Completed</span>';
+    if (st === 'cancelled') return '<span class="chip chip-red">Cancelled</span>';
+    if (st === 'archived') return '<span class="chip">Archived</span>';
+    return '';
+  };
+
+  list.innerHTML = recent.map(j => `
+    <div onclick="openDetail('${j.id}','${String(j.name || '').replace(/'/g,"\\'")}')"
+      style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;margin-bottom:6px;-webkit-tap-highlight-color:transparent">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${j.name || 'Untitled job'}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;display:flex;gap:6px;align-items:center">
+          ${j.clients?.name ? `<span>${j.clients.name}</span><span>·</span>` : ''}
+          <span>${fmtDay(j.updated_at || j.created_at)}</span>
+          ${j.invoice_amount ? `<span>·</span><span>$${parseFloat(j.invoice_amount).toLocaleString()}</span>` : ''}
+        </div>
+      </div>
+      ${closeChip(j)}
+    </div>
+  `).join('');
+}
+
 function renderJobRecords(jobs = []) {
   updateJobRecordsFilterUI();
   const list = document.getElementById('job-records-list');
@@ -5486,9 +5555,11 @@ async function loadDashboard() {
     setText('jobs-bottlenecks-count', 0);
     updateJobsAttention(0, 0, 0, 0, 0);
     renderJobsBoard(jobs);
+    renderRecentlyClosedJobs(jobs);
     return;
   }
   renderJobsBoard(jobs);
+  renderRecentlyClosedJobs(jobs);
 
   allAssignmentsData = []; allSuppliesData = []; allUpdatesData = [];
   let totalCrew = 0, totalSupplies = 0, totalBottlenecks = 0;

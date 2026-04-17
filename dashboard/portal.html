@@ -13,13 +13,27 @@
     body { font-family: 'Inter', 'Segoe UI', sans-serif; background: #f5f5f5; color: #17191c; min-height: 100vh; }
 
     /* ── Login ── */
-    .login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; position: relative;
-      background: url('https://images.unsplash.com/photo-1575909813087-8529d4a3c434?q=85&w=1920&auto=format&fit=crop') center center / cover no-repeat; }
-    .login-screen::before { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.80); }
+    .login-screen {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 20px; position: relative;
+      background: linear-gradient(135deg, #0b1220 0%, #0f2140 45%, #183358 100%);
+    }
+    .login-screen::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background-image: radial-gradient(circle at 20% 20%, rgba(14,165,233,0.10), transparent 45%),
+                        radial-gradient(circle at 80% 80%, rgba(99,102,241,0.08), transparent 50%);
+    }
     .login-screen > * { position: relative; z-index: 1; }
-    .login-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 16px; padding: 40px; width: 100%; max-width: 380px; }
+    .login-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 16px; padding: 40px; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.28); }
     .login-logo { font-size: 24px; font-weight: 900; color: #17191c; margin-bottom: 4px; letter-spacing: -0.03em; }
     .login-logo .wordmark-accent { color: #0876d8; }
+    .login-logo img { object-fit: contain; }
+    .login-footer {
+      margin-top: 22px; font-size: 12px; color: rgba(255,255,255,0.65);
+      text-align: center; letter-spacing: 0.02em;
+    }
+    .login-footer a { color: rgba(255,255,255,0.85); text-decoration: none; font-weight: 700; }
+    .login-footer a:hover { text-decoration: underline; }
     .portal-wordmark { font-size: 24px; font-weight: 900; letter-spacing: -0.03em; color: #17191c; }
     .portal-wordmark .wordmark-accent { color: #0876d8; }
     .login-sub { font-size: 13px; color: #737475; margin-bottom: 28px; }
@@ -153,10 +167,11 @@
 <!-- Login -->
 <div class="login-screen" id="login-screen">
   <div class="login-card">
-    <div class="login-logo" style="display:flex;align-items:center;gap:8px">
-      <img src="/logo.svg" style="width:30px;height:30px"><span>Link<span class="wordmark-accent">Crew</span></span>
+    <div class="login-logo" id="login-brand" style="display:flex;align-items:center;gap:10px">
+      <img id="login-brand-logo" src="/logo.svg" style="width:36px;height:36px">
+      <span id="login-brand-name">Link<span class="wordmark-accent">Crew</span></span>
     </div>
-    <div class="login-sub">Client Portal</div>
+    <div class="login-sub" id="login-sub-label">Client Portal</div>
 
     <div style="display:flex;border:1px solid #e8e8e8;border-radius:8px;overflow:hidden;margin-bottom:20px">
       <div id="ltab-password" class="login-tab active" onclick="switchLoginTab('password')">Email & Password</div>
@@ -182,6 +197,7 @@
 
     <div class="login-err" id="login-err"></div>
   </div>
+  <div class="login-footer" id="login-footer">Powered by <a href="https://linkcrew.io" target="_blank">LinkCrew</a> — field crew management for contractors</div>
 </div>
 
 <!-- App -->
@@ -290,8 +306,12 @@
     const urlToken = params.get('token');
     if (urlToken) {
       localStorage.setItem('portal_token', urlToken);
+      applyTenantBranding(urlToken);
       // Clean the URL
       history.replaceState({}, '', '/portal');
+    } else {
+      const saved = localStorage.getItem('portal_token');
+      if (saved) applyTenantBranding(saved);
     }
 
     const saved = localStorage.getItem('portal_token');
@@ -299,6 +319,20 @@
       portalToken = saved;
       showApp();
     }
+  }
+
+  async function applyTenantBranding(token) {
+    try {
+      const r = await fetch('/portal/api/branding?token=' + encodeURIComponent(token));
+      if (!r.ok) return;
+      const data = await r.json();
+      const logoEl = document.getElementById('login-brand-logo');
+      const nameEl = document.getElementById('login-brand-name');
+      const subEl = document.getElementById('login-sub-label');
+      if (data.logo_url && logoEl) logoEl.src = data.logo_url;
+      if (data.company_name && nameEl) nameEl.textContent = data.company_name;
+      if (data.company_name && subEl) subEl.textContent = data.company_name + ' · Client Portal';
+    } catch (_) {}
   }
 
   async function showApp() {
