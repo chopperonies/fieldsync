@@ -3486,10 +3486,16 @@
           <span style="font-size:11px;color:#737475;text-align:center;line-height:1.4">Click to<br>upload</span>
         </div>
         <div style="flex:1;min-width:200px">
-          <button onclick="document.getElementById('logo-file').click()"
-            style="background:#0265dc;color:#fff;border:none;border-radius:7px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer">
-            Upload Logo
-          </button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button id="logo-upload-btn" onclick="document.getElementById('logo-file').click()"
+              style="background:#0265dc;color:#fff;border:none;border-radius:7px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer">
+              Upload Logo
+            </button>
+            <button id="logo-remove-btn" onclick="removeLogo()"
+              style="display:none;background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:7px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer">
+              Remove
+            </button>
+          </div>
           <div style="font-size:12px;color:#737475;margin-top:10px;line-height:1.6">
             <strong style="color:#17191c">Tips:</strong> PNG, JPG, or SVG up to 10 MB.
             Square format (1:1) looks best — around 512×512 px. Transparent background recommended so it sits cleanly on both light and dark surfaces.
@@ -9868,10 +9874,7 @@ async function loadSettings() {
   document.getElementById('set-phone').value = data.phone || '';
   document.getElementById('set-address').value = data.address || '';
   document.getElementById('set-manager-financials').checked = !!data.manager_financials_enabled;
-  if (data.logo_url) {
-    document.getElementById('logo-preview').innerHTML =
-      `<img src="${data.logo_url}" style="width:100%;height:100%;object-fit:contain;padding:8px">`;
-  }
+  setLogoUi(data.logo_url || null);
   // Voicebot state
   if (data.voicebot_knowledge) document.getElementById('vb-knowledge').value = data.voicebot_knowledge;
   if (data.voicebot_enabled) {
@@ -10008,6 +10011,21 @@ async function saveSettings() {
   }
 }
 
+function setLogoUi(logoUrl) {
+  const preview = document.getElementById('logo-preview');
+  const removeBtn = document.getElementById('logo-remove-btn');
+  const uploadBtn = document.getElementById('logo-upload-btn');
+  if (preview) {
+    preview.innerHTML = logoUrl
+      ? `<img src="${logoUrl}" style="width:100%;height:100%;object-fit:contain;padding:8px">`
+      : '<span style="font-size:11px;color:#737475;text-align:center;line-height:1.4">Click to<br>upload</span>';
+  }
+  if (removeBtn) removeBtn.style.display = logoUrl ? '' : 'none';
+  if (uploadBtn) uploadBtn.textContent = logoUrl ? 'Replace Logo' : 'Upload Logo';
+  const brandLogo = document.getElementById('mobile-brand-logo');
+  if (brandLogo) brandLogo.src = logoUrl || '/logo.svg';
+}
+
 async function uploadLogo(input) {
   const file = input.files[0];
   if (!file) return;
@@ -10027,12 +10045,28 @@ async function uploadLogo(input) {
     statusEl.textContent = 'Error: ' + json.error;
     return;
   }
-  document.getElementById('logo-preview').innerHTML =
-    `<img src="${json.logo_url}" style="width:100%;height:100%;object-fit:contain;padding:8px">`;
-  const brandLogo = document.getElementById('mobile-brand-logo');
-  if (brandLogo) brandLogo.src = json.logo_url;
+  setLogoUi(json.logo_url);
+  input.value = '';
   statusEl.style.color = '#4ade80';
   statusEl.textContent = '✓ Logo updated';
+  setTimeout(() => statusEl.textContent = '', 3000);
+}
+
+async function removeLogo() {
+  if (!confirm('Remove your company logo? Invoices and the mobile dashboard will fall back to showing only your company name until you upload a new one.')) return;
+  const statusEl = document.getElementById('logo-upload-status');
+  statusEl.style.color = '#737475';
+  statusEl.textContent = 'Removing…';
+  const res = await authFetch('/api/settings/logo', { method: 'DELETE' });
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    statusEl.style.color = '#f87171';
+    statusEl.textContent = 'Error: ' + (j.error || 'failed to remove logo');
+    return;
+  }
+  setLogoUi(null);
+  statusEl.style.color = '#4ade80';
+  statusEl.textContent = '✓ Logo removed';
   setTimeout(() => statusEl.textContent = '', 3000);
 }
 

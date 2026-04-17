@@ -3946,6 +3946,24 @@ app.post('/api/settings/logo', auth, requireSettingsAccess, upload.single('logo'
   res.json({ logo_url: publicUrl });
 });
 
+app.delete('/api/settings/logo', auth, requireSettingsAccess, async (req, res) => {
+  const tenantId = await getEffectiveTenantId(req);
+  if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
+  // Best-effort delete of any stored logo files for this tenant, then clear the DB pointer
+  try {
+    const { data: files } = await supabaseAdmin.storage.from('logos').list(tenantId, { limit: 20 });
+    if (files && files.length) {
+      await supabaseAdmin.storage.from('logos')
+        .remove(files.map(f => `${tenantId}/${f.name}`));
+    }
+  } catch (err) {
+    console.error('[logo delete] storage cleanup error:', err.message);
+  }
+  const { error } = await supabaseAdmin.from('tenants').update({ logo_url: null }).eq('id', tenantId);
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ ok: true });
+});
+
 // Save Twilio credentials + auto-configure webhook on the phone number
 app.post('/api/settings/voicebot', auth, requireSettingsAccess, async (req, res) => {
   const { twilio_account_sid, twilio_auth_token, twilio_phone } = req.body;
