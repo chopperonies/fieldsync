@@ -3212,7 +3212,23 @@
           <div class="owner-page-title">See the week, answer client questions, and schedule the next move.</div>
           <div class="owner-page-subtitle">This should feel like a scheduling console for the owner: daily visibility, quick appointment creation, and a simple assistant for “what does my week look like?” questions.</div>
         </div>
-        <div class="owner-page-actions"></div>
+        <div class="owner-page-actions">
+          <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e8eef3;border-radius:10px;padding:8px 14px">
+            <i data-lucide="bell" style="width:14px;height:14px;color:#64748b"></i>
+            <label for="set-appt-reminder" style="font-size:12px;font-weight:600;color:#475569;white-space:nowrap">Email me</label>
+            <select id="set-appt-reminder" onchange="saveApptReminder()"
+              style="background:transparent;border:none;padding:6px 4px;font-size:13px;font-weight:700;color:#17191c;cursor:pointer;font-family:inherit;appearance:menulist">
+              <option value="0">Never</option>
+              <option value="15">15 min before</option>
+              <option value="30">30 min before</option>
+              <option value="60" selected>1 hour before</option>
+              <option value="120">2 hours before</option>
+              <option value="1440">1 day before</option>
+            </select>
+            <span style="font-size:12px;color:#64748b;white-space:nowrap">an appointment</span>
+            <span id="appt-reminder-status" style="font-size:11px;color:#16a34a;font-weight:600;margin-left:4px"></span>
+          </div>
+        </div>
       </div>
 
       <!-- 5-day agenda snapshot -->
@@ -3744,26 +3760,6 @@
       </div>
     </div>
 
-    <!-- Appointment Reminders -->
-    <div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:28px;margin-top:20px">
-      <div style="font-size:15px;font-weight:700;color:#17191c;margin-bottom:6px">Appointment Reminders</div>
-      <div style="font-size:13px;color:#737475;margin-bottom:20px">Get notified by email before each upcoming appointment.</div>
-      <div style="display:flex;align-items:center;gap:12px">
-        <select id="set-appt-reminder" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:7px;padding:9px 14px;font-size:13px;color:#17191c">
-          <option value="0">Off</option>
-          <option value="15">15 minutes before</option>
-          <option value="30">30 minutes before</option>
-          <option value="60" selected>1 hour before</option>
-          <option value="120">2 hours before</option>
-          <option value="1440">1 day before</option>
-        </select>
-        <button onclick="saveApptReminder()"
-          style="background:#0265dc;color:#fff;border:none;border-radius:7px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer">
-          Save
-        </button>
-        <span id="appt-reminder-status" style="font-size:12px;color:#4ade80"></span>
-      </div>
-    </div>
 
     <div id="priority-support-section" style="display:none;margin-top:24px;padding:20px;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:12px">
       <div style="font-size:14px;font-weight:700;color:#17191c;margin-bottom:4px">Priority Support</div>
@@ -8646,6 +8642,16 @@ async function initCalendar() {
   const gridEl = document.getElementById('cal-grid');
   const servicesEl = document.getElementById('services-list');
   const agendaEl = document.getElementById('cal-day-agenda');
+  // Populate the reminder dropdown from server settings (dropdown now lives in the schedule header)
+  (async () => {
+    try {
+      const r = await authFetch('/api/settings');
+      if (!r.ok) return;
+      const s = await r.json();
+      const sel = document.getElementById('set-appt-reminder');
+      if (sel && s.appt_reminder_minutes !== undefined && s.appt_reminder_minutes !== null) sel.value = String(s.appt_reminder_minutes);
+    } catch (_) {}
+  })();
   if (gridEl && !gridEl.innerHTML.trim()) {
     gridEl.innerHTML = '<div style="grid-column:1 / -1;padding:18px;border:1px dashed #d7e3f5;border-radius:14px;background:rgba(2,101,220,0.03);font-size:13px;color:#52739c;line-height:1.6">Loading the 4-week planner…</div>';
   }
