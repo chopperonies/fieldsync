@@ -372,6 +372,7 @@ async function sendPaymentReceiptToClient({ clientEmail, clientName, jobName, am
 <div style="background:white;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb">
   <div style="background:#052e16;padding:24px;text-align:center">
     ${tenantLogoUrl ? `<img src="${tenantLogoUrl}" alt="${tenantName || ''}" style="max-height:40px;max-width:180px;object-fit:contain;margin-bottom:12px"><br>` : ''}
+    ${!tenantLogoUrl && tenantName ? `<div style="color:#fff;font-size:18px;font-weight:800;margin-bottom:10px">${tenantName}</div>` : ''}
     <h2 style="margin:0;color:#4ade80;font-size:20px">Payment Received — Thank You</h2>
     <p style="margin:6px 0 0;color:#86efac;font-size:14px">Your payment has been processed</p>
   </div>
@@ -408,7 +409,8 @@ async function sendPaymentReceiptToClient({ clientEmail, clientName, jobName, am
     </div>` : ''}
   </div>
   <div style="padding:16px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center">
-    Keep this email for your records.
+    Keep this email for your records.<br>
+    <span style="font-size:11px;color:#b0b0b0">Invoicing powered by <a href="https://linkcrew.io" style="color:#737475;text-decoration:none;font-weight:600">LinkCrew</a></span>
   </div>
 </div>
 </body></html>`;
