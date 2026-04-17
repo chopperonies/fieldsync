@@ -9,7 +9,7 @@ const bcrypt = require('bcryptjs');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const { createClient } = require('@supabase/supabase-js');
 const cron = require('node-cron');
-const { sendDailyDigest, sendNote, sendInvoiceToClient, sendClientPortalInvite, sendClientRequestToOwner, sendPaymentReceivedToOwner, sendCallTranscriptToOwner, sendWorkOrderToClient, sendIncomingSmsNotification, sendBusinessOnboardingEmail, sendAppointmentConfirmation, sendAppointmentReminder } = require('../email/digest');
+const { sendDailyDigest, sendNote, sendInvoiceToClient, sendClientPortalInvite, sendClientRequestToOwner, sendPaymentReceivedToOwner, sendPaymentReceiptToClient, sendCallTranscriptToOwner, sendWorkOrderToClient, sendIncomingSmsNotification, sendBusinessOnboardingEmail, sendAppointmentConfirmation, sendAppointmentReminder } = require('../email/digest');
 const { LINKCREW_FROM, LINKCREW_ALERT_FROM, EMAIL_FROM_ADDRESS, formatFrom } = require('../email/config');
 const { handleMessage } = require('../bot/whatsapp');
 const Anthropic = require('@anthropic-ai/sdk');
@@ -258,14 +258,14 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
     // Client invoice payment
     if (session.metadata?.job_id) {
       await supabaseAdmin.from('jobs').update({ payment_status: 'paid' }).eq('id', session.metadata.job_id);
-      // Notify owner
       try {
         const { data: job } = await supabaseAdmin.from('jobs')
-          .select('name, invoice_amount, tenant_id, clients(name)')
+          .select('name, invoice_amount, tenant_id, clients(name, email)')
           .eq('id', session.metadata.job_id).single();
         if (job?.tenant_id) {
           const { data: tenant } = await supabaseAdmin.from('tenants')
-            .select('owner_email, company_name').eq('id', job.tenant_id).single();
+            .select('owner_email, company_name, logo_url').eq('id', job.tenant_id).single();
+          // Owner notification
           if (tenant?.owner_email) {
             await sendPaymentReceivedToOwner({
               ownerEmail: tenant.owner_email,
@@ -273,6 +273,19 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
               jobName: job.name,
               amount: job.invoice_amount,
               tenantName: tenant.company_name,
+            });
+          }
+          // Client receipt
+          if (job.clients?.email) {
+            const host = process.env.APP_URL || process.env.SITE_URL || 'https://linkcrew.io';
+            await sendPaymentReceiptToClient({
+              clientEmail: job.clients.email,
+              clientName: job.clients.name,
+              jobName: job.name,
+              amount: job.invoice_amount,
+              tenantName: tenant?.company_name,
+              tenantLogoUrl: tenant?.logo_url,
+              invoiceUrl: `${String(host).replace(/\/$/, '')}/invoice?job_id=${job.id}&portal=1`,
             });
           }
         }

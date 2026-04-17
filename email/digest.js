@@ -364,6 +364,63 @@ async function sendPaymentReceivedToOwner({ ownerEmail, clientName, jobName, amo
   });
 }
 
+async function sendPaymentReceiptToClient({ clientEmail, clientName, jobName, amount, tenantName, tenantLogoUrl, invoiceUrl }) {
+  if (!clientEmail) return;
+  const formattedAmount = Number(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  const html = `
+<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px">
+<div style="background:white;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb">
+  <div style="background:#052e16;padding:24px;text-align:center">
+    ${tenantLogoUrl ? `<img src="${tenantLogoUrl}" alt="${tenantName || ''}" style="max-height:40px;max-width:180px;object-fit:contain;margin-bottom:12px"><br>` : ''}
+    <h2 style="margin:0;color:#4ade80;font-size:20px">Payment Received — Thank You</h2>
+    <p style="margin:6px 0 0;color:#86efac;font-size:14px">Your payment has been processed</p>
+  </div>
+  <div style="padding:28px">
+    <p style="font-size:15px;color:#111827;margin:0 0 20px">Hi ${clientName || 'there'},</p>
+    <p style="font-size:14px;color:#374151;line-height:1.6;margin:0 0 20px">
+      Thanks for your payment to <strong>${tenantName || 'your contractor'}</strong>. Your invoice is now marked paid.
+    </p>
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px;margin-bottom:24px;text-align:center">
+      <div style="font-size:13px;color:#6b7280;margin-bottom:4px">Amount Paid</div>
+      <div style="font-size:36px;font-weight:800;color:#15803d">${formattedAmount}</div>
+      <div style="font-size:13px;color:#6b7280;margin-top:4px">${jobName}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse">
+      <tr>
+        <td style="padding:8px 0;font-size:13px;color:#6b7280;width:100px">Paid to</td>
+        <td style="padding:8px 0;font-size:13px;color:#111827;font-weight:600">${tenantName || 'Your contractor'}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;font-size:13px;color:#6b7280">Job</td>
+        <td style="padding:8px 0;font-size:13px;color:#111827;font-weight:600">${jobName}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;font-size:13px;color:#6b7280">Amount</td>
+        <td style="padding:8px 0;font-size:13px;color:#15803d;font-weight:700">${formattedAmount}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;font-size:13px;color:#6b7280">Date</td>
+        <td style="padding:8px 0;font-size:13px;color:#111827">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
+      </tr>
+    </table>
+    ${invoiceUrl ? `<div style="margin-top:24px;text-align:center">
+      <a href="${invoiceUrl}" style="display:inline-block;background:#0265dc;color:white;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;font-size:14px">View Paid Invoice</a>
+    </div>` : ''}
+  </div>
+  <div style="padding:16px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center">
+    Keep this email for your records.
+  </div>
+</div>
+</body></html>`;
+
+  await resend.emails.send({
+    from: LINKCREW_FROM,
+    to: clientEmail,
+    subject: `Payment received — ${formattedAmount} for ${jobName}`,
+    html,
+  });
+}
+
 async function sendClientRequestToOwner({ ownerEmail, tenantName, clientName, address, description, dashboardUrl }) {
   const html = `
 <!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px">
@@ -623,4 +680,4 @@ async function sendAppointmentReminder({ clientName, clientEmail, title, startTi
   });
 }
 
-module.exports = { sendDailyDigest, sendSupplyAlert, sendBottleneckAlert, sendPhotoAlert, sendNote, sendInvoiceToClient, sendClientPortalInvite, sendClientRequestToOwner, sendPaymentReceivedToOwner, sendCallTranscriptToOwner, sendWorkOrderToClient, sendIncomingSmsNotification, sendBusinessOnboardingEmail, sendAppointmentConfirmation, sendAppointmentReminder };
+module.exports = { sendDailyDigest, sendSupplyAlert, sendBottleneckAlert, sendPhotoAlert, sendNote, sendInvoiceToClient, sendClientPortalInvite, sendClientRequestToOwner, sendPaymentReceivedToOwner, sendPaymentReceiptToClient, sendCallTranscriptToOwner, sendWorkOrderToClient, sendIncomingSmsNotification, sendBusinessOnboardingEmail, sendAppointmentConfirmation, sendAppointmentReminder };
