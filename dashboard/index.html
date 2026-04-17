@@ -2676,15 +2676,23 @@
           <div class="owner-card" id="team-invite-section">
             <div class="owner-card-header">
               <div>
-                <div class="owner-card-title">Crew Invite</div>
-                <div class="owner-card-headline">Keep self-serve onboarding close to the roster.</div>
-                <div class="owner-card-sub">Share this link with field crew so they can register directly to your team. Generating a new link immediately invalidates the old one.</div>
+                <div class="owner-card-title">Crew Sign-up Link</div>
+                <div class="owner-card-headline">Onboard field crew in under a minute, no back-and-forth.</div>
+                <div class="owner-card-sub">Share this link with your field crew (text it, email it, or print a QR). When they tap it on their phone, they see a short form — name, phone, role — hit Submit, and they're on your roster. No passwords, no email invites to manage.</div>
               </div>
+            </div>
+            <div style="background:#f0f9ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin-bottom:14px">
+              <div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:6px">What this link does</div>
+              <ul style="margin:0;padding-left:18px;font-size:12px;color:#1e3a8a;line-height:1.7">
+                <li>Adds the crew member to your <strong>Team roster</strong></li>
+                <li>Makes them available to <strong>assign to jobs</strong></li>
+                <li>Gives them access to the <strong>LinkCrew mobile app</strong> (check-ins, job photos, bottleneck reports, supply requests)</li>
+              </ul>
             </div>
             <div style="display:flex;gap:8px;margin-bottom:12px">
               <input type="text" id="team-crew-invite-url" readonly
                 style="flex:1;background:#f8fafc;border:1px solid #dbe4f0;border-radius:10px;padding:10px 12px;font-size:12px;color:#17191c;font-family:monospace;min-width:0"
-                placeholder="No link generated yet">
+                placeholder="No link generated yet — click Generate below">
               <button onclick="copyCrewInviteUrl('team-crew-invite-url','team-crew-invite-copy-btn')" id="team-crew-invite-copy-btn"
                 style="background:#0265dc;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">
                 Copy
@@ -2695,7 +2703,10 @@
               Generate New Link
             </button>
             <div style="margin-top:12px;font-size:12px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;line-height:1.55">
-              Crew members should use the mobile app only. Supervisors, managers, and owners can still get dashboard access links from the roster.
+              <strong>⚠ Generating a new link immediately invalidates the old one.</strong> Anyone who already used the old link stays on your roster. Anyone who hasn't used it yet will need the new one.
+            </div>
+            <div style="margin-top:10px;font-size:12px;color:#475569;line-height:1.55">
+              <strong>Not what you need?</strong> This link is for <strong>field crew (mobile app only)</strong>. To give a supervisor, manager, or second owner access to <strong>this dashboard</strong>, add them to the roster first, then click <strong>"Grant dashboard access"</strong> on their row — LinkCrew will email them a setup link with a password.
             </div>
           </div>
 
