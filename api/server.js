@@ -412,6 +412,7 @@ app.get('/app', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/in
 app.get('/portal', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/portal.html')));
 app.get('/invoice', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/invoice.html')));
 app.get('/payment-setup', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/payment-setup.html')));
+app.get('/voicebot-setup', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/voicebot-setup.html')));
 app.get('/workorder', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/workorder.html')));
 app.get('/timesheet', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/timesheet-print.html')));
 app.get('/pricing', (req, res) => res.sendFile(path.join(__dirname, '../dashboard/pricing.html')));

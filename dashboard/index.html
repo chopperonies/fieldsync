@@ -3633,9 +3633,12 @@
 
     <!-- Voice Bot -->
     <div style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:28px;margin-top:20px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px">
         <div style="font-size:15px;font-weight:700;color:#17191c">Voice Bot Add-on</div>
-        <span id="voicebot-status-badge" style="display:none;font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:#f0fdf4;color:#16a34a">● Active</span>
+        <div style="display:flex;align-items:center;gap:12px">
+          <a href="/voicebot-setup" target="_blank" style="font-size:12px;font-weight:700;color:#0265dc;text-decoration:none;white-space:nowrap">Setup guide →</a>
+          <span id="voicebot-status-badge" style="display:none;font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:#f0fdf4;color:#16a34a">● Active</span>
+        </div>
       </div>
       <div style="font-size:13px;color:#737475;margin-bottom:20px">Connect your own Twilio number. Choppy will answer calls as your company and email you a transcript after every call.</div>
 
@@ -3691,10 +3694,12 @@
       <div style="font-size:13px;color:#737475;margin-bottom:20px">Automatically delete site photos after a set period to save storage.</div>
       <div style="display:flex;align-items:center;gap:12px">
         <select id="set-photo-expiry" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:7px;padding:9px 14px;font-size:13px;color:#17191c">
-          <option value="">Keep forever</option>
+          <option value="">No auto-deletion (plan limits apply)</option>
           <option value="30">Delete after 30 days</option>
           <option value="60">Delete after 60 days</option>
           <option value="90">Delete after 90 days</option>
+          <option value="180">Delete after 180 days</option>
+          <option value="365">Delete after 365 days</option>
         </select>
         <button onclick="savePhotoExpiry()"
           style="background:#0265dc;color:#fff;border:none;border-radius:7px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer">

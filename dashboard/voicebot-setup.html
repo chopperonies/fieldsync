@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Bot Setup Guide — LinkCrew</title>
+  <link rel="icon" type="image/svg+xml" href="/logo.svg">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', 'Segoe UI', sans-serif; background: #f5f5f5; color: #17191c; line-height: 1.6; }
+    .wrap { max-width: 780px; margin: 40px auto; padding: 0 20px; }
+    .page { background: #fff; border: 1px solid #e8e8e8; border-radius: 14px; padding: 48px; }
+    h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+    .sub { color: #737475; font-size: 14px; margin-bottom: 32px; }
+    h2 { font-size: 20px; font-weight: 800; margin: 32px 0 12px; }
+    h3 { font-size: 15px; font-weight: 700; margin: 20px 0 8px; }
+    p { font-size: 14px; color: #374151; margin-bottom: 12px; }
+    ul, ol { margin: 0 0 12px 24px; }
+    li { font-size: 14px; color: #374151; margin-bottom: 6px; }
+    code { background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+    .step {
+      display: flex; gap: 16px; align-items: flex-start;
+      padding: 18px; border: 1px solid #e8e8e8; border-radius: 10px;
+      background: #fafafa; margin-bottom: 12px;
+    }
+    .step-num {
+      width: 32px; height: 32px; border-radius: 50%; background: #0265dc; color: #fff;
+      display: flex; align-items: center; justify-content: center; font-weight: 800;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .step-body { flex: 1; }
+    .step h3 { margin: 0 0 6px; }
+    .step p { margin: 0; font-size: 13px; color: #4b5563; }
+    .back { display: inline-block; margin-bottom: 16px; color: #0265dc; text-decoration: none; font-size: 13px; font-weight: 700; }
+    .back:hover { text-decoration: underline; }
+    .callout {
+      background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px;
+      padding: 14px 16px; margin: 16px 0; font-size: 13px; color: #78350f;
+    }
+    .callout-cost {
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+      padding: 14px 16px; margin: 16px 0; font-size: 13px; color: #1e40af;
+    }
+    @media (max-width: 600px) {
+      .page { padding: 28px 20px; }
+      h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a href="/app" class="back">← Back to dashboard</a>
+    <div class="page">
+      <h1>Voice Bot Setup Guide</h1>
+      <div class="sub">How to connect your Twilio number so Choppy answers calls as your company and emails you a transcript.</div>
+
+      <h2>How the Voice Bot works</h2>
+      <p>When a client calls your Twilio number, Choppy picks up and answers in your company's voice using the knowledge you gave it — your services, pricing, hours, and service area. After the call, you get an email transcript with the caller's number so you can follow up.</p>
+
+      <div class="callout-cost">
+        <strong>Costs to plan for:</strong>
+        <ul style="margin-top:8px;margin-bottom:0">
+          <li>LinkCrew voice bot add-on: <strong>$30/mo</strong> (covers Choppy's AI compute)</li>
+          <li>Twilio phone number: typically <strong>$1-2/mo</strong> (billed by Twilio)</li>
+          <li>Twilio usage: typically <strong>$0.015/min inbound + $0.01/min TTS/STT</strong> (billed by Twilio)</li>
+        </ul>
+        You pay LinkCrew and Twilio separately. Twilio is usage-based — a 2-minute call runs about 5 cents.
+      </div>
+
+      <h2>Part 1 — Set up a Twilio account</h2>
+      <p>If you already have a Twilio account and a number, skip to Part 2.</p>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Create a Twilio account</h3>
+          <p>Go to <a href="https://www.twilio.com/try-twilio" target="_blank">twilio.com/try-twilio</a> and sign up. You get a trial balance — enough to test. You'll need to verify your personal phone to start.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Upgrade to a paid account</h3>
+          <p>Trial accounts can only call verified numbers, which won't work for real clients. In the Twilio console, click <strong>Upgrade</strong> (usually top-right or in billing). Add $20 of credit to start — that's months of runway for low-volume use.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>Buy a phone number</h3>
+          <p>Twilio console → <strong>Phone Numbers → Manage → Buy a number</strong>. Pick a local area code your clients will recognize. Make sure <strong>Voice</strong> is checked in the capabilities. Complete the purchase.</p>
+        </div>
+      </div>
+
+      <h2>Part 2 — Connect Twilio to LinkCrew</h2>
+      <p>Takes under 2 minutes once you have your Twilio info.</p>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Grab your Account SID and Auth Token</h3>
+          <p>Twilio console homepage → scroll down to <strong>Account Info</strong>. Copy the <strong>Account SID</strong> (starts with <code>AC...</code>) and the <strong>Auth Token</strong> (click to reveal). Keep this tab open — you'll paste them into LinkCrew next.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Copy your Twilio phone number</h3>
+          <p>Twilio console → <strong>Phone Numbers → Manage → Active numbers</strong>. Copy the number in E.164 format (e.g. <code>+15551234567</code>).</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>Fill in Business Knowledge</h3>
+          <p>In LinkCrew Settings → Voice Bot Add-on, describe your business in the <strong>Business Knowledge</strong> box: services, pricing ranges, hours, service area, what you DON'T do, your website. The more detail, the better Choppy answers. Click <strong>Save Knowledge</strong>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>Paste credentials + phone and activate</h3>
+          <p>Fill in the <strong>Account SID</strong>, <strong>Auth Token</strong>, and <strong>Phone Number</strong> fields, then click <strong>Activate Voice Bot</strong>. LinkCrew will automatically configure your Twilio number's webhook so incoming calls route to Choppy. You'll see a green "● Active" badge when it's live.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h3>Test with your own phone</h3>
+          <p>Call your Twilio number. Choppy should answer within a second or two in your company's voice. Ask it a question about your services. End the call — within a minute, you should receive an email transcript at your owner email.</p>
+        </div>
+      </div>
+
+      <h2>Writing good Business Knowledge</h2>
+      <p>Treat this like you're training a new receptionist who's never worked for you before. What would they need to know to answer a call confidently?</p>
+      <ul>
+        <li><strong>Services + price ranges</strong> — "Roof repairs $200–500, full replacements $5,000–15,000"</li>
+        <li><strong>Hours + days</strong> — "Mon–Fri 8am–6pm, closed weekends"</li>
+        <li><strong>Service area</strong> — "Kingston NY and 20-mile radius"</li>
+        <li><strong>What you don't do</strong> — "We don't handle commercial or industrial"</li>
+        <li><strong>Urgency policy</strong> — "For emergencies, ask the caller to call back during business hours or leave a message"</li>
+        <li><strong>Website and how to book</strong> — "For estimates, visit kingstonroofing.com/estimate"</li>
+      </ul>
+
+      <h2>What Choppy will and won't do</h2>
+      <p><strong>Will:</strong> answer questions based on your knowledge, take a message, gather caller name and number, email you a transcript.</p>
+      <p><strong>Won't (by design):</strong> quote specific prices beyond what you've told it, book jobs on the calendar, collect payment, make outbound calls. You follow up from the email transcript.</p>
+
+      <div class="callout">
+        <strong>Cost control tip:</strong> Twilio bills per minute. If you're worried about runaway costs, set a <strong>monthly usage limit</strong> in Twilio console → Billing → Usage alerts. You can cap it at $10 or $20/mo and Twilio will stop the line if you hit the ceiling.
+      </div>
+
+      <h2>Turning it off</h2>
+      <p>Settings → Voice Bot Add-on → click <strong>Disable</strong>. LinkCrew will remove the webhook from your Twilio number. Your number keeps working — it'll just go to Twilio's default voicemail until you either reactivate Choppy or configure something else.</p>
+
+      <h2>Need help?</h2>
+      <p>Email <a href="mailto:support@linkcrew.io">support@linkcrew.io</a> with your Twilio phone number and we'll help you get set up.</p>
+    </div>
+  </div>
+</body>
+</html>
