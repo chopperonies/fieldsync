@@ -1345,7 +1345,7 @@
       <i data-lucide="layout-dashboard"></i><span>Dashboard</span>
     </div>
     <div class="nav-item nav-group-trigger" id="mtab-jobs">
-      <div class="nav-group-main" onclick="switchMainTab('jobs');setJobsSidebarExpanded(true);">
+      <div class="nav-group-main" onclick="switchMainTab('jobs');toggleJobsSidebarGroup();">
         <i data-lucide="briefcase"></i><span>Jobs</span>
       </div>
       <span class="nav-group-chevron" id="jobs-nav-chevron" onclick="event.stopPropagation();toggleJobsSidebarGroup()">⌄</span>
@@ -1354,7 +1354,7 @@
       <div class="nav-subitem" id="jobs-sub-records" onclick="switchMainTab('jobs-records')">Job History</div>
     </div>
     <div class="nav-item nav-group-trigger" id="mtab-quotes">
-      <div class="nav-group-main" onclick="switchMainTab('quotes');setQuotesSidebarExpanded(true);">
+      <div class="nav-group-main" onclick="switchMainTab('quotes');toggleQuotesSidebarGroup();">
         <i data-lucide="file-signature"></i><span>Quotes</span>
       </div>
       <span class="nav-group-chevron" id="quotes-nav-chevron" onclick="event.stopPropagation();toggleQuotesSidebarGroup()">⌄</span>
@@ -1376,7 +1376,7 @@
     </div>
     <div class="sidebar-section-label">Business</div>
     <div class="nav-item nav-group-trigger" id="mtab-invoices">
-      <div class="nav-group-main" onclick="switchMainTab('invoices');setInvoicesSidebarExpanded(true);">
+      <div class="nav-group-main" onclick="switchMainTab('invoices');toggleInvoicesSidebarGroup();">
         <i data-lucide="receipt-text"></i><span>Invoices</span>
       </div>
       <span class="nav-group-chevron" id="invoices-nav-chevron" onclick="event.stopPropagation();toggleInvoicesSidebarGroup()">⌄</span>
@@ -1605,33 +1605,6 @@
           <div class="owner-card">
             <div class="owner-card-header">
               <div>
-                <div class="owner-card-title">Requests Queue</div>
-                <div class="owner-card-headline">Newest intake</div>
-                <div class="owner-card-sub">The latest request or quote-worthy intake appears here first.</div>
-              </div>
-            </div>
-            <div class="workspace-list" id="dashboard-request-list"><div class="empty"><div class="e-icon">✉️</div>Loading requests...</div></div>
-          </div>
-
-          <div class="owner-card">
-            <div class="owner-card-header">
-              <div>
-                <div class="owner-card-title">Active Jobs Snapshot</div>
-                <div class="owner-card-headline">Work in motion</div>
-                <div class="owner-card-sub">A compact view of the jobs that are already moving.</div>
-              </div>
-            </div>
-            <div class="workspace-list" id="dashboard-jobs-list"><div class="empty"><div class="e-icon">📋</div>Loading jobs...</div></div>
-          </div>
-        </div>
-      </div>
-      </div><!-- end fade bridge -->
-
-      <div class="owner-ops-layout" style="margin-top:0">
-        <div class="owner-section-stack">
-          <div class="owner-card">
-            <div class="owner-card-header">
-              <div>
                 <div class="owner-card-title">Live Feed</div>
                 <div class="owner-card-headline">Supplies and photos</div>
                 <div class="owner-card-sub">Pending supply requests and recent site photos across all active jobs.</div>
@@ -1646,11 +1619,12 @@
               <div id="photos-content" style="display:none"><div id="photos-list"><div class="empty"><div class="e-icon">📸</div>Loading photos...</div></div></div>
             </div>
           </div>
-        </div>
-        <div class="owner-section-stack">
           <div id="client-requests-list" style="display:none"></div>
+          <div id="dashboard-request-list" style="display:none"></div>
+          <div id="dashboard-jobs-list" style="display:none"></div>
         </div>
       </div>
+      </div><!-- end fade bridge -->
 
       <!-- Recent Outcomes — full-width landscape card -->
       <div class="owner-card" style="margin-top:20px">
@@ -1732,18 +1706,15 @@
       </div>
 
       <div class="owner-section-stack">
-        <div class="owner-signal-card">
-          <div class="owner-signal-label">Needs Attention</div>
-          <div class="owner-signal-title" id="jobs-attention-title">Waiting for live job data.</div>
-          <div class="owner-signal-copy" id="jobs-attention-copy">Once jobs load, this panel summarizes what the owner should handle first.</div>
-          <div class="owner-inline-list">
-            <div class="owner-inline-row"><span>Jobs in motion</span><strong id="jobs-inline-active">—</strong></div>
-            <div class="owner-inline-row"><span>Crew currently on site</span><strong id="jobs-inline-crew">—</strong></div>
-            <div class="owner-inline-row"><span>Open supply issues</span><strong id="jobs-inline-supplies">—</strong></div>
-          </div>
+        <div style="display:none">
+          <span id="jobs-attention-title"></span>
+          <span id="jobs-attention-copy"></span>
+          <span id="jobs-inline-active"></span>
+          <span id="jobs-inline-crew"></span>
+          <span id="jobs-inline-supplies"></span>
         </div>
 
-        <div class="owner-card" id="jobs-recently-closed-card" style="margin-top:14px">
+        <div class="owner-card" id="jobs-recently-closed-card">
           <div class="owner-card-header">
             <div>
               <div class="owner-card-title">Recently Closed</div>
@@ -1779,8 +1750,7 @@
           <button class="owner-btn primary" onclick="quickLaunchCreate('request')">+ Add Request</button>
         </div>
       </div>
-      <div class="workspace-summary-grid" id="requests-summary-grid"></div>
-      <div class="owner-ops-layout">
+      <div class="owner-ops-layout" style="grid-template-columns:1fr">
         <div class="owner-section-stack">
           <div class="owner-card">
             <div class="owner-card-header">
@@ -1789,34 +1759,13 @@
                 <div class="owner-card-headline">Incoming work waiting on review</div>
                 <div class="owner-card-sub">Keep intake separate from production so scope review and estimating do not get buried under active jobs.</div>
               </div>
-            </div>
-            <div class="workspace-list" id="requests-queue-list"><div class="empty"><div class="e-icon">✉️</div>Loading requests...</div></div>
-          </div>
-        </div>
-        <div class="owner-section-stack">
-          <div class="owner-signal-card">
-            <div class="owner-signal-label">Intake Focus</div>
-            <div class="owner-signal-title">Protect the front door so new work does not disappear into the day.</div>
-            <div class="owner-signal-copy">This page should feel like the owner’s intake desk: what just came in, what needs a response first, and what should turn into a quote instead of getting lost inside active operations.</div>
-            <div class="owner-inline-list">
-              <div class="owner-inline-row"><span>Start here</span><strong>Newest portal and manual requests</strong></div>
-              <div class="owner-inline-row"><span>Turn into</span><strong>Quoted work with clear next step</strong></div>
-              <div class="owner-inline-row"><span>Watch for</span><strong>Requests sitting without owner review</strong></div>
-            </div>
-          </div>
-          <div class="owner-card">
-            <div class="owner-card-header">
-              <div>
-                <div class="owner-card-title">Review Rhythm</div>
-                <div class="owner-card-headline">Qualify quickly before the trail gets cold.</div>
-                <div class="owner-card-sub">The office should be able to move from request to quote without hunting for context. Keep this lane short, clear, and deliberate.</div>
+              <div class="owner-card-actions" style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="owner-mini-btn active" id="requests-filter-all-btn" onclick="setRequestsFilter('all')">All <span id="requests-filter-all-count"></span></button>
+                <button class="owner-mini-btn" id="requests-filter-new-btn" onclick="setRequestsFilter('new')">New This Week <span id="requests-filter-new-count"></span></button>
+                <button class="owner-mini-btn" id="requests-filter-quoted-btn" onclick="setRequestsFilter('quoted')">Quoted <span id="requests-filter-quoted-count"></span></button>
               </div>
             </div>
-            <div class="owner-inline-list">
-              <div class="owner-inline-row"><span>1</span><strong>Confirm client, address, and scope</strong></div>
-              <div class="owner-inline-row"><span>2</span><strong>Decide quote, schedule, or follow-up</strong></div>
-              <div class="owner-inline-row"><span>3</span><strong>Move it out of intake the same day</strong></div>
-            </div>
+            <div class="workspace-list" id="requests-queue-list"><div class="empty"><div class="e-icon">✉️</div>Loading requests...</div></div>
           </div>
         </div>
       </div>
@@ -1841,8 +1790,7 @@
           <button class="owner-btn primary" onclick="quickLaunchCreate('quote')">+ Add Quote</button>
         </div>
       </div>
-      <div class="workspace-summary-grid" id="quotes-summary-grid"></div>
-      <div class="owner-ops-layout">
+      <div class="owner-ops-layout" style="grid-template-columns:1fr">
         <div class="owner-section-stack">
           <div class="owner-card">
             <div class="owner-card-header">
@@ -1851,34 +1799,13 @@
                 <div class="owner-card-headline">Open estimates and proposal-stage jobs</div>
                 <div class="owner-card-sub">Review quoted work here, then move approved jobs into scheduling when the client is ready.</div>
               </div>
-            </div>
-            <div class="workspace-list" id="quotes-queue-list"><div class="empty"><div class="e-icon">🧾</div>Loading quotes...</div></div>
-          </div>
-        </div>
-        <div class="owner-section-stack">
-          <div class="owner-signal-card">
-            <div class="owner-signal-label">Quote Focus</div>
-            <div class="owner-signal-title">Keep the estimate lane moving before leads go cold.</div>
-            <div class="owner-signal-copy">Use this page to separate scoping, pricing, and approval follow-up from live field production. When a quote stalls, the owner should know whether the blocker is price, timing, or unanswered scope questions.</div>
-            <div class="owner-inline-list">
-              <div class="owner-inline-row"><span>First move</span><strong>Review newest quote requests</strong></div>
-              <div class="owner-inline-row"><span>Best trigger</span><strong>Approved quotes move into scheduling</strong></div>
-              <div class="owner-inline-row"><span>Watch for</span><strong>Old quotes with no next step</strong></div>
-            </div>
-          </div>
-          <div class="owner-card">
-            <div class="owner-card-header">
-              <div>
-                <div class="owner-card-title">Quote Workflow</div>
-                <div class="owner-card-headline">Treat estimating like a real lane, not a note pile.</div>
-                <div class="owner-card-sub">The redesign goal here is simple: every quote should either be getting refined, followed up, or moved forward.</div>
+              <div class="owner-card-actions" style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="owner-mini-btn active" id="quotes-filter-all-btn" onclick="setQuotesFilter('all')">All <span id="quotes-filter-all-count"></span></button>
+                <button class="owner-mini-btn" id="quotes-filter-from-requests-btn" onclick="setQuotesFilter('from-requests')">From Requests <span id="quotes-filter-from-requests-count"></span></button>
+                <button class="owner-mini-btn" id="quotes-filter-with-amount-btn" onclick="setQuotesFilter('with-amount')">With Amount <span id="quotes-filter-with-amount-count"></span></button>
               </div>
             </div>
-            <div class="owner-inline-list">
-              <div class="owner-inline-row"><span>1</span><strong>Confirm scope and site details</strong></div>
-              <div class="owner-inline-row"><span>2</span><strong>Send estimate or revision quickly</strong></div>
-              <div class="owner-inline-row"><span>3</span><strong>Push approved work into the week</strong></div>
-            </div>
+            <div class="workspace-list" id="quotes-queue-list"><div class="empty"><div class="e-icon">🧾</div>Loading quotes...</div></div>
           </div>
         </div>
       </div>
@@ -2553,33 +2480,17 @@
         </div>
       </div>
 
-      <div class="owner-kpi-grid">
-        <div class="owner-kpi-card" onclick="setJobRecordsFilter('completed')" style="cursor:pointer" title="Filter to completed jobs">
-          <div class="owner-kpi-label">Completed</div>
-          <div class="owner-kpi-value" id="job-records-completed-count">—</div>
-          <div class="owner-kpi-meta">Work that finished and may still need billing or warranty follow-up.</div>
-        </div>
-        <div class="owner-kpi-card" onclick="setJobRecordsFilter('saved_for_later')" style="cursor:pointer" title="Filter to saved-for-later">
-          <div class="owner-kpi-label">Saved For Later</div>
-          <div class="owner-kpi-value" id="job-records-saved-count">—</div>
-          <div class="owner-kpi-meta">Deferred jobs that are still valid opportunities for later scheduling.</div>
-        </div>
-        <div class="owner-kpi-card" onclick="setJobRecordsFilter('cancelled')" style="cursor:pointer" title="Filter to cancelled jobs">
-          <div class="owner-kpi-label">Cancelled</div>
-          <div class="owner-kpi-value" id="job-records-cancelled-count">—</div>
-          <div class="owner-kpi-meta">Jobs that are closed with no more work expected.</div>
-        </div>
-        <div class="owner-kpi-card" onclick="setJobRecordsFilter('archived')" style="cursor:pointer" title="Filter to archived jobs">
-          <div class="owner-kpi-label">Archived</div>
-          <div class="owner-kpi-value" id="job-records-archived-count">—</div>
-          <div class="owner-kpi-meta">Older records hidden from daily workflows but kept for reference.</div>
-        </div>
+      <div style="display:none">
+        <span id="job-records-completed-count">—</span>
+        <span id="job-records-saved-count">—</span>
+        <span id="job-records-cancelled-count">—</span>
+        <span id="job-records-archived-count">—</span>
       </div>
 
       <div class="owner-card">
         <div class="owner-card-header">
           <div>
-            <div class="owner-card-title">Record Browser</div>
+            <div class="owner-card-title">History Browser</div>
             <div class="owner-card-headline" id="job-records-headline">All non-active jobs</div>
             <div class="owner-card-sub" id="job-records-copy">Choose a lifecycle bucket to review finished, deferred, cancelled, or archived work without cluttering the live operations board.</div>
           </div>
@@ -3296,7 +3207,8 @@
               <input type="text" id="appt-ask-input" placeholder='"What does my week look like?"'
                 style="flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;color:var(--text);outline:none;font-family:inherit"
                 onkeydown="if(event.key==='Enter') askSchedule()">
-              <button onclick="askSchedule()" id="appt-ask-btn" class="owner-btn primary" style="padding:8px 14px">Ask</button>
+              <button id="appt-ask-mic-btn" class="lc-btn sm" onclick="toggleScheduleMic()" title="Ask by voice"><i data-lucide="mic"></i></button>
+              <button onclick="askSchedule()" id="appt-ask-btn" class="lc-btn sm primary">Ask</button>
             </div>
             <div id="appt-ask-answer" style="display:none;margin-top:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);line-height:1.6"></div>
           </div>
@@ -4058,7 +3970,6 @@
           </span>
           <span style="color:var(--muted);font-size:12px">▾</span>
         </summary>
-        <div style="padding:0 18px 6px;font-size:11px;color:#94a3b8;font-style:italic">Not visible to the client — only you and your crew can see this.</div>
         <div id="detail-notes" style="padding:0 18px 18px"></div>
       </details>
       <details id="detail-supplies-wrapper" class="lc-card flush">
@@ -4069,7 +3980,6 @@
           </span>
           <span style="color:var(--muted);font-size:12px">▾</span>
         </summary>
-        <div style="padding:0 18px 6px;font-size:11px;color:#94a3b8;font-style:italic">Not visible to the client — only you and your crew can see this.</div>
         <div id="detail-supplies" style="padding:0 18px 18px"></div>
       </details>
       <details id="detail-bottlenecks-wrapper" class="lc-card flush">
@@ -4080,7 +3990,6 @@
           </span>
           <span style="color:var(--muted);font-size:12px">▾</span>
         </summary>
-        <div style="padding:0 18px 6px;font-size:11px;color:#94a3b8;font-style:italic">Not visible to the client — only you and your crew can see this.</div>
         <div id="detail-bottlenecks" style="padding:0 18px 18px"></div>
       </details>
     </div>
@@ -5537,17 +5446,18 @@ function renderJobsBoard(jobs = []) {
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px">
           <div style="min-width:0">
             <div class="job-name">${job.name}</div>
-            <div class="job-address">📍 ${job.address || 'No address'}</div>
+            <div class="job-address"><i data-lucide="map-pin" style="width:11px;height:11px;vertical-align:-1px"></i> ${job.address || 'No address'}</div>
           </div>
           <span class="chip ${status.cls}">${status.label}</span>
         </div>
         <div class="job-meta">
-          <span class="chip chip-blue" id="crew-${job.id}">👷 ...</span>
-          <span class="chip chip-red" id="supply-${job.id}">📦 ...</span>
-          <span class="chip chip-yellow" id="bottleneck-${job.id}">⚠ ...</span>
+          <span class="chip chip-blue" id="crew-${job.id}"><i data-lucide="users" style="width:11px;height:11px;vertical-align:-1px"></i> …</span>
+          <span class="chip chip-red" id="supply-${job.id}"><i data-lucide="package" style="width:11px;height:11px;vertical-align:-1px"></i> …</span>
+          <span class="chip chip-yellow" id="bottleneck-${job.id}"><i data-lucide="alert-triangle" style="width:11px;height:11px;vertical-align:-1px"></i> …</span>
         </div>
       </div>`;
   }).join('');
+  refreshLucideIcons(list);
 }
 
 function renderRecentlyClosedJobs(jobs = []) {
@@ -5739,9 +5649,9 @@ async function loadDashboard() {
     const crewEl = document.getElementById(`crew-${job.id}`);
     const supplyEl = document.getElementById(`supply-${job.id}`);
     const bottleneckEl = document.getElementById(`bottleneck-${job.id}`);
-    if (crewEl) crewEl.textContent = `👷 ${onSite.length} on site`;
-    if (supplyEl) supplyEl.textContent = `📦 ${pending.length} pending`;
-    if (bottleneckEl) bottleneckEl.textContent = `⚠ ${bottlenecks.length} blockers`;
+    if (crewEl) { crewEl.innerHTML = `<i data-lucide="users" style="width:11px;height:11px;vertical-align:-1px"></i> ${onSite.length} on site`; refreshLucideIcons(crewEl); }
+    if (supplyEl) { supplyEl.innerHTML = `<i data-lucide="package" style="width:11px;height:11px;vertical-align:-1px"></i> ${pending.length} pending`; refreshLucideIcons(supplyEl); }
+    if (bottleneckEl) { bottleneckEl.innerHTML = `<i data-lucide="alert-triangle" style="width:11px;height:11px;vertical-align:-1px"></i> ${bottlenecks.length} blockers`; refreshLucideIcons(bottleneckEl); }
 
     totalCrew += onSite.length;
     totalSupplies += pending.length;
@@ -5837,18 +5747,35 @@ function renderDashboardOverview(jobs = []) {
   renderWorkspaceRows('dashboard-attention-list', attentionRows, '📌', 'Nothing urgent needs owner attention right now.');
 }
 
-function renderRequestsWorkspace(jobs = []) {
-  const requests = (jobs || []).filter(isPortalRequestJob).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+let requestsFilter = 'all';
+let quotesFilter = 'all';
+let cachedRequests = [];
+let cachedQuotes = [];
+
+function setRequestsFilter(f) {
+  requestsFilter = f;
+  ['all','new','quoted'].forEach(key => {
+    const btn = document.getElementById(`requests-filter-${key}-btn`);
+    if (btn) btn.classList.toggle('active', key === f);
+  });
+  paintRequestsList();
+}
+
+function setQuotesFilter(f) {
+  quotesFilter = f;
+  ['all','from-requests','with-amount'].forEach(key => {
+    const btn = document.getElementById(`quotes-filter-${key}-btn`);
+    if (btn) btn.classList.toggle('active', key === f);
+  });
+  paintQuotesList();
+}
+
+function paintRequestsList() {
   const weekAgo = Date.now() - (7 * 86400000);
-  const recent = requests.filter(job => new Date(job.created_at || 0).getTime() >= weekAgo).length;
-  const quoted = requests.filter(job => normalizeJobStatus(job?.status) === 'quoted').length;
-  const summary = document.getElementById('requests-summary-grid');
-  if (summary) summary.innerHTML = `
-    <div class="workspace-summary-card"><div class="workspace-summary-label">Open Requests</div><div class="workspace-summary-value">${requests.length}</div><div class="workspace-summary-sub">Portal or manually captured intake.</div></div>
-    <div class="workspace-summary-card"><div class="workspace-summary-label">New This Week</div><div class="workspace-summary-value">${recent}</div><div class="workspace-summary-sub">Fresh requests that still need review.</div></div>
-    <div class="workspace-summary-card"><div class="workspace-summary-label">Quoted</div><div class="workspace-summary-value">${quoted}</div><div class="workspace-summary-sub">Requests already at estimate stage.</div></div>
-  `;
-  renderWorkspaceRows('requests-queue-list', requests.map(job => `
+  let filtered = cachedRequests;
+  if (requestsFilter === 'new') filtered = filtered.filter(j => new Date(j.created_at || 0).getTime() >= weekAgo);
+  else if (requestsFilter === 'quoted') filtered = filtered.filter(j => normalizeJobStatus(j?.status) === 'quoted');
+  renderWorkspaceRows('requests-queue-list', filtered.map(job => `
     <div class="workspace-row" onclick="openDetail('${job.id}','${String(job.name || '').replace(/'/g,"\\'")}')" style="cursor:pointer">
       <div class="workspace-row-main">
         <div class="workspace-row-title">${(job.name || '').replace(/^Request –\s*/, '') || 'Portal request'}</div>
@@ -5859,17 +5786,11 @@ function renderRequestsWorkspace(jobs = []) {
   `), '✉️', 'No request intake is waiting right now.');
 }
 
-function renderQuotesWorkspace(jobs = []) {
-  const quotes = (jobs || []).filter(job => normalizeJobStatus(job?.status) === 'quoted').sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  const requestOrigin = quotes.filter(isPortalRequestJob).length;
-  const estimateCount = quotes.filter(job => Number(job?.invoice_amount || 0) > 0).length;
-  const summary = document.getElementById('quotes-summary-grid');
-  if (summary) summary.innerHTML = `
-    <div class="workspace-summary-card"><div class="workspace-summary-label">Quotes Open</div><div class="workspace-summary-value">${quotes.length}</div><div class="workspace-summary-sub">Jobs still in estimate mode.</div></div>
-    <div class="workspace-summary-card"><div class="workspace-summary-label">Request-Origin Quotes</div><div class="workspace-summary-value">${requestOrigin}</div><div class="workspace-summary-sub">Quotes that started as portal intake.</div></div>
-    <div class="workspace-summary-card"><div class="workspace-summary-label">With Estimate Amount</div><div class="workspace-summary-value">${estimateCount}</div><div class="workspace-summary-sub">Quotes already carrying a working amount.</div></div>
-  `;
-  renderWorkspaceRows('quotes-queue-list', quotes.map(job => `
+function paintQuotesList() {
+  let filtered = cachedQuotes;
+  if (quotesFilter === 'from-requests') filtered = filtered.filter(isPortalRequestJob);
+  else if (quotesFilter === 'with-amount') filtered = filtered.filter(j => Number(j?.invoice_amount || 0) > 0);
+  renderWorkspaceRows('quotes-queue-list', filtered.map(job => `
     <div class="workspace-row" onclick="openDetail('${job.id}','${String(job.name || '').replace(/'/g,"\\'")}')" style="cursor:pointer">
       <div class="workspace-row-main">
         <div class="workspace-row-title">${job.name || 'Untitled quote'}</div>
@@ -5878,6 +5799,25 @@ function renderQuotesWorkspace(jobs = []) {
       <div class="workspace-row-meta"><span class="chip chip-blue">Lead / Estimate</span></div>
     </div>
   `), '🧾', 'No quote-stage work is open.');
+}
+
+function setCount(id, n) { const el = document.getElementById(id); if (el) el.textContent = n > 0 ? `(${n})` : ''; }
+
+function renderRequestsWorkspace(jobs = []) {
+  cachedRequests = (jobs || []).filter(isPortalRequestJob).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const weekAgo = Date.now() - (7 * 86400000);
+  setCount('requests-filter-all-count', cachedRequests.length);
+  setCount('requests-filter-new-count', cachedRequests.filter(j => new Date(j.created_at || 0).getTime() >= weekAgo).length);
+  setCount('requests-filter-quoted-count', cachedRequests.filter(j => normalizeJobStatus(j?.status) === 'quoted').length);
+  paintRequestsList();
+}
+
+function renderQuotesWorkspace(jobs = []) {
+  cachedQuotes = (jobs || []).filter(job => normalizeJobStatus(job?.status) === 'quoted').sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  setCount('quotes-filter-all-count', cachedQuotes.length);
+  setCount('quotes-filter-from-requests-count', cachedQuotes.filter(isPortalRequestJob).length);
+  setCount('quotes-filter-with-amount-count', cachedQuotes.filter(j => Number(j?.invoice_amount || 0) > 0).length);
+  paintQuotesList();
 }
 
 function renderScheduleWorkspace(jobs = []) {
@@ -8347,19 +8287,22 @@ function switchMainTab(tab) {
   if (jobsTrigger) jobsTrigger.classList.toggle('active', tab === 'jobs' || tab === 'jobs-records');
   const jobsRecordsEl = document.getElementById('jobs-sub-records');
   if (jobsRecordsEl) jobsRecordsEl.classList.toggle('active', tab === 'jobs-records');
-  if (tab === 'jobs' || tab === 'jobs-records') setJobsSidebarExpanded(true);
+  if (tab === 'jobs-records') setJobsSidebarExpanded(true);
   const quotesTrigger = document.getElementById('mtab-quotes');
   if (quotesTrigger) quotesTrigger.classList.toggle('active', tab === 'quotes' || tab === 'requests');
   const requestsEl = document.getElementById('quotes-sub-requests');
   if (requestsEl) requestsEl.classList.toggle('active', tab === 'requests');
-  if (tab === 'quotes' || tab === 'requests') setQuotesSidebarExpanded(true);
+  if (tab === 'requests') setQuotesSidebarExpanded(true);
   const invTrigger = document.getElementById('mtab-invoices');
   if (invTrigger) invTrigger.classList.toggle('active', tab === 'invoices' || tab === 'service-catalog');
-  if (tab === 'invoices' || tab === 'service-catalog') setInvoicesSidebarExpanded(true);
+  if (tab === 'service-catalog') setInvoicesSidebarExpanded(true);
   const catalogEl = document.getElementById('invoices-sub-catalog');
   if (catalogEl) catalogEl.classList.toggle('active', tab === 'service-catalog');
   const teamTrigger = document.getElementById('mtab-team');
   if (teamTrigger) teamTrigger.classList.toggle('active', tab === 'team');
+  // Schedule nav item stays lit when on Calendar (schedule routes to calendar)
+  const scheduleTrigger = document.getElementById('mtab-schedule');
+  if (scheduleTrigger) scheduleTrigger.classList.toggle('active', tab === 'calendar');
   // Auto-close sidebar submenus when navigating away from their group
   if (tab !== 'invoices' && tab !== 'service-catalog') setInvoicesSidebarExpanded(false);
   if (tab !== 'quotes' && tab !== 'requests') setQuotesSidebarExpanded(false);
@@ -8376,7 +8319,7 @@ function switchMainTab(tab) {
     if (canManageSettings()) loadCrewInviteUrl();
   }
   if (tab === 'clients' && !allClientsData.length) loadClients();
-  if (tab === 'invoices') { initInvoiceWorksheet(); setInvoicesSidebarExpanded(true); }
+  if (tab === 'invoices') { initInvoiceWorksheet(); }
   if (tab === 'service-catalog') { loadServiceCatalogSettings(); setInvoicesSidebarExpanded(true); }
   if (tab === 'expenses') initExpenseWorksheet();
   if (tab === 'reports' && canViewFinancials()) loadReports(30);
@@ -8749,6 +8692,68 @@ async function askSchedule() {
     btn.disabled = false; btn.textContent = 'Ask';
   }
 }
+
+// Voice input for Schedule Assistant
+let scheduleMicRecognition = null;
+let scheduleMicListening = false;
+
+function initScheduleMicButton() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  const btn = document.getElementById('appt-ask-mic-btn');
+  if (!btn) return;
+  btn.style.display = '';
+  refreshLucideIcons(btn);
+}
+
+function setScheduleMicIcon(listening) {
+  const btn = document.getElementById('appt-ask-mic-btn');
+  if (!btn) return;
+  btn.innerHTML = listening
+    ? '<i data-lucide="square"></i>'
+    : '<i data-lucide="mic"></i>';
+  btn.classList.toggle('danger', listening);
+  btn.title = listening ? 'Stop listening' : 'Ask by voice';
+  refreshLucideIcons(btn);
+}
+
+function toggleScheduleMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return alert('Voice input is not supported in this browser.');
+  if (scheduleMicListening && scheduleMicRecognition) {
+    scheduleMicRecognition.stop();
+    return;
+  }
+  const rec = new SR();
+  rec.lang = 'en-US';
+  rec.interimResults = true;
+  rec.continuous = false;
+  const input = document.getElementById('appt-ask-input');
+  rec.onstart = () => { scheduleMicListening = true; setScheduleMicIcon(true); };
+  rec.onresult = (e) => {
+    let transcript = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      transcript += e.results[i][0].transcript;
+    }
+    if (input) input.value = transcript;
+  };
+  rec.onerror = (e) => {
+    if (e.error !== 'no-speech' && e.error !== 'aborted') {
+      alert(`Voice input error: ${e.error}`);
+    }
+  };
+  rec.onend = () => {
+    scheduleMicListening = false;
+    setScheduleMicIcon(false);
+    scheduleMicRecognition = null;
+    const text = input?.value?.trim();
+    if (text) askSchedule();
+  };
+  scheduleMicRecognition = rec;
+  try { rec.start(); } catch (_) {}
+}
+
+document.addEventListener('DOMContentLoaded', initScheduleMicButton);
 
 function calGoToday() {
   calWeekStart = getWeekStart(new Date());
