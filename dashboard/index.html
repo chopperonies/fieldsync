@@ -6338,6 +6338,20 @@ async function openDetail(jobId, jobName) {
     ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">${workflowDropdownHtml}${financialOverviewField}</div>`
     : `<div style="margin-top:12px">${workflowDropdownHtml}</div>`;
 
+  const actionButtonsArr = Array.isArray(wfCurrent?.action_buttons) ? wfCurrent.action_buttons : [];
+  const actionButtonsHtml = wfCurrent && actionButtonsArr.length
+    ? `
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        ${actionButtonsArr.map(btn => {
+          const isSolid = btn.style === 'primary_solid';
+          const cfg = spEsc(JSON.stringify(btn.config || {}));
+          const cls = isSolid ? 'lc-btn sm primary solid' : 'lc-btn sm';
+          return `<button class="${cls}" onclick="runWorkflowAction('${btn.action_type || 'add_note'}','${cfg}')">${spEsc(btn.label || 'Action')}</button>`;
+        }).join('')}
+      </div>
+    `
+    : '';
+
   const checklistSteps = Array.isArray(wfCurrent?.steps)
     ? wfCurrent.steps.slice().sort((a, b) => (a.order || 0) - (b.order || 0))
     : [];
@@ -6375,6 +6389,7 @@ async function openDetail(jobId, jobName) {
       </div>
       <div class="form-group" style="margin-top:12px;margin-bottom:0"><label>Address</label><input type="text" id="detail-job-address" value="${job?.address || ''}" placeholder="123 Main St"></div>
       ${statusRowHtml}
+      ${actionButtonsHtml}
       ${workflowRowHtml}
       ${checklistHtml}
       <div class="form-group" style="margin-top:12px;margin-bottom:0">
@@ -7453,9 +7468,23 @@ function renderWorkflowEditor() {
   `;
 }
 
+const ACTION_TYPES = [
+  { value: 'call_customer', label: 'Call Customer' },
+  { value: 'navigate', label: 'Navigate' },
+  { value: 'open_camera', label: 'Open Camera' },
+  { value: 'add_note', label: 'Add Note' },
+  { value: 'create_po', label: 'Create PO' },
+  { value: 'generate_estimate', label: 'Generate Estimate' },
+];
+const ACTION_STYLES = [
+  { value: 'ghost', label: 'Ghost' },
+  { value: 'primary_solid', label: 'Solid' },
+];
+
 function renderStatusRow(status, idx, total) {
   const sid = status.id;
   const steps = Array.isArray(status.steps) ? status.steps : [];
+  const buttons = Array.isArray(status.action_buttons) ? status.action_buttons : [];
   const legacyOptions = JOB_STATUS_OPTIONS.map(o =>
     `<option value="${o.value}" ${status.legacy_status === o.value ? 'selected' : ''}>${o.label}</option>`
   ).join('');
@@ -7466,6 +7495,18 @@ function renderStatusRow(status, idx, total) {
         <input type="checkbox" class="sp-step-required" ${step.required === false ? '' : 'checked'}> Required
       </label>
       <button class="lc-link danger sm" onclick="removeStepFromStatus('${sid}', ${sIdx})" title="Remove step">✕</button>
+    </div>
+  `).join('');
+  const buttonsHtml = buttons.map((btn, bIdx) => `
+    <div style="display:flex;align-items:center;gap:8px;margin-top:6px" data-btn-idx="${bIdx}">
+      <input type="text" class="sp-btn-label" value="${spEsc(btn.label || '')}" placeholder="Button label" style="flex:1">
+      <select class="sp-btn-type" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:6px 8px;font-size:12px">
+        ${ACTION_TYPES.map(t => `<option value="${t.value}" ${btn.action_type === t.value ? 'selected' : ''}>${t.label}</option>`).join('')}
+      </select>
+      <select class="sp-btn-style" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:6px 8px;font-size:12px">
+        ${ACTION_STYLES.map(s => `<option value="${s.value}" ${btn.style === s.value ? 'selected' : ''}>${s.label}</option>`).join('')}
+      </select>
+      <button class="lc-link danger sm" onclick="removeButtonFromStatus('${sid}', ${bIdx})" title="Remove button">✕</button>
     </div>
   `).join('');
   return `
@@ -7485,8 +7526,12 @@ function renderStatusRow(status, idx, total) {
       </div>
       <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Checklist</div>
       <div class="sp-steps-list">${stepsHtml || '<div style="font-size:12px;color:#94a3b8;padding:4px 0">No steps yet.</div>'}</div>
+      <div style="margin-top:8px"><button class="lc-btn xs" onclick="addStepToStatus('${sid}')">+ Add step</button></div>
+
+      <div style="margin-top:14px;margin-bottom:6px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Action Buttons</div>
+      <div class="sp-buttons-list">${buttonsHtml || '<div style="font-size:12px;color:#94a3b8;padding:4px 0">No action buttons.</div>'}</div>
       <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
-        <button class="lc-btn xs" onclick="addStepToStatus('${sid}')">+ Add step</button>
+        <button class="lc-btn xs" onclick="addButtonToStatus('${sid}')">+ Add button</button>
         <button class="lc-btn xs primary solid" onclick="saveWorkflowStatus('${sid}')" style="margin-left:auto">Save status</button>
       </div>
     </div>
@@ -7505,7 +7550,13 @@ function readStatusFromRow(statusId) {
     label: sr.querySelector('.sp-step-label')?.value.trim() || '',
     required: !!sr.querySelector('.sp-step-required')?.checked,
   })).filter(s => s.label);
-  return { name, color, legacy_status: legacy || null, steps };
+  const btnRows = row.querySelectorAll('.sp-buttons-list [data-btn-idx]');
+  const action_buttons = Array.from(btnRows).map(br => ({
+    label: br.querySelector('.sp-btn-label')?.value.trim() || '',
+    action_type: br.querySelector('.sp-btn-type')?.value || 'add_note',
+    style: br.querySelector('.sp-btn-style')?.value || 'ghost',
+  })).filter(b => b.label);
+  return { name, color, legacy_status: legacy || null, steps, action_buttons };
 }
 
 async function saveWorkflowStatus(statusId) {
@@ -7596,6 +7647,86 @@ function removeStepFromStatus(statusId, stepIdx) {
   const list = document.querySelector(`.sp-status-row[data-status-id="${statusId}"] .sp-steps-list`);
   if (list && !list.querySelectorAll('[data-step-idx]').length) {
     list.innerHTML = '<div style="font-size:12px;color:#94a3b8;padding:4px 0">No steps yet.</div>';
+  }
+}
+
+function addButtonToStatus(statusId) {
+  const list = document.querySelector(`.sp-status-row[data-status-id="${statusId}"] .sp-buttons-list`);
+  if (!list) return;
+  if (list.querySelector('div[style*="color:#94a3b8"]')) list.innerHTML = '';
+  const idx = list.querySelectorAll('[data-btn-idx]').length;
+  const div = document.createElement('div');
+  div.setAttribute('data-btn-idx', idx);
+  div.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:6px';
+  div.innerHTML = `
+    <input type="text" class="sp-btn-label" value="" placeholder="Button label" style="flex:1">
+    <select class="sp-btn-type" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:6px 8px;font-size:12px">
+      ${ACTION_TYPES.map(t => `<option value="${t.value}">${t.label}</option>`).join('')}
+    </select>
+    <select class="sp-btn-style" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:6px 8px;font-size:12px">
+      ${ACTION_STYLES.map(s => `<option value="${s.value}">${s.label}</option>`).join('')}
+    </select>
+    <button class="lc-link danger sm" onclick="removeButtonFromStatus('${statusId}', ${idx})" title="Remove button">✕</button>
+  `;
+  list.appendChild(div);
+  div.querySelector('.sp-btn-label').focus();
+}
+
+function removeButtonFromStatus(statusId, btnIdx) {
+  const row = document.querySelector(`.sp-status-row[data-status-id="${statusId}"] .sp-buttons-list [data-btn-idx="${btnIdx}"]`);
+  if (row) row.remove();
+  const list = document.querySelector(`.sp-status-row[data-status-id="${statusId}"] .sp-buttons-list`);
+  if (list && !list.querySelectorAll('[data-btn-idx]').length) {
+    list.innerHTML = '<div style="font-size:12px;color:#94a3b8;padding:4px 0">No action buttons.</div>';
+  }
+}
+
+// ── Runtime action-button dispatcher on the job detail modal ──────────────────
+function runWorkflowAction(actionType, configJson) {
+  let config = {};
+  try { config = JSON.parse(configJson || '{}'); } catch (_) {}
+  const job = window._detailJob || {};
+  switch (actionType) {
+    case 'call_customer': {
+      const client = (window.allClientsData || allClientsData || []).find(c => c.id === job.client_id);
+      const phone = client?.phone || client?.primary_phone || client?.phone_number;
+      if (!phone) return alert('No client phone on file for this job.');
+      window.location.href = `tel:${String(phone).replace(/[^\d+]/g, '')}`;
+      break;
+    }
+    case 'navigate': {
+      if (!job.address) return alert('No address on this job.');
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`;
+      window.open(url, '_blank', 'noopener');
+      break;
+    }
+    case 'open_camera': {
+      const target = document.getElementById('detail-updates');
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      else alert('Open the Photos tab to upload.');
+      break;
+    }
+    case 'add_note': {
+      const input = document.getElementById('detail-note-input');
+      if (input) { input.focus(); input.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      break;
+    }
+    case 'create_po': {
+      const target = document.getElementById('detail-supplies');
+      if (target) {
+        const det = target.closest('details');
+        if (det) det.open = true;
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      break;
+    }
+    case 'generate_estimate': {
+      const target = document.getElementById('detail-workorder');
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      break;
+    }
+    default:
+      alert('Action not yet wired: ' + actionType);
   }
 }
 
