@@ -6194,6 +6194,7 @@ async function openDetail(jobId, jobName) {
 
   const res = await authFetch(`/api/jobs/${jobId}`);
   const { job, assignments, supplies, updates } = await res.json();
+  window._detailJob = job;
   if (!window._spWorkflows) {
     try {
       const wfRes = await authFetch('/api/service-pro/workflows');
@@ -6340,17 +6341,23 @@ async function openDetail(jobId, jobName) {
   const checklistSteps = Array.isArray(wfCurrent?.steps)
     ? wfCurrent.steps.slice().sort((a, b) => (a.order || 0) - (b.order || 0))
     : [];
+  const completedByStatus = (wfProgress.completed_steps && typeof wfProgress.completed_steps === 'object') ? wfProgress.completed_steps : {};
+  const completedOrders = new Set(Array.isArray(completedByStatus[wfCurrentId]) ? completedByStatus[wfCurrentId] : []);
+  const totalSteps = checklistSteps.length;
+  const doneSteps = checklistSteps.filter(s => completedOrders.has(s.order)).length;
   const checklistHtml = wfCurrent && checklistSteps.length
     ? `
       <div style="margin-top:12px;padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px">
-        <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:8px">Checklist — ${spEsc(wfCurrent.name)}</label>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Checklist — ${spEsc(wfCurrent.name)}</label>
+          <span data-checklist-counter style="font-size:11px;color:#64748b">${doneSteps} / ${totalSteps}</span>
+        </div>
         ${checklistSteps.map(step => `
-          <label style="display:flex;align-items:flex-start;gap:8px;padding:4px 0;font-size:13px;color:#334155;cursor:pointer">
-            <input type="checkbox" style="margin-top:3px">
+          <label style="display:flex;align-items:flex-start;gap:8px;padding:4px 0;font-size:13px;color:${completedOrders.has(step.order) ? '#94a3b8' : '#334155'};cursor:pointer;${completedOrders.has(step.order) ? 'text-decoration:line-through' : ''}">
+            <input type="checkbox" ${completedOrders.has(step.order) ? 'checked' : ''} onchange="persistStepCheck('${job.id}','${wfCurrentId}',${step.order}, this.checked, this)" style="margin-top:3px">
             <span>${spEsc(step.label || '')}${step.required === false ? ' <span style="color:#94a3b8;font-size:11px">(optional)</span>' : ''}</span>
           </label>
         `).join('')}
-        <div style="margin-top:6px;font-size:11px;color:#94a3b8">Visual only — step progress is not persisted yet.</div>
       </div>
     `
     : '';
@@ -7336,11 +7343,24 @@ async function enableServiceProTemplate(templateId) {
   }
 }
 
-async function advanceWorkflowStatus(jobId, statusId) {
+async function patchWorkflowProgress(jobId, partial) {
+  const current = window._detailJob?.workflow_progress || {};
+  const merged = { ...current, ...partial };
+  if (partial.completed_steps) {
+    merged.completed_steps = { ...(current.completed_steps || {}), ...partial.completed_steps };
+  }
   const res = await authFetch(`/api/jobs/${jobId}`, {
     method: 'PATCH',
-    body: JSON.stringify({ workflow_progress: { current_status_id: statusId } }),
+    body: JSON.stringify({ workflow_progress: merged }),
   });
+  if (res.ok) {
+    try { window._detailJob = await res.json(); } catch (_) {}
+  }
+  return res;
+}
+
+async function advanceWorkflowStatus(jobId, statusId) {
+  const res = await patchWorkflowProgress(jobId, { current_status_id: statusId });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     alert(err.error || err.message || 'Failed to advance workflow status.');
@@ -7348,6 +7368,31 @@ async function advanceWorkflowStatus(jobId, statusId) {
   }
   const title = document.getElementById('detail-title')?.textContent || '';
   await openDetail(jobId, title);
+}
+
+async function persistStepCheck(jobId, statusId, stepOrder, checked, cbEl) {
+  const current = window._detailJob?.workflow_progress || {};
+  const completed = { ...(current.completed_steps || {}) };
+  const set = new Set(Array.isArray(completed[statusId]) ? completed[statusId] : []);
+  if (checked) set.add(stepOrder); else set.delete(stepOrder);
+  completed[statusId] = Array.from(set).sort((a, b) => a - b);
+  const res = await patchWorkflowProgress(jobId, { completed_steps: { [statusId]: completed[statusId] } });
+  if (!res.ok) {
+    if (cbEl) cbEl.checked = !checked;
+    alert('Failed to save step progress.');
+    return;
+  }
+  const boxes = document.querySelectorAll('input[type="checkbox"][onchange^="persistStepCheck"]');
+  const done = Array.from(boxes).filter(b => b.checked).length;
+  const counter = document.querySelector('[data-checklist-counter]');
+  if (counter) counter.textContent = `${done} / ${boxes.length}`;
+  if (cbEl) {
+    const lbl = cbEl.closest('label');
+    if (lbl) {
+      lbl.style.color = checked ? '#94a3b8' : '#334155';
+      lbl.style.textDecoration = checked ? 'line-through' : 'none';
+    }
+  }
 }
 
 // ── Service PRO workflow editor ───────────────────────────────────────────────
