@@ -2,6 +2,10 @@
 -- Idempotent — deletes the 3 templates by name first (workflow_statuses
 -- cascade), then re-inserts. Tenant clones (is_template = false) are untouched.
 -- Pure SQL, no PL/pgSQL DO block, no dollar-quoting — works in Supabase SQL editor.
+--
+-- Each workflow_status carries a legacy_status column (added in
+-- 202604191930_service_pro_legacy_status.sql). If you are seeding a fresh
+-- DB, run that column-add migration FIRST.
 
 -- 1) Clean slate for these 3 templates
 DELETE FROM service_workflows
@@ -28,6 +32,7 @@ VALUES
 
 -- 3) Insert all workflow_statuses in one statement
 --    CTE fetches the 3 fresh workflow ids so we can reference by short name.
+--    legacy_status maps to JOB_STATUS_OPTIONS in dashboard/index.html.
 WITH tpl AS (
   SELECT
     (SELECT id FROM service_workflows
@@ -41,7 +46,7 @@ WITH tpl AS (
        AND name = 'Service Call') AS service_id
 )
 INSERT INTO workflow_statuses
-  (workflow_id, order_index, name, color, icon, steps, action_buttons)
+  (workflow_id, order_index, name, color, icon, steps, action_buttons, legacy_status)
 -- ========== HVAC ==========
 SELECT hvac_id, 1, 'New Job', '#3b82f6', 'clipboard',
   jsonb_build_array(
@@ -62,7 +67,8 @@ SELECT hvac_id, 1, 'New Job', '#3b82f6', 'clipboard',
     jsonb_build_object(
       'label', 'Navigate',
       'action_type', 'navigate', 'style', 'ghost')
-  )
+  ),
+  'scheduled'
 FROM tpl
 UNION ALL
 SELECT hvac_id, 2, 'On the Way', '#ec4899', 'truck',
@@ -83,7 +89,8 @@ SELECT hvac_id, 2, 'On the Way', '#ec4899', 'truck',
     jsonb_build_object(
       'label', 'Navigate',
       'action_type', 'navigate', 'style', 'ghost')
-  )
+  ),
+  'in_progress'
 FROM tpl
 UNION ALL
 SELECT hvac_id, 3, 'In Progress', '#16a34a', 'wrench',
@@ -120,7 +127,8 @@ SELECT hvac_id, 3, 'In Progress', '#16a34a', 'wrench',
     jsonb_build_object(
       'label', 'If Needed, Create PO',
       'action_type', 'create_po', 'style', 'primary_solid')
-  )
+  ),
+  'in_progress'
 FROM tpl
 UNION ALL
 SELECT hvac_id, 4, 'Service Complete', '#0f766e', 'check-circle',
@@ -142,7 +150,8 @@ SELECT hvac_id, 4, 'Service Complete', '#0f766e', 'check-circle',
     jsonb_build_object(
       'label', 'Add Note',
       'action_type', 'add_note', 'style', 'ghost')
-  )
+  ),
+  'completed'
 FROM tpl
 UNION ALL
 SELECT hvac_id, 5, 'Invoiced', '#64748b', 'file-check',
@@ -151,7 +160,8 @@ SELECT hvac_id, 5, 'Invoiced', '#64748b', 'file-check',
       'order', 1, 'label', 'Invoice sent to customer',
       'required', true)
   ),
-  '[]'::jsonb
+  '[]'::jsonb,
+  'invoiced'
 FROM tpl
 -- ========== GENERAL INSTALL ==========
 UNION ALL
@@ -168,7 +178,8 @@ SELECT general_id, 1, 'Scheduled', '#3b82f6', 'calendar',
     jsonb_build_object(
       'label', 'Call Customer',
       'action_type', 'call_customer', 'style', 'ghost')
-  )
+  ),
+  'scheduled'
 FROM tpl
 UNION ALL
 SELECT general_id, 2, 'On the Way', '#ec4899', 'truck',
@@ -184,7 +195,8 @@ SELECT general_id, 2, 'On the Way', '#ec4899', 'truck',
     jsonb_build_object(
       'label', 'Navigate',
       'action_type', 'navigate', 'style', 'ghost')
-  )
+  ),
+  'in_progress'
 FROM tpl
 UNION ALL
 SELECT general_id, 3, 'In Progress', '#16a34a', 'wrench',
@@ -209,7 +221,8 @@ SELECT general_id, 3, 'In Progress', '#16a34a', 'wrench',
     jsonb_build_object(
       'label', 'Add Note',
       'action_type', 'add_note', 'style', 'ghost')
-  )
+  ),
+  'in_progress'
 FROM tpl
 UNION ALL
 SELECT general_id, 4, 'Complete', '#0f766e', 'check-circle',
@@ -228,7 +241,8 @@ SELECT general_id, 4, 'Complete', '#0f766e', 'check-circle',
     jsonb_build_object(
       'label', 'Generate Estimate',
       'action_type', 'generate_estimate', 'style', 'primary_solid')
-  )
+  ),
+  'completed'
 FROM tpl
 UNION ALL
 SELECT general_id, 5, 'Invoiced', '#64748b', 'file-check',
@@ -237,7 +251,8 @@ SELECT general_id, 5, 'Invoiced', '#64748b', 'file-check',
       'order', 1, 'label', 'Invoice sent',
       'required', true)
   ),
-  '[]'::jsonb
+  '[]'::jsonb,
+  'invoiced'
 FROM tpl
 -- ========== SERVICE CALL ==========
 UNION ALL
@@ -257,7 +272,8 @@ SELECT service_id, 1, 'Dispatched', '#3b82f6', 'send',
     jsonb_build_object(
       'label', 'Navigate',
       'action_type', 'navigate', 'style', 'ghost')
-  )
+  ),
+  'scheduled'
 FROM tpl
 UNION ALL
 SELECT service_id, 2, 'On Site', '#ec4899', 'map-pin',
@@ -273,7 +289,8 @@ SELECT service_id, 2, 'On Site', '#ec4899', 'map-pin',
     jsonb_build_object(
       'label', 'Open Camera',
       'action_type', 'open_camera', 'style', 'ghost')
-  )
+  ),
+  'in_progress'
 FROM tpl
 UNION ALL
 SELECT service_id, 3, 'Diagnosing', '#f59e0b', 'search',
@@ -295,7 +312,8 @@ SELECT service_id, 3, 'Diagnosing', '#f59e0b', 'search',
     jsonb_build_object(
       'label', 'Generate Estimate',
       'action_type', 'generate_estimate', 'style', 'primary_solid')
-  )
+  ),
+  'in_progress'
 FROM tpl
 UNION ALL
 SELECT service_id, 4, 'Repairing', '#16a34a', 'wrench',
@@ -317,7 +335,8 @@ SELECT service_id, 4, 'Repairing', '#16a34a', 'wrench',
     jsonb_build_object(
       'label', 'If Needed, Create PO',
       'action_type', 'create_po', 'style', 'ghost')
-  )
+  ),
+  'in_progress'
 FROM tpl
 UNION ALL
 SELECT service_id, 5, 'Paid', '#0f766e', 'dollar-sign',
@@ -329,5 +348,6 @@ SELECT service_id, 5, 'Paid', '#0f766e', 'dollar-sign',
       'order', 2, 'label', 'Customer signature collected',
       'required', true)
   ),
-  '[]'::jsonb
+  '[]'::jsonb,
+  'completed'
 FROM tpl;

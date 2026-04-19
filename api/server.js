@@ -2105,6 +2105,45 @@ app.patch('/api/jobs/:id', auth, requireOperationAccess, ensureFinancialFieldsAl
     }
     updates[f] = req.body[f] || null;
   });
+
+  // If a workflow is (newly) attached or its progress is being advanced,
+  // derive the legacy jobs.status from the current workflow status so the
+  // Jobs list, dashboard chips, and reports stay in sync with the pill row.
+  const touchedWorkflow = 'workflow_id' in updates || 'workflow_progress' in updates;
+  if (touchedWorkflow) {
+    let effWorkflowId = 'workflow_id' in updates ? updates.workflow_id : undefined;
+    let effProgress = 'workflow_progress' in updates ? updates.workflow_progress : undefined;
+    if (effWorkflowId === undefined || effProgress === undefined) {
+      const { data: existing } = await supabaseAdmin
+        .from('jobs')
+        .select('workflow_id, workflow_progress')
+        .eq('id', id)
+        .eq('tenant_id', req.tenantId)
+        .maybeSingle();
+      if (effWorkflowId === undefined) effWorkflowId = existing?.workflow_id || null;
+      if (effProgress === undefined) effProgress = existing?.workflow_progress || {};
+    }
+    if (effWorkflowId) {
+      const { data: wfStatuses } = await supabaseAdmin
+        .from('workflow_statuses')
+        .select('id, legacy_status, order_index')
+        .eq('workflow_id', effWorkflowId)
+        .order('order_index', { ascending: true });
+      const list = wfStatuses || [];
+      let currentId = effProgress?.current_status_id;
+      if (!currentId || !list.some(s => s.id === currentId)) {
+        currentId = list[0]?.id || null;
+        if (currentId) {
+          updates.workflow_progress = { ...(effProgress || {}), current_status_id: currentId };
+        }
+      }
+      const currentStatus = currentId ? list.find(s => s.id === currentId) : null;
+      if (currentStatus?.legacy_status) {
+        updates.status = normalizeJobStatus(currentStatus.legacy_status);
+      }
+    }
+  }
+
   updates.updated_at = new Date().toISOString();
   const { data } = await supabaseAdmin.from('jobs').update(updates).eq('id', id).eq('tenant_id', req.tenantId).select().single();
   if (!data) return res.status(404).json({ error: 'Job not found' });
