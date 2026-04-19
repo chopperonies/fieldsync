@@ -2069,6 +2069,8 @@ app.patch('/api/jobs/:id', auth, requireOperationAccess, ensureFinancialFieldsAl
     'required_completion_photos',
     'required_cleanup_photos',
     'crew_plan_confirmed',
+    'workflow_id',
+    'workflow_progress',
   ];
   const updates = {};
   allowed.forEach(f => {
@@ -5292,7 +5294,7 @@ app.get('/api/service-pro/templates', auth, requireSettingsAccess, async (req, r
   res.json((workflows || []).map(w => ({ ...w, statuses: byWf[w.id] || [] })));
 });
 
-app.get('/api/service-pro/workflows', auth, requireSettingsAccess, async (req, res) => {
+app.get('/api/service-pro/workflows', auth, async (req, res) => {
   const { data: workflows, error } = await supabaseAdmin
     .from('service_workflows')
     .select('*')

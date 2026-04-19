@@ -6190,6 +6190,15 @@ async function openDetail(jobId, jobName) {
 
   const res = await authFetch(`/api/jobs/${jobId}`);
   const { job, assignments, supplies, updates } = await res.json();
+  if (!window._spWorkflows) {
+    try {
+      const wfRes = await authFetch('/api/service-pro/workflows');
+      window._spWorkflows = wfRes.ok ? await wfRes.json() : [];
+    } catch (_) { window._spWorkflows = []; }
+  }
+  const attachedWorkflow = job?.workflow_id
+    ? (window._spWorkflows || []).find(w => w.id === job.workflow_id)
+    : null;
   const noteUpdates = (updates || []).filter(u => u.type === 'note');
   const bottleneckUpdates = (updates || []).filter(u => u.type === 'bottleneck');
 
@@ -6276,6 +6285,72 @@ async function openDetail(jobId, jobName) {
   const financialOverviewField = canManageFinancials()
     ? `<div class="form-group" style="margin-bottom:0"><label>Estimate Amount</label><input type="number" id="detail-job-estimate" value="${job?.estimate_amount || ''}" min="0" step="0.01" placeholder="0.00"></div>`
     : `<div style="display:flex;align-items:flex-end;padding:12px 14px;border:1px solid #e8e8e8;border-radius:10px;background:#f8fafc;font-size:12px;color:#64748b;line-height:1.6">Financial details are hidden for your role.</div>`;
+
+  const spWorkflows = window._spWorkflows || [];
+  const wfStatuses = (attachedWorkflow?.statuses || []).slice().sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+  const wfProgress = job?.workflow_progress || {};
+  const wfCurrentId = attachedWorkflow
+    ? (wfProgress.current_status_id && wfStatuses.some(s => s.id === wfProgress.current_status_id)
+        ? wfProgress.current_status_id
+        : (wfStatuses[0]?.id || null))
+    : null;
+  const wfCurrent = wfCurrentId ? wfStatuses.find(s => s.id === wfCurrentId) : null;
+
+  const workflowDropdownHtml = `
+    <div class="form-group" style="margin-bottom:0">
+      <label>Workflow</label>
+      <select id="detail-job-workflow" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 10px;font-size:13px;color:#17191c">
+        <option value="">— None —</option>
+        ${spWorkflows.map(w => `<option value="${w.id}" ${w.id === job?.workflow_id ? 'selected' : ''}>${spEsc(w.name)}</option>`).join('')}
+      </select>
+    </div>
+  `;
+
+  const statusRowHtml = attachedWorkflow
+    ? `
+      <div style="margin-top:12px">
+        <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Workflow Status — ${spEsc(attachedWorkflow.name)}</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${wfStatuses.map(s => {
+            const active = s.id === wfCurrentId;
+            const color = s.color || '#0ea5e9';
+            return `<button type="button" onclick="advanceWorkflowStatus('${job.id}','${s.id}')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700;border:1.5px solid ${active ? color : '#e2e8f0'};background:${active ? color : '#fff'};color:${active ? '#fff' : '#475569'};cursor:pointer;white-space:nowrap">${s.order_index}. ${spEsc(s.name)}</button>`;
+          }).join('')}
+        </div>
+        <input type="hidden" id="detail-job-status" value="${normalizeJobStatus(job?.status)}">
+      </div>
+    `
+    : `
+      <div class="form-group" style="margin-top:12px;margin-bottom:0">
+        <label>Status</label>
+        <select id="detail-job-status">
+          ${JOB_STATUS_OPTIONS.map(option => `<option value="${option.value}" ${normalizeJobStatus(job?.status) === option.value ? 'selected' : ''}>${option.label}</option>`).join('')}
+        </select>
+      </div>
+    `;
+
+  const workflowRowHtml = canManageFinancials()
+    ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">${workflowDropdownHtml}${financialOverviewField}</div>`
+    : `<div style="margin-top:12px">${workflowDropdownHtml}</div>`;
+
+  const checklistSteps = Array.isArray(wfCurrent?.steps)
+    ? wfCurrent.steps.slice().sort((a, b) => (a.order || 0) - (b.order || 0))
+    : [];
+  const checklistHtml = wfCurrent && checklistSteps.length
+    ? `
+      <div style="margin-top:12px;padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px">
+        <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:8px">Checklist — ${spEsc(wfCurrent.name)}</label>
+        ${checklistSteps.map(step => `
+          <label style="display:flex;align-items:flex-start;gap:8px;padding:4px 0;font-size:13px;color:#334155;cursor:pointer">
+            <input type="checkbox" style="margin-top:3px">
+            <span>${spEsc(step.label || '')}${step.required === false ? ' <span style="color:#94a3b8;font-size:11px">(optional)</span>' : ''}</span>
+          </label>
+        `).join('')}
+        <div style="margin-top:6px;font-size:11px;color:#94a3b8">Visual only — step progress is not persisted yet.</div>
+      </div>
+    `
+    : '';
+
   overviewEl.innerHTML = `
     <div class="lc-card">
       <div class="panel-title">Job Overview</div>
@@ -6288,15 +6363,9 @@ async function openDetail(jobId, jobName) {
         </div>
       </div>
       <div class="form-group" style="margin-top:12px;margin-bottom:0"><label>Address</label><input type="text" id="detail-job-address" value="${job?.address || ''}" placeholder="123 Main St"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
-        <div class="form-group" style="margin-bottom:0">
-          <label>Status</label>
-          <select id="detail-job-status">
-            ${JOB_STATUS_OPTIONS.map(option => `<option value="${option.value}" ${normalizeJobStatus(job?.status) === option.value ? 'selected' : ''}>${option.label}</option>`).join('')}
-          </select>
-        </div>
-        ${financialOverviewField}
-      </div>
+      ${statusRowHtml}
+      ${workflowRowHtml}
+      ${checklistHtml}
       <div class="form-group" style="margin-top:12px;margin-bottom:0">
         <label>Scope / Work Being Done</label>
         <textarea id="detail-job-description" rows="5" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit">${job?.description || ''}</textarea>
@@ -6463,6 +6532,8 @@ async function saveJobOverview(jobId) {
     status: document.getElementById('detail-job-status').value,
     description: document.getElementById('detail-job-description').value.trim() || null,
   };
+  const wfSelect = document.getElementById('detail-job-workflow');
+  if (wfSelect) payload.workflow_id = wfSelect.value || null;
   const estimateEl = document.getElementById('detail-job-estimate');
   if (estimateEl && canManageFinancials()) {
     payload.estimate_amount = estimateEl.value || null;
@@ -7253,11 +7324,26 @@ async function enableServiceProTemplate(templateId) {
       alert(err.error === 'already enabled' ? 'This workflow is already enabled.' : (err.message || err.error || 'Failed to enable workflow.'));
       return;
     }
+    window._spWorkflows = null;
     loadServicePro();
   } catch (err) {
     console.error('enableServiceProTemplate failed', err);
     alert('Failed to enable workflow.');
   }
+}
+
+async function advanceWorkflowStatus(jobId, statusId) {
+  const res = await authFetch(`/api/jobs/${jobId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ workflow_progress: { current_status_id: statusId } }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    alert(err.error || err.message || 'Failed to advance workflow status.');
+    return;
+  }
+  const title = document.getElementById('detail-title')?.textContent || '';
+  await openDetail(jobId, title);
 }
 
 async function loadTeamInline() {
