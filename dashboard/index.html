@@ -486,17 +486,19 @@
     }
     .owner-kpi-card {
       flex: 1; background: transparent; border: none; border-right: 1px solid var(--border);
-      padding: 16px 24px; box-shadow: none; border-radius: 0;
+      padding: 10px 16px; box-shadow: none; border-radius: 0;
+      transition: background 0.12s;
     }
+    .owner-kpi-card:hover { background: rgba(14,165,233,0.04); }
     .owner-kpi-card:last-child { border-right: none; }
     .owner-kpi-label {
-      font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
     }
     .owner-kpi-value {
-      font-size: 26px; line-height: 1; font-weight: 900; letter-spacing: -0.03em; color: var(--text);
-      margin-top: 6px;
+      font-size: 18px; line-height: 1; font-weight: 800; letter-spacing: -0.02em; color: var(--text);
+      margin-top: 4px;
     }
-    .owner-kpi-meta { font-size: 11px; color: var(--text-soft); line-height: 1.5; margin-top: 4px; }
+    .owner-kpi-meta { font-size: 10px; color: var(--text-soft); line-height: 1.45; margin-top: 3px; }
     .owner-ops-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.85fr); gap: 0; border-top: 1px solid var(--border); }
     .owner-section-stack { display: flex; flex-direction: column; min-width: 0; }
     .owner-section-stack + .owner-section-stack { border-left: 1px solid var(--border); }
@@ -681,13 +683,15 @@
     .workspace-row-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
     .workspace-summary-grid { display:flex; align-items:stretch; border-bottom:1px solid var(--border); }
     .workspace-summary-card {
-      flex:1; padding:14px 20px; border:none; border-right:1px solid var(--border);
+      flex:1; padding:10px 16px; border:none; border-right:1px solid var(--border);
       border-radius:0; background:transparent; box-shadow:none;
+      transition: background 0.12s;
     }
+    .workspace-summary-card:hover { background: rgba(14,165,233,0.04); }
     .workspace-summary-card:last-child { border-right:none; }
-    .workspace-summary-label { font-size:10px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--muted); }
-    .workspace-summary-value { font-size:20px; font-weight:900; color:var(--text); margin-top:5px; letter-spacing:-0.02em; }
-    .workspace-summary-sub { font-size:11px; color:var(--text-soft); margin-top:3px; line-height:1.5; }
+    .workspace-summary-label { font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); }
+    .workspace-summary-value { font-size:18px; font-weight:800; color:var(--text); margin-top:4px; letter-spacing:-0.02em; }
+    .workspace-summary-sub { font-size:10px; color:var(--text-soft); margin-top:3px; line-height:1.45; }
     .composer-layout { display:grid; grid-template-columns:minmax(0, 1.7fr) minmax(260px, 0.95fr); gap:16px; margin-top:16px; }
     .composer-stack { display:grid; gap:0; }
     .composer-panel {
@@ -925,6 +929,18 @@
     /* Flat, elevated card — modern hero-style */
     .lc-card { background: #fff; border: 1px solid rgba(15,23,42,0.06); border-radius: 2px; padding: 18px; box-shadow: 0 20px 40px rgba(15,23,42,0.10), 0 8px 16px rgba(15,23,42,0.05); }
     .lc-card.flush { padding: 0; overflow: hidden; }
+
+    /* Hero stat chip — dot + number + label, clickable */
+    .stat-chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.7); border: 1px solid rgba(14,165,233,0.18); border-radius: 999px; padding: 3px 9px; font-size: 11px; font-family: inherit; cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.15s; }
+    .stat-chip:hover { background: #fff; border-color: rgba(14,165,233,0.4); transform: translateY(-1px); }
+    .stat-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: #cbd5e1; flex-shrink: 0; transition: background 0.2s, box-shadow 0.2s; }
+    .stat-chip.neutral .stat-chip-dot { background: #0ea5e9; }
+    .stat-chip.urgent .stat-chip-dot { background: #ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.18); }
+    .stat-chip.warning .stat-chip-dot { background: #f59e0b; box-shadow: 0 0 0 2px rgba(245,158,11,0.18); }
+    .stat-chip.filter-active { background: #eff6ff; border-color: #3b82f6; }
+    .stat-chip.filter-active .stat-chip-label { color: #1d4ed8; }
+    .stat-chip-num { font-size: 12px; font-weight: 800; color: #0f172a; letter-spacing: -0.01em; }
+    .stat-chip-label { font-size: 10px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; }
 
     /* Text-link action — minimal footprint, no border */
     .lc-link { background: none; border: none; color: #1d4ed8; font-size: 12px; font-weight: 700; cursor: pointer; padding: 0; font-family: inherit; text-decoration: none; transition: color 0.12s; }
@@ -1543,44 +1559,38 @@
         <!-- Soft glow -->
         <div style="position:absolute;top:-40px;right:-20px;width:220px;height:180px;background:radial-gradient(ellipse,rgba(14,165,233,0.12),transparent 70%);pointer-events:none"></div>
 
-        <div style="position:relative;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-          <div style="flex:0 0 auto">
-            <div id="dash-greeting-label" style="font-size:11px;font-weight:700;color:#0369a1;opacity:0.75;margin-bottom:2px">Good morning</div>
-            <div id="dash-greeting-date" style="font-size:18px;font-weight:800;color:#0f172a;letter-spacing:-0.025em;line-height:1.2">Today</div>
-          </div>
-          <div style="display:flex;gap:16px;align-items:center;margin-left:auto;flex-wrap:wrap">
-            <div style="text-align:center;cursor:pointer" onclick="showOverlay('jobs')" title="Active jobs">
-              <div style="font-size:20px;font-weight:900;color:#0f172a;line-height:1" id="stat-jobs">—</div>
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-top:2px">Active</div>
+        <div style="position:relative;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+          <div style="flex:0 0 auto;display:flex;flex-direction:column;gap:10px">
+            <div>
+              <div id="dash-greeting-label" style="font-size:11px;font-weight:700;color:#0369a1;opacity:0.75;margin-bottom:2px">Good morning</div>
+              <div id="dash-greeting-date" style="font-size:18px;font-weight:800;color:#0f172a;letter-spacing:-0.025em;line-height:1.2">Today</div>
             </div>
-            <div style="text-align:center;cursor:pointer" onclick="showOverlay('crew')" title="Crew on site">
-              <div style="font-size:20px;font-weight:900;color:#0f172a;line-height:1" id="stat-crew">—</div>
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-top:2px">On Site</div>
-            </div>
-            <div style="text-align:center;cursor:pointer" onclick="showOverlay('supplies')" title="Supply requests">
-              <div style="font-size:20px;font-weight:900;color:#ef4444;line-height:1" id="stat-supplies">—</div>
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-top:2px">Supplies</div>
-            </div>
-            <div style="text-align:center;cursor:pointer" onclick="showOverlay('bottlenecks')" title="Bottlenecks">
-              <div style="font-size:20px;font-weight:900;color:#f59e0b;line-height:1" id="stat-bottlenecks">—</div>
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-top:2px">Blockers</div>
-            </div>
-            <div style="width:1px;height:28px;background:rgba(14,165,233,0.2)"></div>
-            <!-- nav shortcuts -->
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <button class="owner-mini-btn" onclick="switchMainTab('jobs')" style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.7);border-color:rgba(14,165,233,0.2)">
-                Jobs <span id="dashboard-active-count" style="background:rgba(14,165,233,0.12);color:#0369a1;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
+              <button class="stat-chip" id="stat-chip-jobs" onclick="switchMainTab('jobs')" title="Open Jobs page">
+                <span class="stat-chip-dot"></span><span class="stat-chip-num" id="stat-jobs">—</span><span class="stat-chip-label">Active</span>
               </button>
-              <button class="owner-mini-btn" onclick="switchMainTab('requests')" style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.7);border-color:rgba(14,165,233,0.2)">
-                Requests <span id="dashboard-request-count" style="background:rgba(14,165,233,0.12);color:#0369a1;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
+              <button class="stat-chip" id="stat-chip-crew" onclick="showOverlay('crew')" title="Crew on site">
+                <span class="stat-chip-dot"></span><span class="stat-chip-num" id="stat-crew">—</span><span class="stat-chip-label">On Site</span>
               </button>
-              <button class="owner-mini-btn" onclick="switchMainTab('quotes')" style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.7);border-color:rgba(14,165,233,0.2)">
-                Quotes <span id="dashboard-quote-count" style="background:rgba(14,165,233,0.12);color:#0369a1;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
+              <button class="stat-chip" id="stat-chip-supplies" onclick="showOverlay('supplies')" title="Supply requests">
+                <span class="stat-chip-dot"></span><span class="stat-chip-num" id="stat-supplies">—</span><span class="stat-chip-label">Supplies</span>
               </button>
-              <button class="owner-mini-btn" onclick="switchMainTab('invoices')" style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.7);border-color:rgba(14,165,233,0.2)">
-                Billing <span id="dashboard-invoice-count" style="background:rgba(14,165,233,0.12);color:#0369a1;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
+              <button class="stat-chip" id="stat-chip-bottlenecks" onclick="showOverlay('bottlenecks')" title="Bottlenecks">
+                <span class="stat-chip-dot"></span><span class="stat-chip-num" id="stat-bottlenecks">—</span><span class="stat-chip-label">Blockers</span>
               </button>
             </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap">
+            <div style="display:none"><span id="dashboard-active-count">—</span></div>
+            <button class="owner-mini-btn" onclick="switchMainTab('requests')" style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.7);border-color:rgba(14,165,233,0.2)">
+              Requests <span id="dashboard-request-count" style="background:rgba(14,165,233,0.12);color:#0369a1;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
+            </button>
+            <button class="owner-mini-btn" onclick="switchMainTab('quotes')" style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.7);border-color:rgba(14,165,233,0.2)">
+              Quotes <span id="dashboard-quote-count" style="background:rgba(14,165,233,0.12);color:#0369a1;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
+            </button>
+            <button class="owner-mini-btn" onclick="switchMainTab('invoices')" style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.7);border-color:rgba(14,165,233,0.2)">
+              Billing <span id="dashboard-invoice-count" style="background:rgba(14,165,233,0.12);color:#0369a1;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
+            </button>
           </div>
       </div>
       </div><!-- end dashboard hero -->
@@ -1665,26 +1675,11 @@
 
 <div class="owner-page">
   <div class="owner-page-shell">
-    <!-- Jobs stat strip (no title — topbar carries it) -->
-    <div style="display:flex;align-items:center;gap:0;padding:0;border-bottom:1px solid var(--border)">
-      <div style="display:flex;align-items:stretch;flex:1">
-        <div style="flex:1;padding:14px 20px;border-right:1px solid var(--border);cursor:pointer" onclick="showOverlay('jobs')">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Active</div>
-          <div style="font-size:22px;font-weight:900;color:var(--text);margin-top:4px;letter-spacing:-0.02em" id="jobs-active-count">—</div>
-        </div>
-        <div style="flex:1;padding:14px 20px;border-right:1px solid var(--border);cursor:pointer" onclick="showOverlay('crew')">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">On Site</div>
-          <div style="font-size:22px;font-weight:900;color:var(--text);margin-top:4px;letter-spacing:-0.02em" id="jobs-crew-count">—</div>
-        </div>
-        <div style="flex:1;padding:14px 20px;border-right:1px solid var(--border);cursor:pointer" onclick="showOverlay('supplies')">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Supplies</div>
-          <div style="font-size:22px;font-weight:900;color:#ef4444;margin-top:4px;letter-spacing:-0.02em" id="jobs-supplies-count">—</div>
-        </div>
-        <div style="flex:1;padding:14px 20px;cursor:pointer" onclick="showOverlay('bottlenecks')">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Blockers</div>
-          <div style="font-size:22px;font-weight:900;color:#f59e0b;margin-top:4px;letter-spacing:-0.02em" id="jobs-bottlenecks-count">—</div>
-        </div>
-      </div>
+    <div style="display:none">
+      <span id="jobs-active-count"></span>
+      <span id="jobs-crew-count"></span>
+      <span id="jobs-supplies-count"></span>
+      <span id="jobs-bottlenecks-count"></span>
     </div>
 
     <div class="owner-ops-layout">
@@ -1697,9 +1692,19 @@
               <div class="owner-card-sub" id="jobs-board-copy">Each card should answer the owner’s next question fast: status, crew presence, and whether materials are holding up the work.</div>
             </div>
             <div class="owner-card-actions">
-              <button class="owner-mini-btn" onclick="showOverlay('jobs')">Quick View</button>
               <button class="owner-btn primary" onclick="openAddJob('job')" style="padding:6px 14px;font-size:12px">+ Add Job</button>
             </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+            <button class="stat-chip" id="jobs-filter-onsite" onclick="setJobsViewFilter('onsite')" title="Show only jobs with crew on site">
+              <span class="stat-chip-dot"></span><span class="stat-chip-num" id="jobs-filter-onsite-num">0</span><span class="stat-chip-label">On Site</span>
+            </button>
+            <button class="stat-chip" id="jobs-filter-supplies" onclick="setJobsViewFilter('supplies')" title="Show only jobs with open supply requests">
+              <span class="stat-chip-dot"></span><span class="stat-chip-num" id="jobs-filter-supplies-num">0</span><span class="stat-chip-label">Supplies</span>
+            </button>
+            <button class="stat-chip" id="jobs-filter-blockers" onclick="setJobsViewFilter('blockers')" title="Show only jobs with blockers today">
+              <span class="stat-chip-dot"></span><span class="stat-chip-num" id="jobs-filter-blockers-num">0</span><span class="stat-chip-label">Blockers</span>
+            </button>
           </div>
           <div id="jobs-list"><div class="empty"><div class="e-icon">📋</div>Loading...</div></div>
         </div>
@@ -5424,7 +5429,20 @@ function renderClientRequests(jobs = []) {
   `).join('');
 }
 
+window._jobActivityCounts = window._jobActivityCounts || {};
+window._jobsViewFilter = 'all';
+
+function setJobsViewFilter(filter) {
+  window._jobsViewFilter = (window._jobsViewFilter === filter) ? 'all' : filter;
+  ['onsite','supplies','blockers'].forEach(key => {
+    const btn = document.getElementById(`jobs-filter-${key}`);
+    if (btn) btn.classList.toggle('filter-active', window._jobsViewFilter === key);
+  });
+  if (window._allJobsData) renderJobsBoard(window._allJobsData);
+}
+
 function renderJobsBoard(jobs = []) {
+  window._allJobsData = jobs;
   const list = document.getElementById('jobs-list');
   if (!list) return;
 
@@ -5433,10 +5451,20 @@ function renderJobsBoard(jobs = []) {
     return;
   }
 
-  const activeJobs = jobs.filter(isActiveJob);
+  let activeJobs = jobs.filter(isActiveJob);
   if (!activeJobs.length) {
     list.innerHTML = '<div class="empty"><div class="e-icon">✅</div>No active jobs right now.<br><span style="font-size:13px;color:#0265dc;cursor:pointer;font-weight:600" onclick="openAddJob()">+ Add a new job</span></div>';
     return;
+  }
+
+  const filter = window._jobsViewFilter || 'all';
+  if (filter !== 'all') {
+    const key = filter === 'onsite' ? 'onSite' : filter === 'supplies' ? 'supplies' : 'blockers';
+    activeJobs = activeJobs.filter(j => (window._jobActivityCounts[j.id]?.[key] || 0) > 0);
+    if (!activeJobs.length) {
+      list.innerHTML = `<div class="empty"><div class="e-icon">✅</div>No active jobs match the <strong>${filter}</strong> filter right now.<br><button class="lc-link" onclick="setJobsViewFilter('${filter}')">Clear filter</button></div>`;
+      return;
+    }
   }
 
   list.innerHTML = activeJobs.map(job => {
@@ -5502,7 +5530,9 @@ function renderRecentlyClosedJobs(jobs = []) {
 
   list.innerHTML = recent.map(j => `
     <div onclick="openDetail('${j.id}','${String(j.name || '').replace(/'/g,"\\'")}')"
-      style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;margin-bottom:6px;-webkit-tap-highlight-color:transparent">
+      style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(15,23,42,0.06);border-radius:2px;background:#fff;cursor:pointer;margin-bottom:8px;box-shadow:0 8px 18px rgba(15,23,42,0.05), 0 3px 8px rgba(15,23,42,0.03);transition:box-shadow 0.18s, transform 0.18s;-webkit-tap-highlight-color:transparent"
+      onmouseover="this.style.boxShadow='0 14px 28px rgba(15,23,42,0.08), 0 6px 12px rgba(15,23,42,0.04)';this.style.transform='translateY(-1px)'"
+      onmouseout="this.style.boxShadow='0 8px 18px rgba(15,23,42,0.05), 0 3px 8px rgba(15,23,42,0.03)';this.style.transform=''">
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${j.name || 'Untitled job'}</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;display:flex;gap:6px;align-items:center">
@@ -5615,6 +5645,7 @@ async function loadDashboard() {
   const active = jobs.filter(isActiveJob);
   setText('stat-jobs', active.length);
   setText('jobs-active-count', active.length);
+  updateStatChipState();
 
   if (!jobs.length) {
     setText('stat-crew', 0);
@@ -5624,6 +5655,7 @@ async function loadDashboard() {
     setText('jobs-supplies-count', 0);
     setText('jobs-bottlenecks-count', 0);
     updateJobsAttention(0, 0, 0, 0, 0);
+    updateStatChipState();
     renderJobsBoard(jobs);
     renderRecentlyClosedJobs(jobs);
     return;
@@ -5646,6 +5678,8 @@ async function loadDashboard() {
     pending.forEach(s => { s.jobs = { name: job.name }; allSuppliesData.push(s); });
     bottlenecks.forEach(b => { b.jobs = { name: job.name }; b.job_id = job.id; allUpdatesData.push(b); });
 
+    window._jobActivityCounts[job.id] = { onSite: onSite.length, supplies: pending.length, blockers: bottlenecks.length };
+
     const crewEl = document.getElementById(`crew-${job.id}`);
     const supplyEl = document.getElementById(`supply-${job.id}`);
     const bottleneckEl = document.getElementById(`bottleneck-${job.id}`);
@@ -5664,6 +5698,11 @@ async function loadDashboard() {
   setText('jobs-crew-count', totalCrew);
   setText('jobs-supplies-count', totalSupplies);
   setText('jobs-bottlenecks-count', totalBottlenecks);
+  // Also update Operations Board filter chip counts
+  setText('jobs-filter-onsite-num', active.filter(j => (window._jobActivityCounts[j.id]?.onSite || 0) > 0).length);
+  setText('jobs-filter-supplies-num', active.filter(j => (window._jobActivityCounts[j.id]?.supplies || 0) > 0).length);
+  setText('jobs-filter-blockers-num', active.filter(j => (window._jobActivityCounts[j.id]?.blockers || 0) > 0).length);
+  updateStatChipState();
   updateJobsAttention(active.length, totalCrew, totalSupplies, totalBottlenecks, requestCount);
   renderDashboardOverview(jobs);
   renderRequestsWorkspace(jobs);
@@ -6786,6 +6825,28 @@ function refreshLucideIcons(rootEl) {
   if (!window.lucide) return;
   if (rootEl) lucide.createIcons({ nodes: [rootEl] });
   else lucide.createIcons();
+}
+
+function updateStatChipState() {
+  const parseNum = (id) => {
+    const el = document.getElementById(id);
+    const n = parseInt(el?.textContent || '0', 10);
+    return isNaN(n) ? 0 : n;
+  };
+  const setChip = (chipId, cls) => {
+    const chip = document.getElementById(chipId);
+    if (!chip) return;
+    chip.classList.remove('neutral', 'urgent', 'warning');
+    if (cls) chip.classList.add(cls);
+  };
+  const jobs = parseNum('stat-jobs');
+  const crew = parseNum('stat-crew');
+  const supplies = parseNum('stat-supplies');
+  const blockers = parseNum('stat-bottlenecks');
+  setChip('stat-chip-jobs', jobs > 0 ? 'neutral' : null);
+  setChip('stat-chip-crew', crew > 0 ? 'neutral' : null);
+  setChip('stat-chip-supplies', supplies > 0 ? 'urgent' : null);
+  setChip('stat-chip-bottlenecks', blockers > 0 ? 'warning' : null);
 }
 
 function renderTeamListHtml(employees, inline) {
