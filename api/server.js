@@ -2150,6 +2150,52 @@ app.patch('/api/jobs/:id', auth, requireOperationAccess, ensureFinancialFieldsAl
   res.json(redactJobsForRole(data, req));
 });
 
+// Mobile-friendly: any authenticated tenant member can advance workflow /
+// check steps, even crew without can_manage_operations. Scope: workflow_progress only.
+app.patch('/api/jobs/:id/workflow-progress', auth, async (req, res) => {
+  const { id } = req.params;
+  const { data: job } = await supabaseAdmin
+    .from('jobs')
+    .select('id, workflow_id, workflow_progress')
+    .eq('id', id)
+    .eq('tenant_id', req.tenantId)
+    .maybeSingle();
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  if (!job.workflow_id) return res.status(400).json({ error: 'Job has no workflow attached' });
+
+  const incoming = req.body?.workflow_progress || {};
+  const base = job.workflow_progress || {};
+  const merged = { ...base, ...incoming };
+  if (incoming.completed_steps) {
+    merged.completed_steps = { ...(base.completed_steps || {}), ...incoming.completed_steps };
+  }
+
+  const { data: wfStatuses } = await supabaseAdmin
+    .from('workflow_statuses')
+    .select('id, legacy_status, order_index')
+    .eq('workflow_id', job.workflow_id)
+    .order('order_index', { ascending: true });
+  const list = wfStatuses || [];
+  let currentId = merged.current_status_id;
+  if (!currentId || !list.some(s => s.id === currentId)) {
+    currentId = list[0]?.id || null;
+    if (currentId) merged.current_status_id = currentId;
+  }
+  const currentStatus = currentId ? list.find(s => s.id === currentId) : null;
+  const updates = { workflow_progress: merged, updated_at: new Date().toISOString() };
+  if (currentStatus?.legacy_status) updates.status = normalizeJobStatus(currentStatus.legacy_status);
+
+  const { data, error } = await supabaseAdmin
+    .from('jobs')
+    .update(updates)
+    .eq('id', id)
+    .eq('tenant_id', req.tenantId)
+    .select('*')
+    .single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(redactJobsForRole(data, req));
+});
+
 app.delete('/api/jobs/:id', auth, async (req, res) => {
   if (!isOwnerRole(req)) {
     return res.status(403).json({ error: 'Only the owner can delete jobs.' });
