@@ -1395,6 +1395,9 @@
     <div class="nav-item" id="mtab-team" onclick="switchMainTab('team')">
       <i data-lucide="users"></i><span>Team</span>
     </div>
+    <div class="nav-item" id="mtab-service-pro" onclick="switchMainTab('service-pro')">
+      <i data-lucide="wrench"></i><span>Service PRO</span>
+    </div>
     <div class="nav-item" id="mtab-clients" onclick="switchMainTab('clients')">
       <i data-lucide="building-2"></i><span>Clients</span>
     </div>
@@ -2648,6 +2651,47 @@
               <div id="team-link-list"></div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Service PRO view -->
+<div id="service-pro-view" style="display:none">
+  <div class="owner-page">
+    <div class="owner-page-shell">
+      <div class="owner-page-header">
+        <div class="owner-page-copy">
+          <div class="owner-page-eyebrow">Operations</div>
+          <div class="owner-page-title">Service PRO</div>
+          <div class="owner-page-subtitle">Per-status workflows for your jobs — checklists, colored status pills, and tech-facing action buttons. Enable a template or start from scratch.</div>
+        </div>
+      </div>
+
+      <div class="owner-card">
+        <div class="owner-card-header">
+          <div>
+            <div class="owner-card-title">Template library</div>
+            <div class="owner-card-headline">Start from a proven workflow</div>
+            <div class="owner-card-sub">Each template defines a sequence of statuses with step checklists. Enable one, then customize it for your crew.</div>
+          </div>
+        </div>
+        <div id="service-pro-templates" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:8px">
+          <div class="empty" style="padding:16px;grid-column:1/-1">Loading templates…</div>
+        </div>
+      </div>
+
+      <div class="owner-card" style="margin-top:16px">
+        <div class="owner-card-header">
+          <div>
+            <div class="owner-card-title">Your workflows</div>
+            <div class="owner-card-headline">Enabled on this account</div>
+            <div class="owner-card-sub">Attach one of these to any job from the job editor. Customization is coming in phase 2.</div>
+          </div>
+        </div>
+        <div id="service-pro-enabled" style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+          <div class="empty" style="padding:16px">Loading…</div>
         </div>
       </div>
     </div>
@@ -4227,12 +4271,15 @@ function getAccessibleTabs() {
   if (canAccessSettingsTab()) {
     tabs.push('settings');
   }
+  if (canManageSettings()) {
+    tabs.push('service-pro');
+  }
   return tabs;
 }
 
 function applyCapabilityUI() {
   const accessibleTabs = new Set(getAccessibleTabs());
-  ['dashboard','requests','quotes','jobs','schedule','team','clients','invoices','expenses','reports','agreements','calendar','timesheets','settings','referrals','jobs-records'].forEach(tab => {
+  ['dashboard','requests','quotes','jobs','schedule','team','clients','invoices','expenses','reports','agreements','calendar','timesheets','settings','referrals','jobs-records','service-pro'].forEach(tab => {
     const tabEl = document.getElementById(`mtab-${tab}`);
     if (tabEl) tabEl.style.display = accessibleTabs.has(tab) ? '' : 'none';
   });
@@ -7134,6 +7181,85 @@ async function removeCrewAssignment(jobId, employeeId) {
   await openDetail(jobId, document.getElementById('detail-title').textContent);
 }
 
+function spEsc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+async function loadServicePro() {
+  const tplEl = document.getElementById('service-pro-templates');
+  const enEl = document.getElementById('service-pro-enabled');
+  if (!tplEl || !enEl) return;
+  try {
+    const [tplRes, enRes] = await Promise.all([
+      authFetch('/api/service-pro/templates'),
+      authFetch('/api/service-pro/workflows'),
+    ]);
+    const templates = await tplRes.json();
+    const enabled = await enRes.json();
+    const enabledByTpl = new Set((enabled || []).map(w => w.source_template_id).filter(Boolean));
+    if (!templates || !templates.length) {
+      tplEl.innerHTML = '<div class="empty" style="padding:16px;grid-column:1/-1">No templates available yet.</div>';
+    } else {
+      tplEl.innerHTML = templates.map(t => {
+        const pills = (t.statuses || []).map(s =>
+          `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:${s.color}22;color:${s.color};font-size:11px;font-weight:600;border:1px solid ${s.color}44">${spEsc(s.name)}</span>`
+        ).join(' ');
+        const already = enabledByTpl.has(t.id);
+        return `
+          <div class="owner-card" style="padding:16px;margin:0">
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#64748b;margin-bottom:4px">${spEsc(t.industry || 'Generic')}</div>
+            <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:6px">${spEsc(t.name)}</div>
+            <div style="font-size:12px;color:#64748b;line-height:1.5;margin-bottom:10px">${spEsc(t.description || '')}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">${pills}</div>
+            <button class="owner-btn ${already ? '' : 'primary'}" ${already ? 'disabled style="opacity:0.6;cursor:default"' : `onclick="enableServiceProTemplate('${t.id}')"`}>
+              ${already ? 'Enabled' : 'Enable for my account'}
+            </button>
+          </div>`;
+      }).join('');
+    }
+    if (!enabled || !enabled.length) {
+      enEl.innerHTML = '<div class="empty" style="padding:16px">No workflows enabled yet. Pick a template above.</div>';
+    } else {
+      enEl.innerHTML = enabled.map(w => {
+        const pills = (w.statuses || []).map(s =>
+          `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:${s.color}22;color:${s.color};font-size:11px;font-weight:600;border:1px solid ${s.color}44">${spEsc(s.name)}</span>`
+        ).join(' ');
+        return `
+          <div style="padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;background:#fff">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px">
+              <div style="font-size:14px;font-weight:700;color:#0f172a">${spEsc(w.name)}</div>
+              <div style="font-size:11px;color:#64748b">${(w.statuses || []).length} statuses</div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">${pills}</div>
+          </div>`;
+      }).join('');
+    }
+  } catch (err) {
+    console.error('loadServicePro failed', err);
+    tplEl.innerHTML = '<div class="empty" style="padding:16px;grid-column:1/-1">Failed to load templates.</div>';
+    enEl.innerHTML = '<div class="empty" style="padding:16px">Failed to load workflows.</div>';
+  }
+}
+
+async function enableServiceProTemplate(templateId) {
+  try {
+    const res = await authFetch('/api/service-pro/enable', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ template_id: templateId }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error === 'already enabled' ? 'This workflow is already enabled.' : (err.message || err.error || 'Failed to enable workflow.'));
+      return;
+    }
+    loadServicePro();
+  } catch (err) {
+    console.error('enableServiceProTemplate failed', err);
+    alert('Failed to enable workflow.');
+  }
+}
+
 async function loadTeamInline() {
   const el = document.getElementById('team-list-inline');
   if (!el) return;
@@ -8361,7 +8487,7 @@ function switchMainTab(tab) {
   writeDashboardState({ mainTab: tab });
   history.replaceState(null, '', `#${tab}`);
   updateWorkspaceHeader(tab);
-  ['dashboard','requests','quotes','jobs','schedule','jobs-records','team','clients','invoices','expenses','reports','agreements','calendar','timesheets','settings','referrals','service-catalog'].forEach(t => {
+  ['dashboard','requests','quotes','jobs','schedule','jobs-records','team','clients','invoices','expenses','reports','agreements','calendar','timesheets','settings','referrals','service-catalog','service-pro'].forEach(t => {
     const view = document.getElementById(`${t}-view`);
     const tabEl = document.getElementById(`mtab-${t}`);
     if (view) view.style.display = t === tab ? 'block' : 'none';
@@ -8411,6 +8537,7 @@ function switchMainTab(tab) {
   if (tab === 'agreements' && canViewFinancials()) { selectedAgreementId = null; loadAgreements(); }
   if (tab === 'calendar') initCalendar();
   if (tab === 'timesheets') initTimesheets();
+  if (tab === 'service-pro') loadServicePro();
   if (tab === 'settings' && canAccessSettingsTab()) {
     if (canManageSettings()) {
       loadSettings();

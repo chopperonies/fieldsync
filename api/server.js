@@ -5268,6 +5268,101 @@ app.delete('/api/expenses/:id', auth, requireFinancialAccess, async (req, res) =
   res.json({ ok: true });
 });
 
+// ── Service PRO (workflow templates) ──────────────────────────────────────────
+app.get('/api/service-pro/templates', auth, requireSettingsAccess, async (req, res) => {
+  const { data: workflows, error } = await supabaseAdmin
+    .from('service_workflows')
+    .select('*')
+    .is('tenant_id', null)
+    .eq('is_template', true)
+    .order('created_at', { ascending: true });
+  if (error) return res.status(400).json({ error: error.message });
+  const ids = (workflows || []).map(w => w.id);
+  let statuses = [];
+  if (ids.length) {
+    const { data: st, error: stErr } = await supabaseAdmin
+      .from('workflow_statuses')
+      .select('*')
+      .in('workflow_id', ids)
+      .order('order_index', { ascending: true });
+    if (stErr) return res.status(400).json({ error: stErr.message });
+    statuses = st || [];
+  }
+  const byWf = statuses.reduce((m, s) => { (m[s.workflow_id] ||= []).push(s); return m; }, {});
+  res.json((workflows || []).map(w => ({ ...w, statuses: byWf[w.id] || [] })));
+});
+
+app.get('/api/service-pro/workflows', auth, requireSettingsAccess, async (req, res) => {
+  const { data: workflows, error } = await supabaseAdmin
+    .from('service_workflows')
+    .select('*')
+    .eq('tenant_id', req.tenantId)
+    .order('created_at', { ascending: true });
+  if (error) return res.status(400).json({ error: error.message });
+  const ids = (workflows || []).map(w => w.id);
+  let statuses = [];
+  if (ids.length) {
+    const { data: st, error: stErr } = await supabaseAdmin
+      .from('workflow_statuses')
+      .select('*')
+      .in('workflow_id', ids)
+      .order('order_index', { ascending: true });
+    if (stErr) return res.status(400).json({ error: stErr.message });
+    statuses = st || [];
+  }
+  const byWf = statuses.reduce((m, s) => { (m[s.workflow_id] ||= []).push(s); return m; }, {});
+  res.json((workflows || []).map(w => ({ ...w, statuses: byWf[w.id] || [] })));
+});
+
+app.post('/api/service-pro/enable', auth, requireSettingsAccess, async (req, res) => {
+  const { template_id } = req.body || {};
+  if (!template_id) return res.status(400).json({ error: 'template_id required' });
+  const { data: template, error: tErr } = await supabaseAdmin
+    .from('service_workflows')
+    .select('*')
+    .eq('id', template_id)
+    .is('tenant_id', null)
+    .eq('is_template', true)
+    .single();
+  if (tErr || !template) return res.status(404).json({ error: 'template not found' });
+  const { data: existing } = await supabaseAdmin
+    .from('service_workflows')
+    .select('id')
+    .eq('tenant_id', req.tenantId)
+    .eq('source_template_id', template_id)
+    .limit(1);
+  if (existing && existing.length) return res.status(409).json({ error: 'already enabled', workflow_id: existing[0].id });
+  const { data: templateStatuses, error: sErr } = await supabaseAdmin
+    .from('workflow_statuses')
+    .select('*')
+    .eq('workflow_id', template_id)
+    .order('order_index', { ascending: true });
+  if (sErr) return res.status(400).json({ error: sErr.message });
+  const { data: cloned, error: insErr } = await supabaseAdmin.from('service_workflows').insert({
+    tenant_id: req.tenantId,
+    name: template.name,
+    description: template.description,
+    industry: template.industry,
+    is_template: false,
+    source_template_id: template.id,
+  }).select('*').single();
+  if (insErr) return res.status(400).json({ error: insErr.message });
+  if (templateStatuses && templateStatuses.length) {
+    const rows = templateStatuses.map(s => ({
+      workflow_id: cloned.id,
+      order_index: s.order_index,
+      name: s.name,
+      color: s.color,
+      icon: s.icon,
+      steps: s.steps,
+      action_buttons: s.action_buttons,
+    }));
+    const { error: copyErr } = await supabaseAdmin.from('workflow_statuses').insert(rows);
+    if (copyErr) return res.status(400).json({ error: copyErr.message });
+  }
+  res.json({ ok: true, workflow_id: cloned.id });
+});
+
 // ── Scheduled Email Digest ────────────────────────────────────────────────────
 cron.schedule('0 18 * * *', async () => {
   console.log('📧 Sending daily digest...');
