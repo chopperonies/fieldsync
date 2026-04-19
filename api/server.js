@@ -5397,11 +5397,152 @@ app.post('/api/service-pro/enable', auth, requireSettingsAccess, async (req, res
       icon: s.icon,
       steps: s.steps,
       action_buttons: s.action_buttons,
+      legacy_status: s.legacy_status,
     }));
     const { error: copyErr } = await supabaseAdmin.from('workflow_statuses').insert(rows);
     if (copyErr) return res.status(400).json({ error: copyErr.message });
   }
   res.json({ ok: true, workflow_id: cloned.id });
+});
+
+// ── Service PRO editor (owner-only) ───────────────────────────────────────────
+
+async function fetchTenantStatus(statusId, tenantId) {
+  const { data, error } = await supabaseAdmin
+    .from('workflow_statuses')
+    .select('*, service_workflows!inner(tenant_id, is_template)')
+    .eq('id', statusId)
+    .single();
+  if (error || !data) return null;
+  if (data.service_workflows?.tenant_id !== tenantId) return null;
+  if (data.service_workflows?.is_template) return null;
+  return data;
+}
+
+async function fetchTenantWorkflow(workflowId, tenantId) {
+  const { data, error } = await supabaseAdmin
+    .from('service_workflows')
+    .select('*')
+    .eq('id', workflowId)
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+  if (error || !data) return null;
+  if (data.is_template) return null;
+  return data;
+}
+
+app.patch('/api/service-pro/workflows/:id', auth, requireSettingsAccess, async (req, res) => {
+  const wf = await fetchTenantWorkflow(req.params.id, req.tenantId);
+  if (!wf) return res.status(404).json({ error: 'workflow not found' });
+  const allowed = ['name', 'description', 'industry'];
+  const updates = {};
+  allowed.forEach(f => {
+    if (req.body[f] === undefined) return;
+    updates[f] = typeof req.body[f] === 'string' ? req.body[f].trim() : req.body[f];
+  });
+  if (!Object.keys(updates).length) return res.json(wf);
+  const { data, error } = await supabaseAdmin
+    .from('service_workflows')
+    .update(updates)
+    .eq('id', wf.id)
+    .select('*')
+    .single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+app.post('/api/service-pro/workflows/:id/statuses', auth, requireSettingsAccess, async (req, res) => {
+  const wf = await fetchTenantWorkflow(req.params.id, req.tenantId);
+  if (!wf) return res.status(404).json({ error: 'workflow not found' });
+  const { data: max } = await supabaseAdmin
+    .from('workflow_statuses')
+    .select('order_index')
+    .eq('workflow_id', wf.id)
+    .order('order_index', { ascending: false })
+    .limit(1);
+  const nextOrder = (max && max[0]?.order_index ? max[0].order_index : 0) + 1;
+  const row = {
+    workflow_id: wf.id,
+    order_index: nextOrder,
+    name: String(req.body?.name || 'New Status').trim() || 'New Status',
+    color: req.body?.color || '#0ea5e9',
+    icon: req.body?.icon || 'circle',
+    steps: Array.isArray(req.body?.steps) ? req.body.steps : [],
+    action_buttons: Array.isArray(req.body?.action_buttons) ? req.body.action_buttons : [],
+    legacy_status: req.body?.legacy_status || null,
+  };
+  const { data, error } = await supabaseAdmin
+    .from('workflow_statuses')
+    .insert(row)
+    .select('*')
+    .single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+app.patch('/api/service-pro/statuses/:id', auth, requireSettingsAccess, async (req, res) => {
+  const status = await fetchTenantStatus(req.params.id, req.tenantId);
+  if (!status) return res.status(404).json({ error: 'status not found' });
+  const allowed = ['name', 'color', 'icon', 'legacy_status', 'order_index', 'steps', 'action_buttons'];
+  const updates = {};
+  allowed.forEach(f => {
+    if (req.body[f] === undefined) return;
+    if (f === 'order_index') {
+      const n = parseInt(req.body[f], 10);
+      if (Number.isFinite(n) && n > 0) updates[f] = n;
+      return;
+    }
+    if (f === 'steps' || f === 'action_buttons') {
+      if (Array.isArray(req.body[f])) updates[f] = req.body[f];
+      return;
+    }
+    updates[f] = typeof req.body[f] === 'string' ? req.body[f].trim() || null : req.body[f];
+  });
+  if (!Object.keys(updates).length) return res.json(status);
+  const { data, error } = await supabaseAdmin
+    .from('workflow_statuses')
+    .update(updates)
+    .eq('id', status.id)
+    .select('*')
+    .single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
+app.delete('/api/service-pro/statuses/:id', auth, requireSettingsAccess, async (req, res) => {
+  const status = await fetchTenantStatus(req.params.id, req.tenantId);
+  if (!status) return res.status(404).json({ error: 'status not found' });
+  const { error } = await supabaseAdmin
+    .from('workflow_statuses')
+    .delete()
+    .eq('id', status.id);
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+app.post('/api/service-pro/statuses/:id/reorder', auth, requireSettingsAccess, async (req, res) => {
+  const direction = req.body?.direction === 'up' ? 'up' : 'down';
+  const status = await fetchTenantStatus(req.params.id, req.tenantId);
+  if (!status) return res.status(404).json({ error: 'status not found' });
+  const { data: siblings } = await supabaseAdmin
+    .from('workflow_statuses')
+    .select('id, order_index')
+    .eq('workflow_id', status.workflow_id)
+    .order('order_index', { ascending: true });
+  const list = siblings || [];
+  const idx = list.findIndex(s => s.id === status.id);
+  if (idx < 0) return res.status(404).json({ error: 'status not found' });
+  const swapWith = direction === 'up' ? list[idx - 1] : list[idx + 1];
+  if (!swapWith) return res.json({ ok: true, no_op: true });
+  // Swap by writing a temporary third value first (UNIQUE(workflow_id, order_index)).
+  const tmp = -1 * Date.now();
+  const step1 = await supabaseAdmin.from('workflow_statuses').update({ order_index: tmp }).eq('id', status.id);
+  if (step1.error) return res.status(400).json({ error: step1.error.message });
+  const step2 = await supabaseAdmin.from('workflow_statuses').update({ order_index: status.order_index }).eq('id', swapWith.id);
+  if (step2.error) return res.status(400).json({ error: step2.error.message });
+  const step3 = await supabaseAdmin.from('workflow_statuses').update({ order_index: swapWith.order_index }).eq('id', status.id);
+  if (step3.error) return res.status(400).json({ error: step3.error.message });
+  res.json({ ok: true });
 });
 
 // ── Scheduled Email Digest ────────────────────────────────────────────────────

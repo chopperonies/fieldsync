@@ -2669,31 +2669,35 @@
         </div>
       </div>
 
-      <div class="owner-card">
-        <div class="owner-card-header">
-          <div>
-            <div class="owner-card-title">Template library</div>
-            <div class="owner-card-headline">Start from a proven workflow</div>
-            <div class="owner-card-sub">Each template defines a sequence of statuses with step checklists. Enable one, then customize it for your crew.</div>
+      <div id="service-pro-library">
+        <div class="owner-card">
+          <div class="owner-card-header">
+            <div>
+              <div class="owner-card-title">Template library</div>
+              <div class="owner-card-headline">Start from a proven workflow</div>
+              <div class="owner-card-sub">Each template defines a sequence of statuses with step checklists. Enable one, then customize it for your crew.</div>
+            </div>
+          </div>
+          <div id="service-pro-templates" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:8px">
+            <div class="empty" style="padding:16px;grid-column:1/-1">Loading templates…</div>
           </div>
         </div>
-        <div id="service-pro-templates" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:8px">
-          <div class="empty" style="padding:16px;grid-column:1/-1">Loading templates…</div>
+
+        <div class="owner-card" style="margin-top:16px">
+          <div class="owner-card-header">
+            <div>
+              <div class="owner-card-title">Your workflows</div>
+              <div class="owner-card-headline">Enabled on this account</div>
+              <div class="owner-card-sub">Click a workflow to customize statuses, colors, and checklists.</div>
+            </div>
+          </div>
+          <div id="service-pro-enabled" style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+            <div class="empty" style="padding:16px">Loading…</div>
+          </div>
         </div>
       </div>
 
-      <div class="owner-card" style="margin-top:16px">
-        <div class="owner-card-header">
-          <div>
-            <div class="owner-card-title">Your workflows</div>
-            <div class="owner-card-headline">Enabled on this account</div>
-            <div class="owner-card-sub">Attach one of these to any job from the job editor. Customization is coming in phase 2.</div>
-          </div>
-        </div>
-        <div id="service-pro-enabled" style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
-          <div class="empty" style="padding:16px">Loading…</div>
-        </div>
-      </div>
+      <div id="service-pro-editor" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -7296,10 +7300,10 @@ async function loadServicePro() {
           `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:${s.color}22;color:${s.color};font-size:11px;font-weight:600;border:1px solid ${s.color}44">${spEsc(s.name)}</span>`
         ).join(' ');
         return `
-          <div style="padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;background:#fff">
+          <div onclick="openWorkflowEditor('${w.id}')" style="padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px">
               <div style="font-size:14px;font-weight:700;color:#0f172a">${spEsc(w.name)}</div>
-              <div style="font-size:11px;color:#64748b">${(w.statuses || []).length} statuses</div>
+              <div style="font-size:11px;color:#64748b">${(w.statuses || []).length} statuses · Edit →</div>
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:6px">${pills}</div>
           </div>`;
@@ -7344,6 +7348,210 @@ async function advanceWorkflowStatus(jobId, statusId) {
   }
   const title = document.getElementById('detail-title')?.textContent || '';
   await openDetail(jobId, title);
+}
+
+// ── Service PRO workflow editor ───────────────────────────────────────────────
+let _spEditingWorkflow = null;
+
+function closeWorkflowEditor() {
+  const lib = document.getElementById('service-pro-library');
+  const ed = document.getElementById('service-pro-editor');
+  if (lib) lib.style.display = '';
+  if (ed) { ed.style.display = 'none'; ed.innerHTML = ''; }
+  _spEditingWorkflow = null;
+  window._spWorkflows = null;
+  loadServicePro();
+}
+
+async function openWorkflowEditor(workflowId) {
+  const res = await authFetch('/api/service-pro/workflows');
+  if (!res.ok) return alert('Failed to load workflow.');
+  const enabled = await res.json();
+  const wf = (enabled || []).find(w => w.id === workflowId);
+  if (!wf) return alert('Workflow not found.');
+  _spEditingWorkflow = wf;
+  const lib = document.getElementById('service-pro-library');
+  const ed = document.getElementById('service-pro-editor');
+  if (lib) lib.style.display = 'none';
+  if (ed) ed.style.display = '';
+  renderWorkflowEditor();
+}
+
+function renderWorkflowEditor() {
+  const ed = document.getElementById('service-pro-editor');
+  if (!ed || !_spEditingWorkflow) return;
+  const wf = _spEditingWorkflow;
+  const statuses = (wf.statuses || []).slice().sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+  const legacyOptions = JOB_STATUS_OPTIONS.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+
+  ed.innerHTML = `
+    <div class="owner-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px">
+        <button class="lc-btn sm" onclick="closeWorkflowEditor()">← Back to library</button>
+        <div style="font-size:11px;color:#64748b">Changes save per status</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;margin-bottom:16px">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Workflow Name</label>
+          <input type="text" id="sp-wf-name" value="${spEsc(wf.name || '')}">
+        </div>
+        <button class="lc-btn sm primary solid" onclick="saveWorkflowName('${wf.id}')">Save Name</button>
+      </div>
+      <div class="owner-card-title" style="margin-top:0;margin-bottom:8px">Statuses</div>
+      <div id="sp-statuses-list" style="display:flex;flex-direction:column;gap:10px">
+        ${statuses.map((s, i) => renderStatusRow(s, i, statuses.length)).join('')}
+      </div>
+      <div style="margin-top:12px">
+        <button class="lc-btn sm" onclick="addWorkflowStatus('${wf.id}')">+ Add status</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderStatusRow(status, idx, total) {
+  const sid = status.id;
+  const steps = Array.isArray(status.steps) ? status.steps : [];
+  const legacyOptions = JOB_STATUS_OPTIONS.map(o =>
+    `<option value="${o.value}" ${status.legacy_status === o.value ? 'selected' : ''}>${o.label}</option>`
+  ).join('');
+  const stepsHtml = steps.map((step, sIdx) => `
+    <div style="display:flex;align-items:center;gap:8px;margin-top:6px" data-step-idx="${sIdx}">
+      <input type="text" class="sp-step-label" value="${spEsc(step.label || '')}" placeholder="Step description" style="flex:1">
+      <label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#64748b;white-space:nowrap">
+        <input type="checkbox" class="sp-step-required" ${step.required === false ? '' : 'checked'}> Required
+      </label>
+      <button class="lc-link danger sm" onclick="removeStepFromStatus('${sid}', ${sIdx})" title="Remove step">✕</button>
+    </div>
+  `).join('');
+  return `
+    <div class="sp-status-row" data-status-id="${sid}" style="padding:12px 14px;border:1.5px solid ${status.color || '#e2e8f0'};border-left-width:4px;border-radius:10px;background:#fff">
+      <div style="display:grid;grid-template-columns:auto 1fr auto auto auto;gap:8px;align-items:center;margin-bottom:10px">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <button class="lc-link sm" onclick="reorderWorkflowStatus('${sid}','up')" ${idx === 0 ? 'disabled style="opacity:0.3"' : ''} title="Move up">▲</button>
+          <button class="lc-link sm" onclick="reorderWorkflowStatus('${sid}','down')" ${idx === total - 1 ? 'disabled style="opacity:0.3"' : ''} title="Move down">▼</button>
+        </div>
+        <input type="text" class="sp-name" value="${spEsc(status.name || '')}" placeholder="Status name" style="font-weight:700">
+        <input type="color" class="sp-color" value="${status.color || '#0ea5e9'}" title="Status color" style="width:40px;height:32px;padding:0;border:1px solid #e2e8f0;border-radius:6px;background:none;cursor:pointer">
+        <select class="sp-legacy" title="Maps to legacy job status" style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:6px 8px;font-size:12px">
+          <option value="">— legacy —</option>
+          ${legacyOptions}
+        </select>
+        <button class="lc-link danger sm" onclick="deleteWorkflowStatus('${sid}')" title="Delete status">🗑</button>
+      </div>
+      <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em">Checklist</div>
+      <div class="sp-steps-list">${stepsHtml || '<div style="font-size:12px;color:#94a3b8;padding:4px 0">No steps yet.</div>'}</div>
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+        <button class="lc-btn xs" onclick="addStepToStatus('${sid}')">+ Add step</button>
+        <button class="lc-btn xs primary solid" onclick="saveWorkflowStatus('${sid}')" style="margin-left:auto">Save status</button>
+      </div>
+    </div>
+  `;
+}
+
+function readStatusFromRow(statusId) {
+  const row = document.querySelector(`.sp-status-row[data-status-id="${statusId}"]`);
+  if (!row) return null;
+  const name = row.querySelector('.sp-name')?.value.trim() || 'Untitled';
+  const color = row.querySelector('.sp-color')?.value || '#0ea5e9';
+  const legacy = row.querySelector('.sp-legacy')?.value || '';
+  const stepRows = row.querySelectorAll('.sp-steps-list [data-step-idx]');
+  const steps = Array.from(stepRows).map((sr, i) => ({
+    order: i + 1,
+    label: sr.querySelector('.sp-step-label')?.value.trim() || '',
+    required: !!sr.querySelector('.sp-step-required')?.checked,
+  })).filter(s => s.label);
+  return { name, color, legacy_status: legacy || null, steps };
+}
+
+async function saveWorkflowStatus(statusId) {
+  const body = readStatusFromRow(statusId);
+  if (!body) return;
+  const res = await authFetch(`/api/service-pro/statuses/${statusId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    return alert(err.error || 'Failed to save status.');
+  }
+  // Update in-memory model so subsequent re-renders stay correct
+  const updated = await res.json();
+  if (_spEditingWorkflow?.statuses) {
+    _spEditingWorkflow.statuses = _spEditingWorkflow.statuses.map(s => s.id === statusId ? { ...s, ...updated } : s);
+  }
+}
+
+async function saveWorkflowName(workflowId) {
+  const name = document.getElementById('sp-wf-name')?.value.trim();
+  if (!name) return alert('Workflow name cannot be empty.');
+  const res = await authFetch(`/api/service-pro/workflows/${workflowId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) return alert('Failed to save workflow name.');
+  if (_spEditingWorkflow) _spEditingWorkflow.name = name;
+}
+
+async function addWorkflowStatus(workflowId) {
+  const res = await authFetch(`/api/service-pro/workflows/${workflowId}/statuses`, {
+    method: 'POST',
+    body: JSON.stringify({ name: 'New Status', color: '#64748b', icon: 'circle' }),
+  });
+  if (!res.ok) return alert('Failed to add status.');
+  const row = await res.json();
+  _spEditingWorkflow.statuses = (_spEditingWorkflow.statuses || []).concat(row);
+  renderWorkflowEditor();
+}
+
+async function deleteWorkflowStatus(statusId) {
+  if (!confirm('Delete this status? Jobs currently on this status will keep their legacy status.')) return;
+  const res = await authFetch(`/api/service-pro/statuses/${statusId}`, { method: 'DELETE' });
+  if (!res.ok) return alert('Failed to delete status.');
+  _spEditingWorkflow.statuses = (_spEditingWorkflow.statuses || []).filter(s => s.id !== statusId);
+  renderWorkflowEditor();
+}
+
+async function reorderWorkflowStatus(statusId, direction) {
+  const res = await authFetch(`/api/service-pro/statuses/${statusId}/reorder`, {
+    method: 'POST',
+    body: JSON.stringify({ direction }),
+  });
+  if (!res.ok) return alert('Failed to reorder.');
+  // Re-fetch to pick up new order_index values
+  const refresh = await authFetch('/api/service-pro/workflows');
+  if (refresh.ok) {
+    const all = await refresh.json();
+    _spEditingWorkflow = (all || []).find(w => w.id === _spEditingWorkflow?.id) || _spEditingWorkflow;
+  }
+  renderWorkflowEditor();
+}
+
+function addStepToStatus(statusId) {
+  const row = document.querySelector(`.sp-status-row[data-status-id="${statusId}"] .sp-steps-list`);
+  if (!row) return;
+  if (row.querySelector('div[style*="color:#94a3b8"]')) row.innerHTML = '';
+  const idx = row.querySelectorAll('[data-step-idx]').length;
+  const div = document.createElement('div');
+  div.setAttribute('data-step-idx', idx);
+  div.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:6px';
+  div.innerHTML = `
+    <input type="text" class="sp-step-label" value="" placeholder="Step description" style="flex:1">
+    <label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#64748b;white-space:nowrap">
+      <input type="checkbox" class="sp-step-required" checked> Required
+    </label>
+    <button class="lc-link danger sm" onclick="removeStepFromStatus('${statusId}', ${idx})" title="Remove step">✕</button>
+  `;
+  row.appendChild(div);
+  div.querySelector('.sp-step-label').focus();
+}
+
+function removeStepFromStatus(statusId, stepIdx) {
+  const row = document.querySelector(`.sp-status-row[data-status-id="${statusId}"] .sp-steps-list [data-step-idx="${stepIdx}"]`);
+  if (row) row.remove();
+  const list = document.querySelector(`.sp-status-row[data-status-id="${statusId}"] .sp-steps-list`);
+  if (list && !list.querySelectorAll('[data-step-idx]').length) {
+    list.innerHTML = '<div style="font-size:12px;color:#94a3b8;padding:4px 0">No steps yet.</div>';
+  }
 }
 
 async function loadTeamInline() {
