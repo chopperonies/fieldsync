@@ -2145,8 +2145,23 @@ app.patch('/api/jobs/:id', auth, requireOperationAccess, ensureFinancialFieldsAl
   }
 
   updates.updated_at = new Date().toISOString();
+  const scopeTouched = scopeFieldsTouched(updates);
   const { data } = await supabaseAdmin.from('jobs').update(updates).eq('id', id).eq('tenant_id', req.tenantId).select().single();
   if (!data) return res.status(404).json({ error: 'Job not found' });
+
+  if (scopeTouched) {
+    try {
+      await bumpScopeAndNotify({
+        tenantId: req.tenantId,
+        jobId: id,
+        updatedByName: req.userEmail || 'Your team',
+        updatedByUserId: req.userId || null,
+      });
+    } catch (e) {
+      console.error('[scope notify desktop] error:', e.message);
+    }
+  }
+
   res.json(redactJobsForRole(data, req));
 });
 
@@ -5149,7 +5164,31 @@ app.get('/api/mobile/crew/jobs/:id', mobileAuth, async (req, res) => {
       .maybeSingle();
     client = c || null;
   }
-  res.json({ job, client });
+  const { data: ack } = await supabaseAdmin
+    .from('job_scope_acknowledgements')
+    .select('acked_at, acked_scope_updated_at')
+    .eq('job_id', req.params.id)
+    .eq('employee_id', req.employeeId)
+    .maybeSingle();
+  res.json({ job, client, ack: ack || null });
+});
+
+// Acknowledge the current scope_updated_at for this employee — dismisses the
+// "Instructions updated" banner and records the ack for owner-side audit.
+app.post('/api/mobile/crew/jobs/:id/scope/ack', mobileAuth, async (req, res) => {
+  const { data: job } = await supabaseAdmin
+    .from('jobs').select('id, scope_updated_at')
+    .eq('id', req.params.id).eq('tenant_id', req.tenantId).maybeSingle();
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  if (!job.scope_updated_at) return res.json({ ok: true, acked_scope_updated_at: null });
+  const { error } = await supabaseAdmin.from('job_scope_acknowledgements').upsert({
+    job_id: job.id,
+    employee_id: req.employeeId,
+    acked_at: new Date().toISOString(),
+    acked_scope_updated_at: job.scope_updated_at,
+  }, { onConflict: 'job_id,employee_id' });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true, acked_scope_updated_at: job.scope_updated_at });
 });
 
 // Crew member's current (not-checked-out) assignment
@@ -5371,6 +5410,20 @@ app.patch('/api/mobile/owner/jobs/:id', mobileAuth, requireMobileOwnerOrManager,
   if (req.body.name) updates.name = req.body.name;
   if (req.body.address !== undefined) updates.address = req.body.address;
   if (req.body.description !== undefined) updates.description = req.body.description;
+  if (req.body.execution_plan !== undefined) updates.execution_plan = req.body.execution_plan;
+  if (req.body.plans_notes !== undefined) updates.plans_notes = req.body.plans_notes;
+  if (req.body.missing_items_watchlist !== undefined) updates.missing_items_watchlist = req.body.missing_items_watchlist;
+  if (req.body.checklist_items !== undefined) {
+    updates.checklist_items = Array.isArray(req.body.checklist_items)
+      ? req.body.checklist_items.map(s => String(s || '').trim()).filter(Boolean)
+      : [];
+  }
+  for (const f of ['required_before_photos', 'required_mid_job_photos', 'required_completion_photos', 'required_cleanup_photos']) {
+    if (req.body[f] !== undefined) {
+      const n = req.body[f] === null || req.body[f] === '' ? 0 : parseInt(req.body[f], 10);
+      updates[f] = Number.isFinite(n) && n >= 0 ? n : 0;
+    }
+  }
   if (req.body.estimate_amount !== undefined) {
     if (req.role !== 'owner') return res.status(403).json({ error: 'Owner access required to edit estimate' });
     const n = req.body.estimate_amount === null ? null : parseFloat(req.body.estimate_amount);
@@ -5378,9 +5431,24 @@ app.patch('/api/mobile/owner/jobs/:id', mobileAuth, requireMobileOwnerOrManager,
     updates.estimate_amount = n;
   }
   if (!Object.keys(updates).length) return res.status(400).json({ error: 'no updates' });
+  const scopeTouched = scopeFieldsTouched(updates);
   const { data, error } = await supabaseAdmin
     .from('jobs').update(updates).eq('id', req.params.id).eq('tenant_id', req.tenantId).select().single();
   if (error) return res.status(500).json({ error: error.message });
+
+  if (scopeTouched) {
+    try {
+      await bumpScopeAndNotify({
+        tenantId: req.tenantId,
+        jobId: req.params.id,
+        updatedByName: req.employeeName || 'Your team',
+        updatedByUserId: null,
+      });
+    } catch (e) {
+      console.error('[scope notify mobile] error:', e.message);
+    }
+  }
+
   res.json(data);
 });
 
@@ -5587,6 +5655,65 @@ function requireMobileOwnerOrManager(req, res, next) {
     return res.status(403).json({ error: 'Owner or manager access required' });
   }
   next();
+}
+
+// Fields that count as "scope of work" — edits to these bump
+// jobs.scope_updated_at and push-notify active assignees so they see
+// fresh instructions on-site.
+const JOB_SCOPE_FIELDS = [
+  'description', 'execution_plan', 'checklist_items',
+  'required_before_photos', 'required_mid_job_photos',
+  'required_completion_photos', 'required_cleanup_photos',
+  'plans_notes', 'missing_items_watchlist',
+];
+
+function scopeFieldsTouched(updates) {
+  return JOB_SCOPE_FIELDS.some(f => f in updates);
+}
+
+async function bumpScopeAndNotify({ tenantId, jobId, updatedByName, updatedByUserId }) {
+  const now = new Date().toISOString();
+  await supabaseAdmin.from('jobs').update({
+    scope_updated_at: now,
+    scope_updated_by_user_id: updatedByUserId || null,
+    scope_updated_by_name: updatedByName || 'Your team',
+  }).eq('id', jobId).eq('tenant_id', tenantId);
+
+  const { data: job } = await supabaseAdmin.from('jobs')
+    .select('id, name').eq('id', jobId).maybeSingle();
+
+  // Only push to crew who currently have an active assignment (not checked out).
+  const { data: assignments } = await supabaseAdmin.from('job_assignments')
+    .select('employees(id, name, push_token)')
+    .eq('job_id', jobId)
+    .is('checked_out_at', null);
+
+  const tokens = (assignments || [])
+    .map(a => a.employees?.push_token)
+    .filter(Boolean);
+
+  if (!tokens.length) return { scope_updated_at: now, notified: 0 };
+
+  let sent = 0;
+  for (const token of tokens) {
+    try {
+      const resp = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          to: token,
+          sound: 'default',
+          title: 'Instructions updated',
+          body: `${updatedByName || 'Your team'} updated the job list for ${job?.name || 'your job'}. Tap to review.`,
+          data: { type: 'scope_updated', job_id: jobId },
+        }),
+      });
+      if (resp.ok) sent += 1;
+    } catch (e) {
+      console.error('[scope notify] push error:', e.message);
+    }
+  }
+  return { scope_updated_at: now, notified: sent };
 }
 
 // Create invoice on an existing job (sets invoice_amount + status=invoiced,
