@@ -5171,6 +5171,233 @@ app.post('/api/mobile/crew/jobs/:id/supply-request', mobileAuth, async (req, res
   res.json(data);
 });
 
+// ── Mobile owner/manager endpoints (same mobileAuth guard) ──
+
+// Home KPIs — one round trip returns everything the owner home needs.
+app.get('/api/mobile/owner/home', mobileAuth, async (req, res) => {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const [jobsR, onSiteR, suppliesR, bottlenecksR] = await Promise.all([
+    supabaseAdmin.from('jobs').select('id, name')
+      .in('status', ['active', 'in_progress', 'scheduled', 'on_hold']).eq('tenant_id', req.tenantId),
+    supabaseAdmin.from('job_assignments').select('job_id')
+      .not('checked_in_at', 'is', null).is('checked_out_at', null).eq('tenant_id', req.tenantId),
+    supabaseAdmin.from('supply_requests').select('job_id')
+      .eq('status', 'pending').eq('tenant_id', req.tenantId),
+    supabaseAdmin.from('job_updates').select('job_id')
+      .eq('type', 'bottleneck').gte('created_at', today.toISOString()).eq('tenant_id', req.tenantId),
+  ]);
+  const jobs = jobsR.data || [];
+  const onSite = onSiteR.data || [];
+  const supplies = suppliesR.data || [];
+  const bottlenecks = bottlenecksR.data || [];
+  const jobBreakdown = jobs.map(j => ({
+    id: j.id,
+    name: j.name,
+    crew: onSite.filter(a => a.job_id === j.id).length,
+    pendingSupplies: supplies.filter(s => s.job_id === j.id).length,
+  }));
+  res.json({
+    activeJobs: jobs.length,
+    crewOnSite: onSite.length,
+    pendingSupplies: supplies.length,
+    bottlenecksToday: bottlenecks.length,
+    jobBreakdown,
+  });
+});
+
+// All tenant jobs with recent activity (for Jobs / Dashboard tabs)
+app.get('/api/mobile/owner/jobs', mobileAuth, async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from('jobs').select('*').eq('tenant_id', req.tenantId).order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// Dashboard = jobs + joined crew-on-site + pending supplies + last 5 updates per job.
+// One round trip; client just renders.
+app.get('/api/mobile/owner/dashboard', mobileAuth, async (req, res) => {
+  const { data: jobs, error } = await supabaseAdmin
+    .from('jobs').select('*').eq('tenant_id', req.tenantId).order('name');
+  if (error) return res.status(500).json({ error: error.message });
+  const ids = (jobs || []).map(j => j.id);
+  if (!ids.length) return res.json([]);
+  const [{ data: assignments }, { data: supplies }, { data: updates }] = await Promise.all([
+    supabaseAdmin.from('job_assignments')
+      .select('job_id, employees(name)').in('job_id', ids).is('checked_out_at', null),
+    supabaseAdmin.from('supply_requests')
+      .select('id, job_id').in('job_id', ids).eq('status', 'pending'),
+    supabaseAdmin.from('job_updates')
+      .select('job_id, type, message, photo_url, created_at, employees(name)')
+      .in('job_id', ids).order('created_at', { ascending: false }).limit(600),
+  ]);
+  const enriched = (jobs || []).map(j => {
+    const crew = (assignments || []).filter(a => a.job_id === j.id).map(a => a.employees).filter(Boolean);
+    const pendingSupplies = (supplies || []).filter(s => s.job_id === j.id).length;
+    const recentUpdates = (updates || []).filter(u => u.job_id === j.id).slice(0, 5);
+    return { ...j, crew, pendingSupplies, recentUpdates };
+  });
+  res.json(enriched);
+});
+
+// Update a job's status
+app.patch('/api/mobile/owner/jobs/:id', mobileAuth, async (req, res) => {
+  const updates = {};
+  if (req.body.status) updates.status = req.body.status;
+  if (req.body.name) updates.name = req.body.name;
+  if (req.body.address !== undefined) updates.address = req.body.address;
+  if (!Object.keys(updates).length) return res.status(400).json({ error: 'no updates' });
+  const { data, error } = await supabaseAdmin
+    .from('jobs').update(updates).eq('id', req.params.id).eq('tenant_id', req.tenantId).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// Create a job
+app.post('/api/mobile/owner/jobs', mobileAuth, async (req, res) => {
+  const { name, address, description, estimate_amount } = req.body || {};
+  if (!name || !address) return res.status(400).json({ error: 'name and address required' });
+  const { data, error } = await supabaseAdmin
+    .from('jobs').insert({
+      name: String(name).trim(),
+      address: String(address).trim(),
+      status: 'scheduled',
+      tenant_id: req.tenantId,
+      description: description || null,
+      estimate_amount: estimate_amount != null ? Number(estimate_amount) : null,
+    }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// Assignments for a job (active, not checked out)
+app.get('/api/mobile/owner/jobs/:id/assignments', mobileAuth, async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from('job_assignments')
+    .select('employee_id, checked_in_at, employees(name)')
+    .eq('job_id', req.params.id)
+    .is('checked_out_at', null);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// Replace the assignment set for a job (diff with current, add/remove)
+app.post('/api/mobile/owner/jobs/:id/assignments', mobileAuth, async (req, res) => {
+  const jobId = req.params.id;
+  const ids = Array.isArray(req.body.employee_ids) ? req.body.employee_ids : [];
+  const { data: current } = await supabaseAdmin
+    .from('job_assignments')
+    .select('employee_id, checked_in_at')
+    .eq('job_id', jobId)
+    .is('checked_out_at', null);
+  const currentIds = (current || []).map(c => c.employee_id);
+  const toAdd = ids.filter(id => !currentIds.includes(id));
+  const toRemove = currentIds.filter(id => !ids.includes(id));
+  if (toAdd.length) {
+    await supabaseAdmin.from('job_assignments').upsert(
+      toAdd.map(id => ({ job_id: jobId, employee_id: id, tenant_id: req.tenantId })),
+      { onConflict: 'job_id,employee_id', ignoreDuplicates: true }
+    );
+  }
+  for (const id of toRemove) {
+    const entry = (current || []).find(c => c.employee_id === id);
+    if (entry && !entry.checked_in_at) {
+      await supabaseAdmin.from('job_assignments')
+        .delete().eq('job_id', jobId).eq('employee_id', id).is('checked_in_at', null);
+    }
+  }
+  res.json({ ok: true });
+});
+
+// Clients list + create
+app.get('/api/mobile/owner/clients', mobileAuth, async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from('clients').select('*').eq('tenant_id', req.tenantId).order('name');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+app.post('/api/mobile/owner/clients', mobileAuth, async (req, res) => {
+  const { name, phone, email, address } = req.body || {};
+  if (!name) return res.status(400).json({ error: 'name required' });
+  const { data, error } = await supabaseAdmin
+    .from('clients').insert({
+      name: name.trim(),
+      phone: phone ? String(phone).replace(/\D/g, '') : null,
+      email: email || null,
+      address: address || null,
+      tenant_id: req.tenantId,
+    }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// Employees list + role update + create
+app.get('/api/mobile/owner/crew', mobileAuth, async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from('employees').select('*').eq('tenant_id', req.tenantId).order('name');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+app.post('/api/mobile/owner/crew', mobileAuth, async (req, res) => {
+  const { name, phone, role } = req.body || {};
+  if (!name || !phone || !role) return res.status(400).json({ error: 'name, phone, role required' });
+  // Plan limit check
+  const { data: tenant } = await supabaseAdmin.from('tenants').select('max_users').eq('id', req.tenantId).single();
+  const maxUsers = tenant?.max_users ?? 1;
+  const { count } = await supabaseAdmin.from('employees').select('*', { count: 'exact', head: true }).eq('tenant_id', req.tenantId);
+  if ((count || 0) >= maxUsers) {
+    return res.status(403).json({ error: `Plan limit reached (${maxUsers} crew). Upgrade at linkcrew.io/pricing.` });
+  }
+  let normalizedPhone = String(phone).replace(/\D/g, '');
+  if (normalizedPhone.length === 11 && normalizedPhone.startsWith('1')) normalizedPhone = normalizedPhone.slice(1);
+  const { data, error } = await supabaseAdmin
+    .from('employees').insert({
+      name: String(name).trim(),
+      phone: normalizedPhone,
+      role,
+      status: 'active',
+      tenant_id: req.tenantId,
+    }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+app.patch('/api/mobile/owner/crew/:id', mobileAuth, async (req, res) => {
+  const updates = {};
+  if (req.body.role) updates.role = req.body.role;
+  if (req.body.status) updates.status = req.body.status;
+  if (!Object.keys(updates).length) return res.status(400).json({ error: 'no updates' });
+  const { data, error } = await supabaseAdmin
+    .from('employees').update(updates).eq('id', req.params.id).eq('tenant_id', req.tenantId).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// Supply requests list + status update
+app.get('/api/mobile/owner/supplies', mobileAuth, async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from('supply_requests').select('*, jobs(name), employees(name)')
+    .eq('tenant_id', req.tenantId).order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+app.patch('/api/mobile/owner/supplies/:id', mobileAuth, async (req, res) => {
+  const { status } = req.body || {};
+  if (!status) return res.status(400).json({ error: 'status required' });
+  const { data, error } = await supabaseAdmin
+    .from('supply_requests').update({ status }).eq('id', req.params.id).eq('tenant_id', req.tenantId).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// Photos = job_updates of type 'photo' with a photo_url
+app.get('/api/mobile/owner/photos', mobileAuth, async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from('job_updates').select('id, message, photo_url, created_at, jobs(name), employees(name)')
+    .eq('tenant_id', req.tenantId).eq('type', 'photo').not('photo_url', 'is', null)
+    .order('created_at', { ascending: false }).limit(80);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
 // Tenant plan info (for owner lockout screens in mobile app)
 app.get('/api/mobile/tenant-plan', mobileAuth, async (req, res) => {
   const { data, error } = await supabaseAdmin
