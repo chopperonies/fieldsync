@@ -5473,6 +5473,25 @@ app.post('/api/mobile/owner/jobs/:id/invoice', mobileAuth, requireMobileOwner, a
   res.json({ job: data, invoice_email_sent: emailSent, invoice_emailed_to: emailSent ? client.email : null });
 });
 
+// Subscription billing portal — returns a Stripe customer-portal URL.
+app.post('/api/mobile/owner/billing-portal', mobileAuth, requireMobileOwner, async (req, res) => {
+  const { data: tenant } = await supabaseAdmin.from('tenants')
+    .select('stripe_customer_id').eq('id', req.tenantId).single();
+  if (!tenant?.stripe_customer_id) {
+    return res.status(400).json({ error: 'No billing account found. Please subscribe first.' });
+  }
+  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: tenant.stripe_customer_id,
+      return_url: 'https://linkcrew.io/app',
+    });
+    res.json({ url: session.url });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // Stripe Connect — status / start / disconnect (mobile).
 app.get('/api/mobile/owner/stripe-connect/status', mobileAuth, requireMobileOwner, async (req, res) => {
   const { data: tenant } = await supabaseAdmin.from('tenants')
