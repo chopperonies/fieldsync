@@ -6068,6 +6068,40 @@ app.get('/api/mobile/owner/financials', mobileAuth, requireMobileOwner, async (r
   res.json({ revenueMtd, outstanding, collected, paidThisWeek });
 });
 
+// Resend the invoice email for an existing invoiced job. Uses the current
+// invoice_amount. Errors if the job has no amount yet or client has no
+// email on file.
+app.post('/api/mobile/owner/jobs/:id/invoice/resend', mobileAuth, requireMobileOwner, async (req, res) => {
+  const { data: job } = await supabaseAdmin.from('jobs')
+    .select('*, clients(name, email)')
+    .eq('id', req.params.id).eq('tenant_id', req.tenantId).maybeSingle();
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  if (!(Number(job.invoice_amount) > 0)) return res.status(400).json({ error: 'Job has no invoice to resend' });
+  const client = job.clients;
+  if (!client?.email) return res.status(400).json({ error: 'Client has no email on file' });
+
+  try {
+    const [{ data: tenant }, { data: clientUser }] = await Promise.all([
+      supabaseAdmin.from('tenants').select('company_name').eq('id', req.tenantId).single(),
+      supabaseAdmin.from('client_users').select('portal_token').eq('client_id', job.client_id).maybeSingle(),
+    ]);
+    const portalUrl = clientUser?.portal_token
+      ? `https://linkcrew.io/portal?token=${clientUser.portal_token}`
+      : 'https://linkcrew.io/portal';
+    await sendInvoiceToClient({
+      clientName: client.name,
+      clientEmail: client.email,
+      jobName: job.name,
+      amount: Number(job.invoice_amount),
+      portalUrl,
+      tenantName: tenant?.company_name,
+    });
+    res.json({ ok: true, emailed_to: client.email });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Mark invoice paid (cash / check / out-of-band). Optionally emails a receipt.
 app.post('/api/mobile/owner/jobs/:id/mark-paid', mobileAuth, requireMobileOwner, async (req, res) => {
   const notify = req.body?.notify === 'email' ? 'email' : null;
