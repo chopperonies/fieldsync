@@ -5639,6 +5639,30 @@ app.post('/api/mobile/owner/jobs/:id/assignments', mobileAuth, requireMobileOwne
       toAdd.map(id => ({ job_id: jobId, employee_id: id, tenant_id: req.tenantId })),
       { onConflict: 'job_id,employee_id', ignoreDuplicates: true }
     );
+    // Push-notify newly assigned crew so they know to check the app.
+    try {
+      const { data: job } = await supabaseAdmin.from('jobs')
+        .select('name, address, scheduled_date').eq('id', jobId).maybeSingle();
+      const { data: employees } = await supabaseAdmin.from('employees')
+        .select('id, push_token').in('id', toAdd).eq('tenant_id', req.tenantId);
+      const scheduledHint = job?.scheduled_date ? ` (${job.scheduled_date})` : '';
+      for (const emp of (employees || [])) {
+        if (!emp.push_token) continue;
+        await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            to: emp.push_token,
+            sound: 'default',
+            title: 'Assigned to a job',
+            body: `${job?.name || 'A job'}${job?.address ? ` · ${job.address}` : ''}${scheduledHint}. Tap to view.`,
+            data: { type: 'assigned', job_id: jobId },
+          }),
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.error('[assign notify] error:', e.message);
+    }
   }
   for (const id of toRemove) {
     const entry = (current || []).find(c => c.employee_id === id);
