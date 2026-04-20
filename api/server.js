@@ -5907,6 +5907,47 @@ app.post('/api/mobile/owner/stripe-connect/disconnect', mobileAuth, requireMobil
   res.json({ ok: true });
 });
 
+// Universal search — clients / jobs / invoices matching q. Each list
+// capped at 10 results. type can be 'all', 'clients', 'jobs', 'invoices'.
+app.get('/api/mobile/owner/search', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  const type = String(req.query.type || 'all');
+  if (!q) return res.json({ clients: [], jobs: [], invoices: [] });
+  const like = `%${q}%`;
+
+  const tasks = {};
+  if (type === 'all' || type === 'clients') {
+    tasks.clients = supabaseAdmin.from('clients')
+      .select('id, name, company, email, phone')
+      .eq('tenant_id', req.tenantId)
+      .or(`name.ilike.${like},company.ilike.${like},email.ilike.${like},phone.ilike.${like}`)
+      .order('name').limit(10);
+  }
+  if (type === 'all' || type === 'jobs') {
+    tasks.jobs = supabaseAdmin.from('jobs')
+      .select('id, name, address, status, invoice_amount, payment_status, clients(name)')
+      .eq('tenant_id', req.tenantId)
+      .or(`name.ilike.${like},address.ilike.${like},description.ilike.${like}`)
+      .order('updated_at', { ascending: false }).limit(10);
+  }
+  if (type === 'all' || type === 'invoices') {
+    tasks.invoices = supabaseAdmin.from('jobs')
+      .select('id, name, address, status, invoice_amount, payment_status, updated_at, clients(name, email)')
+      .eq('tenant_id', req.tenantId)
+      .gt('invoice_amount', 0)
+      .or(`name.ilike.${like},clients.name.ilike.${like}`)
+      .order('updated_at', { ascending: false }).limit(10);
+  }
+
+  const results = {};
+  for (const [key, query] of Object.entries(tasks)) {
+    const { data, error } = await query;
+    if (error) return res.status(500).json({ error: error.message });
+    results[key] = data || [];
+  }
+  res.json({ clients: results.clients || [], jobs: results.jobs || [], invoices: results.invoices || [] });
+});
+
 // Company settings (owner) — company_name, phone, address (and plan info).
 app.get('/api/mobile/owner/tenant', mobileAuth, requireMobileOwner, async (req, res) => {
   const { data, error } = await supabaseAdmin.from('tenants')
