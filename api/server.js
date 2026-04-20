@@ -4980,13 +4980,13 @@ async function mobileAuth(req, res, next) {
 
 // ── Mobile crew endpoints (bypass RLS via service role, guarded by mobileAuth) ──
 
-// List active jobs for the tenant
+// List jobs in field-work statuses for the tenant
 app.get('/api/mobile/crew/jobs', mobileAuth, async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('jobs')
     .select('*')
     .eq('tenant_id', req.tenantId)
-    .eq('status', 'active')
+    .in('status', ['active', 'in_progress', 'scheduled', 'on_hold'])
     .order('name');
   if (error) return res.status(500).json({ error: error.message });
   res.json(data || []);
