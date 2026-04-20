@@ -5473,6 +5473,33 @@ app.post('/api/mobile/owner/jobs/:id/invoice', mobileAuth, requireMobileOwner, a
   res.json({ job: data, invoice_email_sent: emailSent, invoice_emailed_to: emailSent ? client.email : null });
 });
 
+// Financial KPIs for owner home (revenue MTD, outstanding, lifetime collected).
+app.get('/api/mobile/owner/financials', mobileAuth, requireMobileOwner, async (req, res) => {
+  const { data, error } = await supabaseAdmin.from('jobs')
+    .select('invoice_amount, payment_status, updated_at')
+    .eq('tenant_id', req.tenantId)
+    .gt('invoice_amount', 0);
+  if (error) return res.status(500).json({ error: error.message });
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  let revenueMtd = 0, outstanding = 0, collected = 0, paidThisWeek = 0;
+  for (const j of (data || [])) {
+    const amt = Number(j.invoice_amount) || 0;
+    const paid = String(j.payment_status || '').toLowerCase() === 'paid';
+    if (paid) {
+      collected += amt;
+      if (j.updated_at && j.updated_at >= monthStart) revenueMtd += amt;
+      if (j.updated_at && j.updated_at >= weekAgo) paidThisWeek += amt;
+    } else {
+      outstanding += amt;
+    }
+  }
+  res.json({ revenueMtd, outstanding, collected, paidThisWeek });
+});
+
 // Mark invoice paid (cash / check / out-of-band). Optionally emails a receipt.
 app.post('/api/mobile/owner/jobs/:id/mark-paid', mobileAuth, requireMobileOwner, async (req, res) => {
   const notify = req.body?.notify === 'email' ? 'email' : null;
