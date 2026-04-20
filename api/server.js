@@ -5473,6 +5473,28 @@ app.post('/api/mobile/owner/jobs/:id/invoice', mobileAuth, requireMobileOwner, a
   res.json({ job: data, invoice_email_sent: emailSent, invoice_emailed_to: emailSent ? client.email : null });
 });
 
+// Company settings (owner) — company_name, phone, address (and plan info).
+app.get('/api/mobile/owner/tenant', mobileAuth, requireMobileOwner, async (req, res) => {
+  const { data, error } = await supabaseAdmin.from('tenants')
+    .select('id, company_name, phone, address, logo_url, plan, subscription_status, trial_ends_at, stripe_customer_id')
+    .eq('id', req.tenantId).single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.patch('/api/mobile/owner/tenant', mobileAuth, requireMobileOwner, async (req, res) => {
+  const { company_name, phone, address } = req.body || {};
+  const updates = {};
+  if (typeof company_name === 'string') updates.company_name = company_name.trim();
+  if (typeof phone === 'string') updates.phone = phone.trim();
+  if (typeof address === 'string') updates.address = address.trim();
+  if (!Object.keys(updates).length) return res.status(400).json({ error: 'No updates' });
+  const { data, error } = await supabaseAdmin.from('tenants')
+    .update(updates).eq('id', req.tenantId).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json(data);
+});
+
 // Financial KPIs for owner home (revenue MTD, outstanding, lifetime collected).
 app.get('/api/mobile/owner/financials', mobileAuth, requireMobileOwner, async (req, res) => {
   const { data, error } = await supabaseAdmin.from('jobs')
