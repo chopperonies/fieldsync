@@ -4927,6 +4927,26 @@ app.get('/api/join-info', async (req, res) => {
   res.json({ companyName: tenant.company_name || 'Your Team' });
 });
 
+// Public: mobile phone login — RLS blocks anon reads of employees, so
+// the mobile app hits this endpoint (service role) instead of the DB.
+app.post('/api/login-phone', async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ error: 'Phone number is required' });
+  let normalized = String(phone).replace(/\D/g, '');
+  if (normalized.length === 11 && normalized.startsWith('1')) {
+    normalized = normalized.slice(1);
+  }
+  if (!normalized) return res.status(400).json({ error: 'Invalid phone number' });
+  const { data: employee, error } = await supabaseAdmin
+    .from('employees')
+    .select('*')
+    .eq('phone', normalized)
+    .maybeSingle();
+  if (error) return res.status(500).json({ error: error.message });
+  if (!employee) return res.status(404).json({ error: 'Your phone number is not registered. Ask your manager to add you to the team.' });
+  res.json({ employee });
+});
+
 // Public: crew member self-registers
 app.post('/api/crew-register', async (req, res) => {
   const { t, name, phone, role } = req.body;
