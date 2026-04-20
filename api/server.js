@@ -5415,6 +5415,34 @@ app.get('/api/mobile/owner/home', mobileAuth, requireMobileOwnerOrManager, async
   });
 });
 
+// Single job with everything needed for the owner Job Detail screen.
+app.get('/api/mobile/owner/jobs/:id', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
+  const { data: job, error } = await supabaseAdmin.from('jobs')
+    .select('*, clients(id, name, email, phone, address)')
+    .eq('id', req.params.id).eq('tenant_id', req.tenantId).maybeSingle();
+  if (error) return res.status(500).json({ error: error.message });
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+
+  const [{ data: assignments }, { data: updates }, { count: photoCount }] = await Promise.all([
+    supabaseAdmin.from('job_assignments')
+      .select('id, employee_id, checked_in_at, checked_out_at, employees(id, name, phone, push_token)')
+      .eq('job_id', job.id).order('checked_in_at', { ascending: false }),
+    supabaseAdmin.from('job_updates')
+      .select('id, type, message, photo_url, created_at, employees(name)')
+      .eq('job_id', job.id).order('created_at', { ascending: false }).limit(30),
+    supabaseAdmin.from('job_updates').select('id', { count: 'exact', head: true })
+      .eq('job_id', job.id).eq('type', 'photo').not('photo_url', 'is', null),
+  ]);
+
+  res.json({
+    job,
+    client: job.clients || null,
+    assignments: assignments || [],
+    updates: updates || [],
+    photoCount: photoCount || 0,
+  });
+});
+
 // All tenant jobs with recent activity (for Jobs / Dashboard tabs)
 app.get('/api/mobile/owner/jobs', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
   const { data, error } = await supabaseAdmin
