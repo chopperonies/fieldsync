@@ -5473,6 +5473,40 @@ app.post('/api/mobile/owner/jobs/:id/invoice', mobileAuth, requireMobileOwner, a
   res.json({ job: data, invoice_email_sent: emailSent, invoice_emailed_to: emailSent ? client.email : null });
 });
 
+// Mark invoice paid (cash / check / out-of-band). Optionally emails a receipt.
+app.post('/api/mobile/owner/jobs/:id/mark-paid', mobileAuth, requireMobileOwner, async (req, res) => {
+  const notify = req.body?.notify === 'email' ? 'email' : null;
+  const { data: job, error } = await supabaseAdmin.from('jobs')
+    .update({ payment_status: 'paid' })
+    .eq('id', req.params.id).eq('tenant_id', req.tenantId)
+    .select('*, clients(name, email, phone)').single();
+  if (error) return res.status(400).json({ error: error.message });
+
+  let emailSent = false;
+  if (notify === 'email' && job.clients?.email) {
+    try {
+      const { data: tenant } = await supabaseAdmin.from('tenants')
+        .select('company_name').eq('id', req.tenantId).single();
+      const { Resend } = require('resend');
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      await resend.emails.send({
+        from: LINKCREW_FROM,
+        to: job.clients.email,
+        subject: `Payment received — ${job.name}`,
+        html: `<div style="font-family:sans-serif;max-width:500px">
+          <h2 style="color:#166534">Payment Received</h2>
+          <p>Hi ${job.clients.name},</p>
+          <p>This is a confirmation that your payment of <strong>$${parseFloat(job.invoice_amount).toFixed(2)}</strong> for <strong>${job.name}</strong> has been received.</p>
+          <p>Thank you for your business!</p>
+          <p style="color:#737475;font-size:12px">${tenant?.company_name || 'Your contractor'}</p>
+        </div>`,
+      });
+      emailSent = true;
+    } catch (e) { console.error('[mobile mark-paid] email error:', e.message); }
+  }
+  res.json({ job, receipt_email_sent: emailSent });
+});
+
 // Invoices = jobs with invoice_amount > 0. No separate invoices table exists.
 app.get('/api/mobile/owner/invoices', mobileAuth, requireMobileOwner, async (req, res) => {
   const { data, error } = await supabaseAdmin
