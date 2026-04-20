@@ -5587,16 +5587,37 @@ app.get('/api/mobile/owner/clients', mobileAuth, requireMobileOwnerOrManager, as
   res.json(data || []);
 });
 app.post('/api/mobile/owner/clients', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
-  const { name, phone, email, address } = req.body || {};
+  const { name, phone, email, address, company, notes } = req.body || {};
   if (!name) return res.status(400).json({ error: 'name required' });
   const { data, error } = await supabaseAdmin
     .from('clients').insert({
       name: name.trim(),
-      phone: phone ? String(phone).replace(/\D/g, '') : null,
+      phone: phone ? String(phone).replace(/\D/g, '').replace(/^1(\d{10})$/, '$1') : null,
       email: email || null,
       address: address || null,
+      company: company || null,
+      notes: notes || null,
       tenant_id: req.tenantId,
     }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.patch('/api/mobile/owner/clients/:id', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
+  const updates = {};
+  for (const f of ['name', 'company', 'email', 'address', 'notes']) {
+    if (req.body[f] !== undefined) updates[f] = req.body[f] === '' ? null : req.body[f];
+  }
+  if (req.body.phone !== undefined) {
+    const p = String(req.body.phone || '').replace(/\D/g, '').replace(/^1(\d{10})$/, '$1');
+    updates.phone = p || null;
+  }
+  if (!Object.keys(updates).length) return res.status(400).json({ error: 'no updates' });
+  if (typeof updates.name === 'string' && !updates.name.trim()) {
+    return res.status(400).json({ error: 'name cannot be empty' });
+  }
+  const { data, error } = await supabaseAdmin.from('clients')
+    .update(updates).eq('id', req.params.id).eq('tenant_id', req.tenantId).select().single();
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
