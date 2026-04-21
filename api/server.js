@@ -7267,6 +7267,99 @@ cron.schedule('0 2 * * *', async () => {
   }
 });
 
+// ── Crew appointment reminders ────────────────────────────────────────────────
+// Runs hourly. For each active tenant, compute local hour (tenant.timezone,
+// falling back to Pacific). At 7am local: push today's jobs to each assigned
+// crew member. At 6pm local: push tomorrow's jobs. Each crew member gets one
+// push per run summarizing their day, not one per job.
+function nowIn(tz) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: 'numeric',
+  }).formatToParts(new Date());
+  const pick = (t) => parts.find(p => p.type === t)?.value;
+  const hour = Number(pick('hour'));
+  const today = `${pick('year')}-${pick('month')}-${pick('day')}`;
+  const d = new Date(`${today}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  const tomorrow = d.toISOString().slice(0, 10);
+  return { hour, today, tomorrow };
+}
+
+async function sendCrewJobReminders(tenantId, date, mode /* 'today' | 'tomorrow' */) {
+  const { data: jobs } = await supabaseAdmin
+    .from('jobs')
+    .select('id, name, address, scheduled_date, job_assignments(employee_id, employees(id, name, push_token))')
+    .eq('tenant_id', tenantId)
+    .eq('scheduled_date', date);
+  if (!jobs?.length) return 0;
+
+  const byEmployee = new Map();
+  for (const job of jobs) {
+    for (const a of (job.job_assignments || [])) {
+      const emp = a.employees;
+      if (!emp?.push_token) continue;
+      if (!byEmployee.has(emp.id)) byEmployee.set(emp.id, { token: emp.push_token, name: emp.name, jobs: [] });
+      byEmployee.get(emp.id).jobs.push(job);
+    }
+  }
+
+  const title = mode === 'today' ? 'Your jobs today' : 'Your jobs tomorrow';
+  let sent = 0;
+  for (const info of byEmployee.values()) {
+    const count = info.jobs.length;
+    const first = info.jobs[0];
+    const body = count === 1
+      ? `${first.name}${first.address ? ` · ${first.address}` : ''}`
+      : `${count} jobs scheduled. Tap to see your day.`;
+    try {
+      await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          to: info.token,
+          sound: 'default',
+          title, body,
+          data: { type: 'schedule_reminder', when: mode, count, first_job_id: first.id },
+        }),
+      });
+      sent++;
+    } catch (e) { /* best-effort */ }
+  }
+
+  if (sent > 0) console.log(`🔔 Crew reminders: tenant ${tenantId}, ${mode} (${date}), ${sent} push(es)`);
+  return sent;
+}
+
+cron.schedule('0 * * * *', async () => {
+  const { data: tenants } = await supabaseAdmin
+    .from('tenants').select('id, timezone, status');
+  if (!tenants?.length) return;
+  for (const t of tenants) {
+    if (t.status && !['active', 'trialing'].includes(t.status)) continue;
+    const tz = t.timezone || 'America/Los_Angeles';
+    let now;
+    try { now = nowIn(tz); } catch { now = nowIn('America/Los_Angeles'); }
+    if (now.hour === 7) await sendCrewJobReminders(t.id, now.today, 'today');
+    else if (now.hour === 18) await sendCrewJobReminders(t.id, now.tomorrow, 'tomorrow');
+  }
+});
+
+// Manual trigger for owners to preview the reminder flow. Fires the same
+// cron payload for the caller's tenant on demand — useful before a real
+// 7am ever lands.
+app.post('/api/mobile/owner/crew-reminder-test', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
+  const mode = req.body?.mode === 'tomorrow' ? 'tomorrow' : 'today';
+  const { data: tenant } = await supabaseAdmin
+    .from('tenants').select('id, timezone').eq('id', req.tenantId).maybeSingle();
+  const tz = tenant?.timezone || 'America/Los_Angeles';
+  let now;
+  try { now = nowIn(tz); } catch { now = nowIn('America/Los_Angeles'); }
+  const date = mode === 'today' ? now.today : now.tomorrow;
+  const sent = await sendCrewJobReminders(req.tenantId, date, mode);
+  res.json({ ok: true, mode, date, tz, sent });
+});
+
 // ── Keepalive — ping self every 14 min to prevent Render sleep ────────────────
 cron.schedule('*/14 * * * *', () => {
   fetch('https://linkcrew.io/api/config').catch(() => {});
