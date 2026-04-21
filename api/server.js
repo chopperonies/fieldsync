@@ -5297,6 +5297,221 @@ app.get('/api/mobile/crew/my-assignments', mobileAuth, async (req, res) => {
   res.json(data || []);
 });
 
+// ── Free-punch clock-in (time_entries table) ──
+// Universal: works for crew and owner. Not tied to a specific job —
+// a crew member on their way to a site, an owner bidding a prospect,
+// etc. GPS lat/lng captured at both ends power the office map on Home.
+
+app.post('/api/mobile/clock-in', mobileAuth, async (req, res) => {
+  const { gps } = req.body || {};
+  // Reject if there's already an open entry for this employee (idempotent).
+  const { data: existing } = await supabaseAdmin
+    .from('time_entries')
+    .select('id, started_at, start_lat, start_lng')
+    .eq('employee_id', req.employeeId)
+    .is('ended_at', null)
+    .maybeSingle();
+  if (existing) return res.json({ ok: true, entry: existing, already_open: true });
+  const { data, error } = await supabaseAdmin
+    .from('time_entries')
+    .insert({
+      tenant_id: req.tenantId,
+      employee_id: req.employeeId,
+      started_at: new Date().toISOString(),
+      start_lat: gps?.lat ?? null,
+      start_lng: gps?.lng ?? null,
+    })
+    .select('id, started_at, start_lat, start_lng')
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true, entry: data });
+});
+
+app.post('/api/mobile/clock-out', mobileAuth, async (req, res) => {
+  const { gps } = req.body || {};
+  const { data: open } = await supabaseAdmin
+    .from('time_entries')
+    .select('id')
+    .eq('employee_id', req.employeeId)
+    .is('ended_at', null)
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!open) return res.status(404).json({ error: 'Not clocked in' });
+  const { data, error } = await supabaseAdmin
+    .from('time_entries')
+    .update({
+      ended_at: new Date().toISOString(),
+      end_lat: gps?.lat ?? null,
+      end_lng: gps?.lng ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', open.id)
+    .select('id, started_at, ended_at, start_lat, start_lng, end_lat, end_lng')
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true, entry: data });
+});
+
+// My clock state: current open entry (if any) + today's totals + today's pins.
+app.get('/api/mobile/me/clock-state', mobileAuth, async (req, res) => {
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+  const { data: rows, error } = await supabaseAdmin
+    .from('time_entries')
+    .select('id, started_at, ended_at, start_lat, start_lng, end_lat, end_lng')
+    .eq('employee_id', req.employeeId)
+    .gte('started_at', dayStart.toISOString())
+    .order('started_at', { ascending: true });
+  if (error) return res.status(500).json({ error: error.message });
+  const open = (rows || []).find(r => !r.ended_at) || null;
+  let totalMs = 0;
+  for (const r of (rows || [])) {
+    const s = new Date(r.started_at).getTime();
+    const e = r.ended_at ? new Date(r.ended_at).getTime() : Date.now();
+    totalMs += Math.max(0, e - s);
+  }
+  const pins = [];
+  for (const r of (rows || [])) {
+    if (r.start_lat != null && r.start_lng != null) {
+      pins.push({ kind: 'in', lat: r.start_lat, lng: r.start_lng, at: r.started_at });
+    }
+    if (r.ended_at && r.end_lat != null && r.end_lng != null) {
+      pins.push({ kind: 'out', lat: r.end_lat, lng: r.end_lng, at: r.ended_at });
+    }
+  }
+  res.json({ open, totalMs, pins, entries: rows || [] });
+});
+
+// Owner-only: today's clock-in pins across all crew, one entry per
+// employee with their latest punch state. Drives the Home map.
+app.get('/api/mobile/owner/crew-pins', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+  const { data: rows, error } = await supabaseAdmin
+    .from('time_entries')
+    .select('id, employee_id, started_at, ended_at, start_lat, start_lng, end_lat, end_lng, employees(name)')
+    .eq('tenant_id', req.tenantId)
+    .gte('started_at', dayStart.toISOString())
+    .order('started_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  // One entry per employee — latest punch per person.
+  const byEmployee = new Map();
+  for (const r of (rows || [])) {
+    if (!byEmployee.has(r.employee_id)) byEmployee.set(r.employee_id, r);
+  }
+  const pins = [];
+  for (const r of byEmployee.values()) {
+    const name = r.employees?.name || 'Crew';
+    if (r.ended_at) {
+      // Latest action was clock-out; show the out pin.
+      if (r.end_lat != null && r.end_lng != null) {
+        pins.push({ employee_id: r.employee_id, name, kind: 'out', lat: r.end_lat, lng: r.end_lng, at: r.ended_at, active: false });
+      }
+    } else {
+      if (r.start_lat != null && r.start_lng != null) {
+        pins.push({ employee_id: r.employee_id, name, kind: 'in', lat: r.start_lat, lng: r.start_lng, at: r.started_at, active: true });
+      }
+    }
+  }
+  res.json({ pins });
+});
+
+// Static map proxy. Keeps the Google API key server-side and lets us
+// cache identical renders for 5 min (reducing cost on refresh spam).
+// Usage: GET /api/mobile/map?center=lat,lng&zoom=13&size=600x300&pins=lat,lng,color,label|lat,lng,color,label
+const _mapCache = new Map(); // hash -> { buffer, contentType, ts }
+const MAP_CACHE_TTL_MS = 5 * 60 * 1000;
+
+// Inline auth for /api/mobile/map because React Native <Image> sends
+// limited headers depending on platform — accept token via ?token= too.
+async function mapAuth(req, res, next) {
+  const header = req.headers.authorization || '';
+  let token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token && typeof req.query.token === 'string') token = req.query.token;
+  if (!token || !token.startsWith('mob_')) return res.status(401).json({ error: 'Unauthorized' });
+  const { data: employee } = await supabaseAdmin
+    .from('employees').select('id, tenant_id, role, status')
+    .eq('mobile_session_token', token).maybeSingle();
+  if (!employee) return res.status(401).json({ error: 'Session expired' });
+  if (employee.status === 'suspended') return res.status(403).json({ error: 'Account suspended' });
+  req.employeeId = employee.id;
+  req.tenantId = employee.tenant_id;
+  req.role = employee.role;
+  next();
+}
+
+app.get('/api/mobile/map', mapAuth, async (req, res) => {
+  const key = process.env.GOOGLE_MAPS_STATIC_API_KEY;
+  const size = String(req.query.size || '640x320');
+  const zoom = String(req.query.zoom || '13');
+  const center = String(req.query.center || '');
+  const pins = String(req.query.pins || ''); // lat,lng,color,label|...
+  const scale = String(req.query.scale || '2'); // 2 = retina
+  const mapType = String(req.query.maptype || 'roadmap');
+
+  if (!key) {
+    // No key configured — return a tiny 1x1 transparent PNG placeholder.
+    const empty = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+      'base64'
+    );
+    res.set('Content-Type', 'image/png');
+    res.set('Cache-Control', 'no-store');
+    return res.status(200).send(empty);
+  }
+
+  const hash = crypto.createHash('sha1').update([size, zoom, center, pins, scale, mapType].join('|')).digest('hex');
+  const cached = _mapCache.get(hash);
+  if (cached && Date.now() - cached.ts < MAP_CACHE_TTL_MS) {
+    res.set('Content-Type', cached.contentType || 'image/png');
+    res.set('Cache-Control', `public, max-age=${Math.floor(MAP_CACHE_TTL_MS / 1000)}`);
+    return res.status(200).send(cached.buffer);
+  }
+
+  const params = new URLSearchParams();
+  params.set('size', size);
+  params.set('scale', scale);
+  params.set('maptype', mapType);
+  if (center) params.set('center', center);
+  if (zoom) params.set('zoom', zoom);
+  params.set('key', key);
+
+  // Marker syntax: markers=color:red|label:A|lat,lng
+  // We accept a single "pins" param: each pin = "lat,lng,color,label" and
+  // multiple pins separated by "|". Translate into Maps marker params.
+  let markerParams = '';
+  if (pins) {
+    for (const spec of pins.split('|').filter(Boolean)) {
+      const [lat, lng, color, label] = spec.split(',');
+      if (!lat || !lng) continue;
+      const parts = [];
+      if (color) parts.push('color:' + color);
+      if (label) parts.push('label:' + label);
+      parts.push(`${lat},${lng}`);
+      markerParams += '&markers=' + encodeURIComponent(parts.join('|'));
+    }
+  }
+
+  const url = `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}${markerParams}`;
+  https.get(url, (gr) => {
+    const chunks = [];
+    gr.on('data', (c) => chunks.push(c));
+    gr.on('end', () => {
+      const buf = Buffer.concat(chunks);
+      const ct = gr.headers['content-type'] || 'image/png';
+      if (gr.statusCode && gr.statusCode < 400 && /image\//.test(String(ct))) {
+        _mapCache.set(hash, { buffer: buf, contentType: String(ct), ts: Date.now() });
+      }
+      res.set('Content-Type', String(ct));
+      res.set('Cache-Control', `public, max-age=${Math.floor(MAP_CACHE_TTL_MS / 1000)}`);
+      res.status(gr.statusCode || 200).send(buf);
+    });
+  }).on('error', (e) => {
+    res.status(502).json({ error: 'map_upstream_error', message: e.message });
+  });
+});
+
 // My job updates filtered by type (for Notes tab)
 app.get('/api/mobile/crew/my-updates', mobileAuth, async (req, res) => {
   const { type, limit } = req.query;
