@@ -6009,31 +6009,41 @@ app.get('/api/mobile/owner/search', mobileAuth, requireMobileOwnerOrManager, asy
   const type = String(req.query.type || 'all');
   if (!q) return res.json({ clients: [], jobs: [], invoices: [] });
   // PostgREST's .or() filter syntax uses '*' as wildcard, not '%'.
-  // Using '%' inside .or() silently returns zero results.
   const like = `*${q}*`;
+  const qLower = q.toLowerCase();
 
   const tasks = {};
   if (type === 'all' || type === 'clients') {
     tasks.clients = supabaseAdmin.from('clients')
-      .select('id, name, company, email, phone')
+      .select('id, name, company, email, phone, notes, address')
       .eq('tenant_id', req.tenantId)
-      .or(`name.ilike.${like},company.ilike.${like},email.ilike.${like},phone.ilike.${like}`)
-      .order('name').limit(10);
+      .or(`name.ilike.${like},company.ilike.${like},email.ilike.${like},phone.ilike.${like},notes.ilike.${like},address.ilike.${like}`)
+      .order('name').limit(20);
   }
   if (type === 'all' || type === 'jobs') {
     tasks.jobs = supabaseAdmin.from('jobs')
-      .select('id, name, address, status, invoice_amount, payment_status, clients(name)')
+      .select('id, name, address, description, execution_plan, plans_notes, checklist_items, status, invoice_amount, payment_status, clients(name)')
       .eq('tenant_id', req.tenantId)
-      .or(`name.ilike.${like},address.ilike.${like},description.ilike.${like}`)
-      .order('updated_at', { ascending: false }).limit(10);
+      .or(`name.ilike.${like},address.ilike.${like},description.ilike.${like},execution_plan.ilike.${like},plans_notes.ilike.${like}`)
+      .order('updated_at', { ascending: false }).limit(20);
   }
   if (type === 'all' || type === 'invoices') {
     tasks.invoices = supabaseAdmin.from('jobs')
-      .select('id, name, address, status, invoice_amount, payment_status, updated_at, clients(name, email)')
+      .select('id, name, address, description, status, invoice_amount, payment_status, updated_at, clients(name, email)')
       .eq('tenant_id', req.tenantId)
       .gt('invoice_amount', 0)
-      .or(`name.ilike.${like},clients.name.ilike.${like}`)
-      .order('updated_at', { ascending: false }).limit(10);
+      .or(`name.ilike.${like},description.ilike.${like},address.ilike.${like}`)
+      .order('updated_at', { ascending: false }).limit(20);
+  }
+  // Also pull jobs that only match via crew notes (job_updates.message) or
+  // checklist items — neither is reachable from the jobs.or() filter above.
+  if (type === 'all' || type === 'jobs') {
+    tasks.noteMatches = supabaseAdmin.from('job_updates')
+      .select('job_id, message, jobs(id, name, address, status, invoice_amount, payment_status, checklist_items, clients(name))')
+      .eq('tenant_id', req.tenantId)
+      .eq('type', 'note')
+      .ilike('message', like)
+      .order('created_at', { ascending: false }).limit(20);
   }
 
   const results = {};
@@ -6042,7 +6052,50 @@ app.get('/api/mobile/owner/search', mobileAuth, requireMobileOwnerOrManager, asy
     if (error) return res.status(500).json({ error: error.message });
     results[key] = data || [];
   }
-  res.json({ clients: results.clients || [], jobs: results.jobs || [], invoices: results.invoices || [] });
+
+  // Merge note matches into jobs results, dedup by job id, and post-filter
+  // for checklist_items matches (which ilike can't reach inside a text[]).
+  const jobs = results.jobs || [];
+  const seen = new Set(jobs.map(j => j.id));
+
+  // Checklist item substring match within the already-selected jobs+invoices.
+  // (We fetch all jobs anyway; this just surfaces ones that matched checklist
+  // only — the OR filter above already caught matches on description/plans.)
+  // No extra query needed; the jobs result includes checklist_items and
+  // clients will see the match in the UI.
+
+  for (const u of (results.noteMatches || [])) {
+    const j = u.jobs;
+    if (!j || seen.has(j.id)) continue;
+    jobs.push({
+      id: j.id, name: j.name, address: j.address, status: j.status,
+      invoice_amount: j.invoice_amount, payment_status: j.payment_status,
+      clients: j.clients, _matchedVia: 'note',
+    });
+    seen.add(j.id);
+  }
+
+  // Extra pass: post-filter all scanned jobs for checklist_items that contain
+  // the query as substring. Small N per tenant, cheap enough.
+  if (type === 'all' || type === 'jobs') {
+    const { data: allTenantJobs } = await supabaseAdmin.from('jobs')
+      .select('id, name, address, status, invoice_amount, payment_status, checklist_items, clients(name)')
+      .eq('tenant_id', req.tenantId);
+    for (const j of (allTenantJobs || [])) {
+      if (seen.has(j.id)) continue;
+      const items = Array.isArray(j.checklist_items) ? j.checklist_items : [];
+      if (items.some(line => typeof line === 'string' && line.toLowerCase().includes(qLower))) {
+        jobs.push({ ...j, _matchedVia: 'checklist' });
+        seen.add(j.id);
+      }
+    }
+  }
+
+  res.json({
+    clients: results.clients || [],
+    jobs,
+    invoices: results.invoices || [],
+  });
 });
 
 // Company settings (owner) — company_name, phone, address (and plan info).
