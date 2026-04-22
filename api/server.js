@@ -8852,6 +8852,156 @@ app.delete('/api/dashboard/jobs/:id/attachments/:attId', auth, async (req, res) 
   res.json({ ok: true });
 });
 
+// ─── Live Map: dashboard-scoped location endpoints ───────────────────────
+
+// All currently clocked-in crew with their last known coords.
+// Updates live as crew phones heartbeat while clocked in.
+app.get('/api/dashboard/crew-pins', auth, async (req, res) => {
+  const tenantId = req.tenantId;
+  if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
+  const dayStart = new Date(); dayStart.setHours(0,0,0,0);
+  const { data: rows, error } = await supabaseAdmin
+    .from('time_entries')
+    .select(`
+      id, employee_id, started_at, ended_at,
+      start_lat, start_lng, end_lat, end_lng,
+      last_ping_lat, last_ping_lng, last_ping_at,
+      employees(name, avatar_url, phone, role)
+    `)
+    .eq('tenant_id', tenantId)
+    .gte('started_at', dayStart.toISOString())
+    .order('started_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  const byEmployee = new Map();
+  for (const r of (rows || [])) {
+    if (!byEmployee.has(r.employee_id)) byEmployee.set(r.employee_id, r);
+  }
+  const pins = [];
+  for (const r of byEmployee.values()) {
+    const emp = r.employees || {};
+    const active = !r.ended_at;
+    // Prefer most-recent heartbeat for active crew; fall back to start_lat.
+    const lat = active
+      ? (r.last_ping_lat ?? r.start_lat)
+      : (r.end_lat ?? r.last_ping_lat ?? r.start_lat);
+    const lng = active
+      ? (r.last_ping_lng ?? r.start_lng)
+      : (r.end_lng ?? r.last_ping_lng ?? r.start_lng);
+    if (lat == null || lng == null) continue;
+    pins.push({
+      employee_id: r.employee_id,
+      name: emp.name || 'Crew',
+      avatar_url: emp.avatar_url || null,
+      phone: emp.phone || null,
+      role: emp.role || 'crew',
+      active,
+      lat, lng,
+      last_seen: active ? (r.last_ping_at || r.started_at) : r.ended_at,
+      started_at: r.started_at,
+      ended_at: r.ended_at || null,
+    });
+  }
+  res.json({ pins, tenant_radius_m: 100 });
+});
+
+// Clock-in + clock-out markers for a specific day (defaults to today).
+app.get('/api/dashboard/time-entries', auth, async (req, res) => {
+  const tenantId = req.tenantId;
+  if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
+  const dateStr = req.query.date || new Date().toISOString().slice(0,10);
+  const dayStart = new Date(`${dateStr}T00:00:00.000Z`);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 3600 * 1000);
+  const { data, error } = await supabaseAdmin
+    .from('time_entries')
+    .select(`
+      id, employee_id, started_at, ended_at,
+      start_lat, start_lng, end_lat, end_lng,
+      employees(name, role)
+    `)
+    .eq('tenant_id', tenantId)
+    .gte('started_at', dayStart.toISOString())
+    .lt('started_at', dayEnd.toISOString())
+    .order('started_at', { ascending: true });
+  if (error) return res.status(500).json({ error: error.message });
+  const markers = [];
+  for (const r of (data || [])) {
+    const name = r.employees?.name || 'Crew';
+    if (r.start_lat != null && r.start_lng != null) {
+      markers.push({ kind: 'in', name, employee_id: r.employee_id,
+        lat: r.start_lat, lng: r.start_lng, at: r.started_at });
+    }
+    if (r.ended_at && r.end_lat != null && r.end_lng != null) {
+      markers.push({ kind: 'out', name, employee_id: r.employee_id,
+        lat: r.end_lat, lng: r.end_lng, at: r.ended_at });
+    }
+  }
+  res.json({ markers, date: dateStr });
+});
+
+// Geocoded jobs for today — job pins on the map.
+app.get('/api/dashboard/jobs-today', auth, async (req, res) => {
+  const tenantId = req.tenantId;
+  if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
+  const today = new Date().toISOString().slice(0,10);
+  const { data, error } = await supabaseAdmin
+    .from('jobs')
+    .select('id, name, address, status, lat, lng, scheduled_date')
+    .eq('tenant_id', tenantId)
+    .or(`scheduled_date.eq.${today},status.in.(scheduled,dispatched,en_route,on_site,active,in_progress)`)
+    .not('lat', 'is', null)
+    .limit(100);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ jobs: data || [] });
+});
+
+// Kick off geocoding for any un-geocoded jobs (tenant-scoped, rate-limited).
+// Returns immediately; geocoding runs async with Google's free tier.
+app.post('/api/dashboard/geocode-jobs', auth, async (req, res) => {
+  const tenantId = req.tenantId;
+  if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
+  if (!JOB_APPROVER_ROLES.has(req.role || 'owner')) {
+    return res.status(403).json({ error: 'Approver role required' });
+  }
+  const apiKey = process.env.GOOGLE_MAPS_STATIC_API_KEY;
+  if (!apiKey) return res.status(400).json({ error: 'GOOGLE_MAPS_STATIC_API_KEY not set' });
+  // Fire-and-forget; report queue size.
+  const { data: jobs } = await supabaseAdmin
+    .from('jobs')
+    .select('id, address')
+    .eq('tenant_id', tenantId)
+    .is('lat', null)
+    .not('address', 'is', null)
+    .limit(50);
+  if (!jobs?.length) return res.json({ ok: true, queued: 0 });
+  (async () => {
+    for (const job of jobs) {
+      try {
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(job.address)}&key=${apiKey}`;
+        const gr = await fetch(url);
+        const gd = await gr.json();
+        const hit = gd?.results?.[0]?.geometry?.location;
+        if (hit) {
+          await supabaseAdmin.from('jobs')
+            .update({ lat: hit.lat, lng: hit.lng, geocoded_at: new Date().toISOString() })
+            .eq('id', job.id);
+        }
+      } catch {}
+      await new Promise(r => setTimeout(r, 50));
+    }
+  })().catch(() => {});
+  res.json({ ok: true, queued: jobs.length });
+});
+
+// Expose the Maps JS API key to the dashboard (same key that has
+// Maps Static enabled — owner must turn on Maps JavaScript + Geocoding
+// APIs on it in GCP console).
+app.get('/api/dashboard/maps-config', auth, (req, res) => {
+  res.json({
+    api_key: process.env.GOOGLE_MAPS_STATIC_API_KEY || null,
+    note: 'Enable Maps JavaScript API and Geocoding API on this key in GCP if not already done.',
+  });
+});
+
 // Status-events feed for a single job (web job-detail panel).
 app.get('/api/dashboard/jobs/:id/status-events', auth, async (req, res) => {
   const tenantId = req.tenantId;

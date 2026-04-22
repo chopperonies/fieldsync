@@ -1404,6 +1404,9 @@
     <div class="nav-item" id="mtab-timesheets" onclick="switchMainTab('timesheets')">
       <i data-lucide="clock"></i><span>Timesheets</span>
     </div>
+    <div class="nav-item" id="mtab-livemap" onclick="switchMainTab('livemap')">
+      <i data-lucide="map-pin"></i><span>Live Map</span>
+    </div>
     <div class="sidebar-section-label">Business</div>
     <div class="nav-item nav-group-trigger" id="mtab-invoices">
       <div class="nav-group-main" onclick="switchMainTab('invoices');toggleInvoicesSidebarGroup();">
@@ -3024,6 +3027,46 @@
   </div>
 </div>
 
+<!-- Live Map view -->
+<div id="livemap-view" style="display:none">
+  <div class="owner-page">
+    <div class="owner-page-shell">
+      <div class="owner-page-header">
+        <div class="owner-page-copy">
+          <div class="owner-page-eyebrow">Live Map</div>
+          <div class="owner-page-title">See where the crew is right now, and where they clocked in and out today.</div>
+          <div class="owner-page-sub">Crew phones send a location ping every 5 minutes while clocked in. Toggle the date picker to review prior days.</div>
+        </div>
+        <div class="owner-page-actions" style="display:flex;align-items:center;gap:10px">
+          <label style="font-size:11px;color:#64748b;display:flex;align-items:center;gap:6px">
+            Date
+            <input type="date" id="livemap-date" style="font-size:13px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px">
+          </label>
+          <button class="owner-mini-btn" onclick="refreshLiveMap()">Refresh</button>
+          <button class="owner-mini-btn" onclick="geocodeAllJobs()" title="Geocode any jobs that don't have coordinates yet">Geocode jobs</button>
+        </div>
+      </div>
+
+      <div class="lc-card" style="padding:0;overflow:hidden;margin-top:14px">
+        <div id="livemap-canvas" style="width:100%;height:640px;background:#eef2f7;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:13px">
+          Loading map…
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px">
+        <div class="lc-card" style="padding:14px">
+          <div class="panel-title">Active crew <span id="livemap-crew-count" style="font-size:11px;color:var(--muted);font-weight:600;margin-left:6px">0</span></div>
+          <div id="livemap-crew-list" style="font-size:12px;color:#475569">No active crew yet.</div>
+        </div>
+        <div class="lc-card" style="padding:14px">
+          <div class="panel-title">Today's punches <span id="livemap-punch-count" style="font-size:11px;color:var(--muted);font-weight:600;margin-left:6px">0</span></div>
+          <div id="livemap-punch-list" style="font-size:12px;color:#475569">No punches yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Timesheets view -->
 <div id="timesheets-view" style="display:none">
   <div class="owner-page">
@@ -4322,7 +4365,7 @@ function closeMobileUserMenu() {
 }
 
 function getAccessibleTabs() {
-  const tabs = ['dashboard', 'requests', 'quotes', 'jobs', 'schedule', 'team', 'clients', 'invoices', 'timesheets', 'calendar', 'jobs-records', 'referrals'];
+  const tabs = ['dashboard', 'requests', 'quotes', 'jobs', 'schedule', 'team', 'clients', 'invoices', 'timesheets', 'calendar', 'jobs-records', 'referrals', 'livemap'];
   if (canViewFinancials()) {
     tabs.push('agreements', 'reports', 'expenses', 'service-catalog');
   }
@@ -4337,7 +4380,7 @@ function getAccessibleTabs() {
 
 function applyCapabilityUI() {
   const accessibleTabs = new Set(getAccessibleTabs());
-  ['dashboard','requests','quotes','jobs','schedule','team','clients','invoices','expenses','reports','agreements','calendar','timesheets','settings','referrals','jobs-records','service-pro'].forEach(tab => {
+  ['dashboard','requests','quotes','jobs','schedule','team','clients','invoices','expenses','reports','agreements','calendar','timesheets','settings','referrals','jobs-records','service-pro','livemap'].forEach(tab => {
     const tabEl = document.getElementById(`mtab-${tab}`);
     if (tabEl) tabEl.style.display = accessibleTabs.has(tab) ? '' : 'none';
   });
@@ -5744,6 +5787,245 @@ function renderRecentOutcomes(jobs = []) {
       </div>
     </div>
   `).join('');
+}
+
+// ── Live Map ─────────────────────────────────────────────────────────────
+let _liveMap = null;
+let _liveMarkers = [];
+let _liveMapsLoaded = false;
+let _liveMapRefreshTimer = null;
+
+function loadGoogleMapsScript(apiKey) {
+  return new Promise((resolve, reject) => {
+    if (_liveMapsLoaded || (window.google && window.google.maps)) {
+      _liveMapsLoaded = true;
+      resolve();
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=marker&v=weekly`;
+    s.async = true;
+    s.defer = true;
+    s.onload = () => { _liveMapsLoaded = true; resolve(); };
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function initLiveMap() {
+  const dateEl = document.getElementById('livemap-date');
+  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0,10);
+  if (dateEl && !dateEl._bound) {
+    dateEl.addEventListener('change', refreshLiveMap);
+    dateEl._bound = true;
+  }
+
+  // Fetch Maps config key.
+  let apiKey = null;
+  try {
+    const r = await authFetch('/api/dashboard/maps-config');
+    if (r.ok) apiKey = (await r.json()).api_key;
+  } catch {}
+  const canvas = document.getElementById('livemap-canvas');
+  if (!apiKey) {
+    canvas.innerHTML = `<div style="text-align:center;padding:40px;color:#94a3b8">
+      <div style="font-size:32px;margin-bottom:10px">🗺️</div>
+      <div style="font-weight:700;color:#334155">Maps API key not configured</div>
+      <div style="margin-top:6px;font-size:12px;max-width:380px;margin-left:auto;margin-right:auto">
+        Set <code>GOOGLE_MAPS_STATIC_API_KEY</code> on Render, and enable
+        <strong>Maps JavaScript API</strong> + <strong>Geocoding API</strong>
+        on that key in the Google Cloud Console.
+      </div>
+    </div>`;
+    return;
+  }
+
+  try {
+    await loadGoogleMapsScript(apiKey);
+  } catch (e) {
+    canvas.innerHTML = `<div style="padding:40px;color:#991b1b">Failed to load Google Maps script. ${esc(e?.message || '')}</div>`;
+    return;
+  }
+  canvas.innerHTML = '';
+  _liveMap = new google.maps.Map(canvas, {
+    zoom: 11,
+    center: { lat: 40.7128, lng: -74.0060 },
+    mapTypeControl: false,
+    fullscreenControl: true,
+    streetViewControl: false,
+  });
+  await refreshLiveMap();
+  // Auto-refresh every 30s while tab is visible.
+  if (_liveMapRefreshTimer) clearInterval(_liveMapRefreshTimer);
+  _liveMapRefreshTimer = setInterval(() => {
+    const view = document.getElementById('livemap-view');
+    if (view && view.style.display !== 'none') refreshLiveMap();
+  }, 30000);
+}
+
+function clearLiveMarkers() {
+  for (const m of _liveMarkers) { try { m.setMap(null); } catch {} }
+  _liveMarkers = [];
+}
+
+async function refreshLiveMap() {
+  if (!_liveMap) return;
+  clearLiveMarkers();
+  const dateEl = document.getElementById('livemap-date');
+  const date = dateEl?.value || new Date().toISOString().slice(0,10);
+  let crew = [], markers = [], jobs = [];
+  try {
+    const [crewR, markersR, jobsR] = await Promise.all([
+      authFetch('/api/dashboard/crew-pins'),
+      authFetch(`/api/dashboard/time-entries?date=${date}`),
+      authFetch('/api/dashboard/jobs-today'),
+    ]);
+    if (crewR.ok) crew = (await crewR.json()).pins || [];
+    if (markersR.ok) markers = (await markersR.json()).markers || [];
+    if (jobsR.ok) jobs = (await jobsR.json()).jobs || [];
+  } catch {}
+
+  const bounds = new google.maps.LatLngBounds();
+  let hasPoint = false;
+
+  // Crew pins — active crew get avatar/colored dots.
+  const crewList = document.getElementById('livemap-crew-list');
+  const crewCnt = document.getElementById('livemap-crew-count');
+  if (crewCnt) crewCnt.textContent = crew.filter(c => c.active).length;
+  if (crewList) {
+    if (!crew.length) {
+      crewList.innerHTML = '<em style="color:#94a3b8">No crew clocked in right now.</em>';
+    } else {
+      crewList.innerHTML = crew.map(c => `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9">
+          <span style="width:8px;height:8px;border-radius:50%;background:${c.active ? '#16a34a' : '#94a3b8'};box-shadow:0 0 0 2px ${c.active ? 'rgba(22,163,74,0.2)' : 'rgba(148,163,184,0.2)'}"></span>
+          <strong style="font-size:13px;color:#0f172a">${esc(c.name)}</strong>
+          <span style="color:#94a3b8;font-size:11px">${c.active ? 'clocked in' : 'clocked out'} · ${formatRelative(c.last_seen)}</span>
+        </div>
+      `).join('');
+    }
+  }
+  for (const c of crew) {
+    if (c.lat == null || c.lng == null) continue;
+    const marker = new google.maps.Marker({
+      position: { lat: c.lat, lng: c.lng },
+      map: _liveMap,
+      title: `${c.name} — ${c.active ? 'clocked in' : 'clocked out'}`,
+      label: { text: c.name.slice(0,1).toUpperCase(), color: '#fff', fontWeight: '700', fontSize: '12px' },
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 14,
+        fillColor: c.active ? '#16a34a' : '#94a3b8',
+        fillOpacity: 1,
+        strokeColor: '#fff',
+        strokeWeight: 3,
+      },
+    });
+    const info = new google.maps.InfoWindow({
+      content: `<div style="font-family:system-ui,-apple-system,sans-serif;font-size:12px">
+        <strong>${esc(c.name)}</strong><br>
+        ${c.active ? 'Clocked in' : 'Clocked out'} · last seen ${formatRelative(c.last_seen)}
+        ${c.phone ? `<br><a href="tel:${esc(c.phone)}">${esc(c.phone)}</a>` : ''}
+      </div>`,
+    });
+    marker.addListener('click', () => info.open(_liveMap, marker));
+    _liveMarkers.push(marker);
+    bounds.extend({ lat: c.lat, lng: c.lng });
+    hasPoint = true;
+  }
+
+  // Clock-in (green) + clock-out (red) markers from the selected day.
+  const punchList = document.getElementById('livemap-punch-list');
+  const punchCnt = document.getElementById('livemap-punch-count');
+  if (punchCnt) punchCnt.textContent = markers.length;
+  if (punchList) {
+    if (!markers.length) {
+      punchList.innerHTML = '<em style="color:#94a3b8">No punches yet for this day.</em>';
+    } else {
+      punchList.innerHTML = markers.slice(0, 30).map(m => `
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+          <span style="width:6px;height:6px;border-radius:50%;background:${m.kind === 'in' ? '#16a34a' : '#dc2626'}"></span>
+          <strong style="font-size:12px;color:#0f172a">${esc(m.name)}</strong>
+          <span style="color:#64748b;font-size:11px">${m.kind === 'in' ? 'IN' : 'OUT'} · ${new Date(m.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+        </div>
+      `).join('');
+    }
+  }
+  for (const m of markers) {
+    if (m.lat == null || m.lng == null) continue;
+    const color = m.kind === 'in' ? '#16a34a' : '#dc2626';
+    const dot = new google.maps.Marker({
+      position: { lat: m.lat, lng: m.lng },
+      map: _liveMap,
+      title: `${m.name} ${m.kind === 'in' ? 'IN' : 'OUT'} · ${new Date(m.at).toLocaleTimeString()}`,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 6,
+        fillColor: color,
+        fillOpacity: 0.85,
+        strokeColor: '#fff',
+        strokeWeight: 1.5,
+      },
+    });
+    _liveMarkers.push(dot);
+    bounds.extend({ lat: m.lat, lng: m.lng });
+    hasPoint = true;
+  }
+
+  // Job pins (geocoded).
+  for (const j of jobs) {
+    if (j.lat == null || j.lng == null) continue;
+    const marker = new google.maps.Marker({
+      position: { lat: j.lat, lng: j.lng },
+      map: _liveMap,
+      title: `${j.name} · ${j.status}`,
+      icon: {
+        url: 'data:image/svg+xml;utf8,' + encodeURIComponent(`
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
+            <path d="M16 0c8.8 0 16 7.2 16 16 0 10.7-14 24-16 26-2-2-16-15.3-16-26C0 7.2 7.2 0 16 0z" fill="#2563eb"/>
+            <circle cx="16" cy="16" r="6" fill="#fff"/>
+          </svg>
+        `),
+        scaledSize: new google.maps.Size(28, 36),
+        anchor: new google.maps.Point(14, 36),
+      },
+    });
+    const info = new google.maps.InfoWindow({
+      content: `<div style="font-family:system-ui,-apple-system,sans-serif;font-size:12px">
+        <strong>${esc(j.name)}</strong><br>
+        ${esc(j.status)}${j.address ? '<br>' + esc(j.address) : ''}
+        <br><a href="#" onclick="event.preventDefault();openJob('${j.id}')">Open job</a>
+      </div>`,
+    });
+    marker.addListener('click', () => info.open(_liveMap, marker));
+    _liveMarkers.push(marker);
+    bounds.extend({ lat: j.lat, lng: j.lng });
+    hasPoint = true;
+  }
+
+  if (hasPoint) {
+    _liveMap.fitBounds(bounds, 60);
+    if (_liveMap.getZoom() > 15) _liveMap.setZoom(15);
+  }
+}
+
+async function geocodeAllJobs() {
+  try {
+    const r = await authFetch('/api/dashboard/geocode-jobs', { method: 'POST' });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Failed');
+    const d = await r.json();
+    alert(`Queued ${d.queued || 0} job(s) for geocoding. Refresh the map in a minute.`);
+  } catch (e) { alert(e.message || 'Geocoding failed'); }
+}
+
+function formatRelative(iso) {
+  if (!iso) return 'just now';
+  const d = new Date(iso).getTime();
+  const diff = Math.floor((Date.now() - d) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return new Date(iso).toLocaleDateString();
 }
 
 // ── Crew-driven flow: approvals + work-order requests ────────────────────
@@ -9388,7 +9670,7 @@ function switchMainTab(tab) {
   writeDashboardState({ mainTab: tab });
   history.replaceState(null, '', `#${tab}`);
   updateWorkspaceHeader(tab);
-  ['dashboard','requests','quotes','jobs','schedule','jobs-records','team','clients','invoices','expenses','reports','agreements','calendar','timesheets','settings','referrals','service-catalog','service-pro'].forEach(t => {
+  ['dashboard','requests','quotes','jobs','schedule','jobs-records','team','clients','invoices','expenses','reports','agreements','calendar','timesheets','settings','referrals','service-catalog','service-pro','livemap'].forEach(t => {
     const view = document.getElementById(`${t}-view`);
     const tabEl = document.getElementById(`mtab-${t}`);
     if (view) view.style.display = t === tab ? 'block' : 'none';
@@ -9439,6 +9721,7 @@ function switchMainTab(tab) {
   if (tab === 'calendar') initCalendar();
   if (tab === 'timesheets') initTimesheets();
   if (tab === 'service-pro') loadServicePro();
+  if (tab === 'livemap') initLiveMap();
   if (tab === 'settings' && canAccessSettingsTab()) {
     if (canManageSettings()) {
       loadSettings();
