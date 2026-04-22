@@ -5867,9 +5867,18 @@ app.post('/api/mobile/me/heartbeat', mobileAuth, async (req, res) => {
 });
 
 // My clock state: current open entry (if any) + today's totals + today's pins.
+// Client passes ?since=<ISO> for local-tz "today"; server falls back to its
+// own midnight otherwise. The client-passed value is authoritative — the
+// server runs in UTC on Render so its midnight isn't the user's midnight.
 app.get('/api/mobile/me/clock-state', mobileAuth, async (req, res) => {
-  const dayStart = new Date();
-  dayStart.setHours(0, 0, 0, 0);
+  let dayStart;
+  const since = req.query?.since;
+  if (since && !isNaN(Date.parse(String(since)))) {
+    dayStart = new Date(String(since));
+  } else {
+    dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+  }
   const { data: rows, error } = await supabaseAdmin
     .from('time_entries')
     .select('id, started_at, ended_at, start_lat, start_lng, end_lat, end_lng')
