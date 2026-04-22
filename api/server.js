@@ -6210,7 +6210,8 @@ app.post('/api/mobile/owner/jobs/:id/send-workorder', mobileAuth, requireMobileO
 });
 
 // Create a job
-app.post('/api/mobile/owner/jobs', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
+// Crew-open — any role can create a job or quote from the field.
+app.post('/api/mobile/owner/jobs', mobileAuth, async (req, res) => {
   const { name, address, description, estimate_amount, scheduled_date, client_id, workflow_id, status } = req.body || {};
   if (!name || !address) return res.status(400).json({ error: 'name and address required' });
   // If a workflow_id is supplied, verify it belongs to this tenant.
@@ -6318,7 +6319,9 @@ app.get('/api/mobile/owner/clients', mobileAuth, requireMobileOwnerOrManager, as
   if (error) return res.status(500).json({ error: error.message });
   res.json(data || []);
 });
-app.post('/api/mobile/owner/clients', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
+// Intentionally crew-open — every role can create clients. Tenant is
+// derived from the mobile session, so there's no cross-tenant leak risk.
+app.post('/api/mobile/owner/clients', mobileAuth, async (req, res) => {
   const { name, phone, email, address, company, notes } = req.body || {};
   if (!name) return res.status(400).json({ error: 'name required' });
   const { data, error } = await supabaseAdmin
