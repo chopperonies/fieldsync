@@ -5052,12 +5052,12 @@ app.post('/api/login-phone', async (req, res) => {
   if (!normalized) return res.status(400).json({ error: 'Invalid phone number' });
   // Unified login: any role (owner, manager, crew) whose phone matches.
   // If a number appears in multiple tenants we return the most-recently
-  // updated record; the app can later surface a tenant picker if needed.
+  // created record; the app can later surface a tenant picker if needed.
   const { data: employee, error } = await supabaseAdmin
     .from('employees')
     .select('*')
     .eq('phone', normalized)
-    .order('updated_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false, nullsFirst: false })
     .limit(1)
     .maybeSingle();
   if (error) return res.status(500).json({ error: error.message });
