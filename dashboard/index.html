@@ -1650,6 +1650,36 @@
       </div>
       </div><!-- end fade bridge -->
 
+      <!-- Approvals + Work Order Requests — side by side landscape card -->
+      <div class="owner-card" style="margin-top:20px" id="approvals-card">
+        <div class="owner-card-header">
+          <div>
+            <div class="owner-card-title">Crew-Driven Flow</div>
+            <div class="owner-card-headline">Pending approvals & work-order requests</div>
+            <div class="owner-card-sub">Crew marks jobs complete and requests plans from the field — you approve or supply documents here.</div>
+          </div>
+          <div class="owner-card-actions">
+            <button class="owner-mini-btn" onclick="loadApprovalsAndRequests()">Refresh</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px">
+          <div>
+            <div class="panel-title" style="display:flex;align-items:center;gap:8px">
+              <span>✅ Closure approvals</span>
+              <span id="approvals-count" style="background:#dcfce7;color:#166534;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:800">—</span>
+            </div>
+            <div id="approvals-list" style="margin-top:8px"><div class="empty"><div class="e-icon">✅</div>Loading…</div></div>
+          </div>
+          <div>
+            <div class="panel-title" style="display:flex;align-items:center;gap:8px">
+              <span>📄 Work-order requests</span>
+              <span id="wo-requests-count" style="background:#fef3c7;color:#92400e;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:800">—</span>
+            </div>
+            <div id="wo-requests-list" style="margin-top:8px"><div class="empty"><div class="e-icon">📄</div>Loading…</div></div>
+          </div>
+        </div>
+      </div>
+
       <!-- Recent Outcomes — full-width landscape card -->
       <div class="owner-card" style="margin-top:20px">
         <div class="owner-card-header">
@@ -4033,6 +4063,12 @@
       <div id="detail-workorder" style="min-width:0"></div>
     </div>
 
+    <!-- Attachments (plans / schematics) -->
+    <div class="lc-card" id="detail-attachments" style="margin-bottom:16px"></div>
+
+    <!-- Crew-driven actions: approve / reject / cancel / override -->
+    <div id="detail-flow-actions" style="margin-bottom:16px"></div>
+
     <!-- Recent Activity (full width) -->
     <div class="lc-card" style="margin-bottom:16px">
       <div class="panel-title">Recent Activity</div>
@@ -5710,8 +5746,295 @@ function renderRecentOutcomes(jobs = []) {
   `).join('');
 }
 
+// ── Crew-driven flow: approvals + work-order requests ────────────────────
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+async function loadApprovalsAndRequests() {
+  try {
+    const [apprR, woR] = await Promise.all([
+      authFetch('/api/dashboard/pending-approvals'),
+      authFetch('/api/dashboard/work-order-requests'),
+    ]);
+    const appr = apprR.ok ? (await apprR.json()).jobs || [] : [];
+    const wo = woR.ok ? (await woR.json()).requests || [] : [];
+    renderPendingApprovals(appr);
+    renderWorkOrderRequests(wo);
+  } catch (e) {
+    console.warn('approvals/wo load failed', e);
+  }
+}
+
+function renderPendingApprovals(jobs) {
+  const cnt = document.getElementById('approvals-count');
+  const list = document.getElementById('approvals-list');
+  if (!list) return;
+  if (cnt) cnt.textContent = jobs.length;
+  if (!jobs.length) {
+    list.innerHTML = '<div class="empty" style="padding:12px"><div class="e-icon">✅</div>All clear — no closures pending.</div>';
+    return;
+  }
+  list.innerHTML = jobs.map(j => `
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:800;font-size:13px;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.name || 'Job')}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:2px">${esc(j.address || '')} · ${esc(j.scheduled_date || '')}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="owner-mini-btn" style="background:#dcfce7;border-color:#bbf7d0;color:#166534;font-weight:800" onclick="approveJobClosure('${j.id}')">Approve & close</button>
+          <button class="owner-mini-btn" style="background:#fee2e2;border-color:#fecaca;color:#991b1b;font-weight:800" onclick="rejectJobClosure('${j.id}')">Reject</button>
+          <button class="owner-mini-btn" onclick="openJob('${j.id}')">Open</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderWorkOrderRequests(requests) {
+  const cnt = document.getElementById('wo-requests-count');
+  const list = document.getElementById('wo-requests-list');
+  if (!list) return;
+  if (cnt) cnt.textContent = requests.length;
+  if (!requests.length) {
+    list.innerHTML = '<div class="empty" style="padding:12px"><div class="e-icon">📄</div>No open requests.</div>';
+    return;
+  }
+  list.innerHTML = requests.map(r => {
+    const jobName = r.jobs?.name || 'Job';
+    const reqBy = r.employees?.name || 'Crew';
+    return `
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:800;font-size:13px;color:#0f172a">${esc(jobName)}</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px">Requested by ${esc(reqBy)}${r.jobs?.scheduled_date ? ' · ' + esc(r.jobs.scheduled_date) : ''}</div>
+            ${r.note ? `<div style="font-size:12px;color:#334155;margin-top:4px;font-style:italic">"${esc(r.note)}"</div>` : ''}
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="owner-mini-btn" onclick="openJob('${r.jobs?.id || r.job_id}')">Upload plans</button>
+            <button class="owner-mini-btn" style="background:#f5f5f5;border-color:#e5e5e5" onclick="dismissWorkOrderRequest('${r.id}')">Dismiss</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function approveJobClosure(jobId) {
+  try {
+    const r = await authFetch(`/api/dashboard/jobs/${jobId}/approve`, { method: 'POST' });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Failed');
+    showTopNotice('Closed — crew notified.', 'success');
+    loadApprovalsAndRequests();
+    if (typeof loadDashboard === 'function') loadDashboard();
+  } catch (e) { alert(e.message || 'Could not approve'); }
+}
+
+async function rejectJobClosure(jobId) {
+  const reason = prompt('Rejection reason (bounces back to In Progress):');
+  if (reason == null) return;
+  try {
+    const r = await authFetch(`/api/dashboard/jobs/${jobId}/reject`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: reason || null }),
+    });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Failed');
+    showTopNotice('Bounced back to crew.', 'info');
+    loadApprovalsAndRequests();
+    if (typeof loadDashboard === 'function') loadDashboard();
+  } catch (e) { alert(e.message || 'Could not reject'); }
+}
+
+async function dismissWorkOrderRequest(requestId) {
+  const reason = prompt('Dismiss this request? Optional reason:');
+  if (reason == null) return;
+  try {
+    const r = await authFetch(`/api/dashboard/work-order-requests/${requestId}/dismiss`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: reason || null }),
+    });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Failed');
+    loadApprovalsAndRequests();
+  } catch (e) { alert(e.message || 'Could not dismiss'); }
+}
+
+async function cancelJob(jobId) {
+  const reason = prompt('Cancellation reason (required):');
+  if (!reason || !reason.trim()) return;
+  try {
+    const r = await authFetch(`/api/dashboard/jobs/${jobId}/cancel`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+    });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Failed');
+    showTopNotice('Job cancelled.', 'info');
+    if (typeof loadDashboard === 'function') loadDashboard();
+    if (typeof closeDetail === 'function') closeDetail();
+  } catch (e) { alert(e.message || 'Could not cancel'); }
+}
+
+// Fallback for toast helper in case it's named differently in this file.
+if (typeof showTopNotice !== 'function') {
+  window.showTopNotice = function (msg, kind) { console.log('[notice]', kind, msg); };
+}
+
+// Flow-state action buttons for the Job Detail modal.
+function renderJobFlowActions(job) {
+  const el = document.getElementById('detail-flow-actions');
+  if (!el || !job) return;
+  const status = String(job.status || '').toLowerCase();
+  const isPendingApproval = status === 'completed';
+  const isClosed = status === 'closed';
+  const isCancelled = status === 'cancelled' || status === 'canceled';
+
+  if (isClosed) {
+    el.innerHTML = `<div class="lc-card" style="padding:12px;background:#f0fdf4;border-color:#bbf7d0"><strong style="color:#166534">✓ Closed</strong> — this job is approved and closed out.</div>`;
+    return;
+  }
+  if (isCancelled) {
+    el.innerHTML = `<div class="lc-card" style="padding:12px;background:#fef2f2;border-color:#fecaca"><strong style="color:#991b1b">✕ Cancelled</strong></div>`;
+    return;
+  }
+
+  let html = '';
+  if (isPendingApproval) {
+    html += `
+      <div class="lc-card" style="padding:14px;background:#f0fdf4;border-color:#bbf7d0;margin-bottom:8px">
+        <div style="font-weight:800;color:#166534;margin-bottom:4px">Awaiting your approval</div>
+        <div style="font-size:12px;color:#166534;margin-bottom:10px">Crew has requested closure. Approve to close the job or reject to bounce it back.</div>
+        <div style="display:flex;gap:8px">
+          <button class="owner-mini-btn" style="background:#dcfce7;border-color:#bbf7d0;color:#166534;font-weight:800" onclick="approveJobClosure('${job.id}')">Approve & close</button>
+          <button class="owner-mini-btn" style="background:#fee2e2;border-color:#fecaca;color:#991b1b;font-weight:800" onclick="rejectJobClosure('${job.id}')">Reject</button>
+        </div>
+      </div>
+    `;
+  }
+  // Always-available flow actions: cancel + override.
+  html += `
+    <div class="lc-card" style="padding:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em">Current status: ${esc(status)}</span>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="owner-mini-btn" style="background:#fee2e2;border-color:#fecaca;color:#991b1b;font-weight:800" onclick="cancelJob('${job.id}')">Cancel job</button>
+        <select class="owner-mini-btn" style="cursor:pointer" onchange="if(this.value){overrideJobStatus('${job.id}', this.value); this.value=''}">
+          <option value="">Override status…</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="dispatched">Dispatched</option>
+          <option value="en_route">En route</option>
+          <option value="on_site">On site</option>
+          <option value="in_progress">In progress</option>
+          <option value="paused">Paused</option>
+          <option value="completed">Completed</option>
+          <option value="closed">Closed</option>
+        </select>
+      </div>
+    </div>
+  `;
+  el.innerHTML = html;
+}
+
+async function overrideJobStatus(jobId, toStatus) {
+  const note = prompt(`Override to "${toStatus}"? Optional note:`) ?? null;
+  try {
+    const r = await authFetch(`/api/dashboard/jobs/${jobId}/override-status`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to_status: toStatus, note: note || null }),
+    });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Failed');
+    if (typeof openDetail === 'function' && window.selectedJobId) openDetail(window.selectedJobId);
+    loadApprovalsAndRequests();
+  } catch (e) { alert(e.message || 'Override failed'); }
+}
+
+// ── Attachments on the Job Detail modal ──────────────────────────────────
+let _currentDetailJobId = null;
+function setCurrentDetailJobId(id) { _currentDetailJobId = id; }
+
+async function loadJobAttachments(jobId) {
+  try {
+    const r = await authFetch(`/api/dashboard/jobs/${jobId}/attachments`);
+    if (!r.ok) return [];
+    const d = await r.json();
+    return d.attachments || [];
+  } catch { return []; }
+}
+
+function renderJobAttachments(jobId, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  loadJobAttachments(jobId).then(atts => {
+    const rows = atts.map(a => {
+      const sizeKb = a.size_bytes ? (a.size_bytes < 1024*1024 ? `${Math.round(a.size_bytes/1024)} KB` : `${(a.size_bytes/1024/1024).toFixed(1)} MB`) : '';
+      const pill = a.acknowledged_at
+        ? `<span style="background:#dcfce7;color:#166534;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800">Reviewed ✓✓</span>`
+        : a.viewed_at
+          ? `<span style="background:#dcfce7;color:#166534;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800">Viewed</span>`
+          : `<span style="background:#f1f5f9;color:#64748b;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800">Not viewed</span>`;
+      const ackFlag = a.require_acknowledgment ? ' · <strong style="color:#b45309">ack required</strong>' : '';
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;margin-bottom:6px">
+          <div style="font-size:18px">${a.mime_type && a.mime_type.startsWith('image/') ? '🖼️' : a.mime_type === 'application/pdf' ? '📄' : '📎'}</div>
+          <div style="flex:1;min-width:0">
+            <a href="${a.url}" target="_blank" style="font-weight:700;color:#0f172a;font-size:13px;text-decoration:none">${esc(a.filename)}</a>
+            <div style="font-size:11px;color:#64748b">${sizeKb}${ackFlag}</div>
+          </div>
+          ${pill}
+          <button class="owner-mini-btn" style="background:#fee2e2;border-color:#fecaca;color:#991b1b;font-weight:800" onclick="deleteJobAttachment('${a.id}', '${jobId}', '${containerId}')">Delete</button>
+        </div>
+      `;
+    }).join('');
+    const empty = atts.length === 0 ? '<div class="empty" style="padding:12px"><div class="e-icon">📎</div>No plans attached yet.</div>' : '';
+    container.innerHTML = `
+      <div class="panel-title" style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+        <span>📎 Plans & Documents <span style="font-size:11px;color:var(--muted);font-weight:600;margin-left:6px">${atts.length}</span></span>
+        <span style="display:flex;align-items:center;gap:10px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#475569;cursor:pointer">
+            <input type="checkbox" id="wo-require-ack-${jobId}" style="margin:0"> Require crew ack
+          </label>
+          <label class="owner-mini-btn" style="background:#eff6ff;border-color:#dbeafe;color:#1d4ed8;font-weight:800;cursor:pointer">
+            + Upload
+            <input type="file" style="display:none" accept=".pdf,image/*,.doc,.docx,.xls,.xlsx,.txt" onchange="uploadJobAttachment(event, '${jobId}', '${containerId}')">
+          </label>
+        </span>
+      </div>
+      <div style="margin-top:8px">
+        ${empty || rows}
+      </div>
+    `;
+  });
+}
+
+async function uploadJobAttachment(e, jobId, containerId) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const requireAck = document.getElementById(`wo-require-ack-${jobId}`)?.checked ? 'true' : 'false';
+  const form = new FormData();
+  form.append('file', file);
+  form.append('require_acknowledgment', requireAck);
+  try {
+    const r = await authFetch(`/api/dashboard/jobs/${jobId}/attachments`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Upload failed');
+    e.target.value = '';
+    renderJobAttachments(jobId, containerId);
+    loadApprovalsAndRequests();
+  } catch (err) { alert(err.message || 'Upload failed'); }
+}
+
+async function deleteJobAttachment(attId, jobId, containerId) {
+  if (!confirm('Delete this file?')) return;
+  try {
+    const r = await authFetch(`/api/dashboard/jobs/${jobId}/attachments/${attId}`, { method: 'DELETE' });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Delete failed');
+    renderJobAttachments(jobId, containerId);
+  } catch (err) { alert(err.message || 'Delete failed'); }
+}
+
 async function loadDashboard() {
   updateDashboardGreeting();
+  // Fire off approvals + WO requests in parallel — they hit their own endpoints.
+  loadApprovalsAndRequests().catch(() => {});
   const res = await authFetch('/api/jobs');
   const jobs = await res.json();
   allJobsData = jobs;
@@ -6207,12 +6530,19 @@ async function updateSupply(id, status) {
 
 async function openDetail(jobId, jobName) {
   selectedJobId = jobId;
+  setCurrentDetailJobId(jobId);
   document.getElementById('job-detail-modal').classList.add('visible');
   document.getElementById('detail-title').textContent = jobName || document.getElementById('detail-title').textContent || 'Job Detail';
+
+  // Kick off attachments in parallel with the main job fetch.
+  renderJobAttachments(jobId, 'detail-attachments');
 
   const res = await authFetch(`/api/jobs/${jobId}`);
   const { job, assignments, supplies, updates } = await res.json();
   window._detailJob = job;
+
+  // Render crew-driven flow actions (approve / reject / cancel / override).
+  renderJobFlowActions(job);
   if (!window._spWorkflows) {
     try {
       const wfRes = await authFetch('/api/service-pro/workflows');

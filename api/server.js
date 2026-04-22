@@ -6176,8 +6176,11 @@ app.get('/api/mobile/owner/home', mobileAuth, requireMobileOwnerOrManager, async
   });
 });
 
-// Single job with everything needed for the owner Job Detail screen.
-app.get('/api/mobile/owner/jobs/:id', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
+// Single job with everything needed for the Job Detail screen.
+// Open to all roles — tenant scoping is the real security boundary.
+// Status changes go through /api/mobile/jobs/:id/transition (role-enforced);
+// financial/schedule edits stay on the owner-only PATCH below.
+app.get('/api/mobile/owner/jobs/:id', mobileAuth, async (req, res) => {
   const { data: job, error } = await supabaseAdmin.from('jobs')
     .select('*, clients(id, name, email, phone, address)')
     .eq('id', req.params.id).eq('tenant_id', req.tenantId).maybeSingle();
@@ -8760,6 +8763,92 @@ app.post('/api/dashboard/work-order-requests/:id/dismiss', auth, async (req, res
     await notifyEmployees([data.requested_by], 'Request dismissed',
       reason || 'No plans needed.', { type: 'wo_dismissed', job_id: data.job_id });
   }
+  res.json({ ok: true });
+});
+
+// Dashboard-scoped attachment endpoints (web JWT auth, not mobile).
+app.post('/api/dashboard/jobs/:id/attachments', auth, upload.single('file'), async (req, res) => {
+  const tenantId = req.tenantId;
+  const role = req.role || 'owner';
+  if (!JOB_APPROVER_ROLES.has(role)) return res.status(403).json({ error: 'Approver role required' });
+  if (!req.file) return res.status(400).json({ error: 'file required' });
+  const jobId = req.params.id;
+  const { data: job } = await supabaseAdmin.from('jobs')
+    .select('id').eq('id', jobId).eq('tenant_id', tenantId).maybeSingle();
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  const safeName = req.file.originalname.replace(/[^\w.\-]+/g, '_');
+  const storagePath = `${tenantId}/${jobId}/${Date.now()}_${safeName}`;
+  const { error: upErr } = await supabaseAdmin.storage
+    .from('job-attachments')
+    .upload(storagePath, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+  if (upErr) return res.status(500).json({ error: upErr.message });
+  const requireAck = String(req.body?.require_acknowledgment || '').toLowerCase() === 'true';
+  const { data: att, error } = await supabaseAdmin
+    .from('job_attachments')
+    .insert({
+      job_id: jobId, tenant_id: tenantId,
+      filename: req.file.originalname, storage_path: storagePath,
+      mime_type: req.file.mimetype, size_bytes: req.file.size,
+      label: req.body?.label || null,
+      require_acknowledgment: requireAck,
+      uploaded_by: req.employeeId || null,
+    })
+    .select('*').single();
+  if (error) return res.status(500).json({ error: error.message });
+  await resolveWorkOrderRequests(jobId, req.employeeId || null, 'attachment_added');
+  const { data: assigns } = await supabaseAdmin
+    .from('job_assignments').select('employee_id').eq('job_id', jobId);
+  const crewIds = (assigns || []).map(a => a.employee_id).filter(Boolean);
+  if (crewIds.length) {
+    await notifyEmployees(crewIds, 'New plans attached',
+      `${req.file.originalname}${requireAck ? ' — review required' : ''}`,
+      { type: 'job_attachment', job_id: jobId, attachment_id: att.id });
+  }
+  res.json({ ok: true, attachment: att });
+});
+
+app.get('/api/dashboard/jobs/:id/attachments', auth, async (req, res) => {
+  const tenantId = req.tenantId;
+  if (!tenantId) return res.status(401).json({ error: 'Unauthorized' });
+  const { data: atts, error } = await supabaseAdmin
+    .from('job_attachments').select('*')
+    .eq('job_id', req.params.id).eq('tenant_id', tenantId)
+    .order('uploaded_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  const results = [];
+  for (const a of (atts || [])) {
+    const { data: signed } = await supabaseAdmin.storage
+      .from('job-attachments').createSignedUrl(a.storage_path, 3600);
+    // Summarize ack state across all assigned crew.
+    const { data: acks } = await supabaseAdmin
+      .from('job_attachment_acks')
+      .select('employee_id, viewed_at, acknowledged_at')
+      .eq('attachment_id', a.id);
+    results.push({
+      ...a,
+      url: signed?.signedUrl || null,
+      viewed_at: (acks || []).find(x => x.viewed_at)?.viewed_at || null,
+      acknowledged_at: (acks || []).find(x => x.acknowledged_at)?.acknowledged_at || null,
+      ack_summary: {
+        total: (acks || []).length,
+        viewed: (acks || []).filter(x => x.viewed_at).length,
+        acked: (acks || []).filter(x => x.acknowledged_at).length,
+      },
+    });
+  }
+  res.json({ attachments: results });
+});
+
+app.delete('/api/dashboard/jobs/:id/attachments/:attId', auth, async (req, res) => {
+  const tenantId = req.tenantId;
+  const role = req.role || 'owner';
+  if (!JOB_APPROVER_ROLES.has(role)) return res.status(403).json({ error: 'Approver role required' });
+  const { data: att } = await supabaseAdmin
+    .from('job_attachments').select('storage_path').eq('id', req.params.attId)
+    .eq('tenant_id', tenantId).maybeSingle();
+  if (!att) return res.status(404).json({ error: 'Not found' });
+  await supabaseAdmin.storage.from('job-attachments').remove([att.storage_path]).catch(() => {});
+  await supabaseAdmin.from('job_attachments').delete().eq('id', req.params.attId);
   res.json({ ok: true });
 });
 
