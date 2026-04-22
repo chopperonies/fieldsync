@@ -6291,43 +6291,64 @@ app.post('/api/mobile/owner/stripe-connect/disconnect', mobileAuth, requireMobil
 app.get('/api/mobile/owner/search', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
   const q = String(req.query.q || '').trim();
   const type = String(req.query.type || 'all');
-  if (!q) return res.json({ clients: [], jobs: [], invoices: [] });
   // PostgREST's .or() filter syntax uses '*' as wildcard, not '%'.
-  const like = `*${q}*`;
+  const like = q ? `*${q}*` : '*';
   const qLower = q.toLowerCase();
+  const hasQ = !!q;
 
   const tasks = {};
+  const LIMIT = 50;
+
   if (type === 'all' || type === 'clients') {
-    tasks.clients = supabaseAdmin.from('clients')
+    let qb = supabaseAdmin.from('clients')
       .select('id, name, company, email, phone, notes, address')
+      .eq('tenant_id', req.tenantId);
+    if (hasQ) {
+      qb = qb.or(`name.ilike.${like},company.ilike.${like},email.ilike.${like},phone.ilike.${like},notes.ilike.${like},address.ilike.${like}`);
+    }
+    tasks.clients = qb.order('name').limit(LIMIT);
+  }
+  if (type === 'all' || type === 'quotes') {
+    // Quotes = recurring service agreements.
+    let qb = supabaseAdmin.from('service_agreements')
+      .select('id, name, frequency, price, next_due, status, clients(name)')
+      .eq('tenant_id', req.tenantId);
+    if (hasQ) qb = qb.or(`name.ilike.${like}`);
+    tasks.quotes = qb.order('next_due').limit(LIMIT);
+  }
+  if (type === 'all' || type === 'estimates') {
+    // Estimates = jobs in pre-booking status (quoted/lead/draft).
+    let qb = supabaseAdmin.from('jobs')
+      .select('id, name, address, description, status, invoice_amount, updated_at, clients(name)')
       .eq('tenant_id', req.tenantId)
-      .or(`name.ilike.${like},company.ilike.${like},email.ilike.${like},phone.ilike.${like},notes.ilike.${like},address.ilike.${like}`)
-      .order('name').limit(20);
+      .in('status', ['quoted', 'lead', 'draft']);
+    if (hasQ) qb = qb.or(`name.ilike.${like},address.ilike.${like},description.ilike.${like}`);
+    tasks.estimates = qb.order('updated_at', { ascending: false }).limit(LIMIT);
   }
   if (type === 'all' || type === 'jobs') {
-    tasks.jobs = supabaseAdmin.from('jobs')
-      .select('id, name, address, description, execution_plan, plans_notes, checklist_items, status, invoice_amount, payment_status, clients(name)')
-      .eq('tenant_id', req.tenantId)
-      .or(`name.ilike.${like},address.ilike.${like},description.ilike.${like},execution_plan.ilike.${like},plans_notes.ilike.${like}`)
-      .order('updated_at', { ascending: false }).limit(20);
+    let qb = supabaseAdmin.from('jobs')
+      .select('id, name, address, description, execution_plan, plans_notes, checklist_items, status, invoice_amount, payment_status, scheduled_date, clients(name)')
+      .eq('tenant_id', req.tenantId);
+    if (hasQ) qb = qb.or(`name.ilike.${like},address.ilike.${like},description.ilike.${like},execution_plan.ilike.${like},plans_notes.ilike.${like}`);
+    tasks.jobs = qb.order('updated_at', { ascending: false }).limit(LIMIT);
   }
   if (type === 'all' || type === 'invoices') {
-    tasks.invoices = supabaseAdmin.from('jobs')
+    let qb = supabaseAdmin.from('jobs')
       .select('id, name, address, description, status, invoice_amount, payment_status, updated_at, clients(name, email)')
       .eq('tenant_id', req.tenantId)
-      .gt('invoice_amount', 0)
-      .or(`name.ilike.${like},description.ilike.${like},address.ilike.${like}`)
-      .order('updated_at', { ascending: false }).limit(20);
+      .gt('invoice_amount', 0);
+    if (hasQ) qb = qb.or(`name.ilike.${like},description.ilike.${like},address.ilike.${like}`);
+    tasks.invoices = qb.order('updated_at', { ascending: false }).limit(LIMIT);
   }
-  // Also pull jobs that only match via crew notes (job_updates.message) or
-  // checklist items — neither is reachable from the jobs.or() filter above.
-  if (type === 'all' || type === 'jobs') {
+  // Also pull jobs that only match via crew notes (job_updates.message) —
+  // only when there's an actual query and we're in the jobs scope.
+  if (hasQ && (type === 'all' || type === 'jobs')) {
     tasks.noteMatches = supabaseAdmin.from('job_updates')
       .select('job_id, message, jobs(id, name, address, status, invoice_amount, payment_status, checklist_items, clients(name))')
       .eq('tenant_id', req.tenantId)
       .eq('type', 'note')
       .ilike('message', like)
-      .order('created_at', { ascending: false }).limit(20);
+      .order('created_at', { ascending: false }).limit(LIMIT);
   }
 
   const results = {};
@@ -6360,8 +6381,9 @@ app.get('/api/mobile/owner/search', mobileAuth, requireMobileOwnerOrManager, asy
   }
 
   // Extra pass: post-filter all scanned jobs for checklist_items that contain
-  // the query as substring. Small N per tenant, cheap enough.
-  if (type === 'all' || type === 'jobs') {
+  // the query as substring. Small N per tenant, cheap enough. Only when there
+  // is an actual query — blank-q returns the straight jobs list.
+  if (hasQ && (type === 'all' || type === 'jobs')) {
     const { data: allTenantJobs } = await supabaseAdmin.from('jobs')
       .select('id, name, address, status, invoice_amount, payment_status, checklist_items, clients(name)')
       .eq('tenant_id', req.tenantId);
@@ -6377,6 +6399,8 @@ app.get('/api/mobile/owner/search', mobileAuth, requireMobileOwnerOrManager, asy
 
   res.json({
     clients: results.clients || [],
+    quotes: results.quotes || [],
+    estimates: results.estimates || [],
     jobs,
     invoices: results.invoices || [],
   });
