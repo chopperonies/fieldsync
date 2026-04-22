@@ -5393,6 +5393,88 @@ app.post('/api/mobile/me/avatar', mobileAuth, upload.single('avatar'), async (re
   res.json({ avatar_url: bustedUrl });
 });
 
+// ── Mobile expenses ─────────────────────────────────────────────────
+// Crew can log + see their own. Managers + owners see every tenant
+// expense. Amount is in dollars (numeric). Optional receipt upload via
+// POST /api/mobile/expenses/:id/receipt.
+
+const EXPENSE_CATEGORIES = new Set([
+  'fuel', 'materials', 'tools', 'meals', 'vehicle', 'lodging', 'subcontractor', 'other',
+]);
+
+app.get('/api/mobile/expenses', mobileAuth, async (req, res) => {
+  const isMgr = req.role === 'owner' || req.role === 'admin' || req.role === 'manager';
+  let qb = supabaseAdmin
+    .from('expenses')
+    .select('id, date, amount, name, details, category, reimburse_to, reimburse_employee_id, job_id, status, receipt_url, created_at, employees:reimburse_employee_id(name), jobs(name)')
+    .eq('tenant_id', req.tenantId)
+    .order('date', { ascending: false })
+    .limit(200);
+  if (!isMgr) qb = qb.eq('reimburse_employee_id', req.employeeId);
+  const { data, error } = await qb;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+app.post('/api/mobile/expenses', mobileAuth, async (req, res) => {
+  const { date, amount, name, details, category, job_id } = req.body || {};
+  const amt = Number(amount);
+  if (!amt || !isFinite(amt) || amt <= 0) return res.status(400).json({ error: 'Amount required' });
+  const cleanName = typeof name === 'string' ? name.trim() : '';
+  if (!cleanName) return res.status(400).json({ error: 'Name required' });
+  const cat = EXPENSE_CATEGORIES.has(String(category || '')) ? String(category) : 'other';
+  const isMgr = req.role === 'owner' || req.role === 'admin' || req.role === 'manager';
+  // Crew-authored expenses always reimburse the author. Managers can
+  // optionally pass reimburse_to / reimburse_employee_id in the body
+  // (future web flow); for now we mirror the same crew default.
+  const reimburseTo = 'employee';
+  const reimburseEmployeeId = isMgr && typeof req.body?.reimburse_employee_id === 'string'
+    ? req.body.reimburse_employee_id
+    : req.employeeId;
+  const { data, error } = await supabaseAdmin.from('expenses').insert({
+    date: date || new Date().toISOString().slice(0, 10),
+    amount: amt,
+    name: cleanName,
+    details: typeof details === 'string' && details.trim() ? details.trim() : null,
+    category: cat,
+    reimburse_to: reimburseTo,
+    reimburse_employee_id: reimburseEmployeeId,
+    job_id: job_id || null,
+    tenant_id: req.tenantId,
+    status: 'pending',
+  }).select('id, date, amount, name, details, category, reimburse_to, reimburse_employee_id, job_id, status, receipt_url, created_at, employees:reimburse_employee_id(name), jobs(name)').single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// Multipart receipt upload. Tenant-isolated path. Returns the new
+// receipt_url stamped with a cache-bust so the client sees it.
+app.post('/api/mobile/expenses/:id/receipt', mobileAuth, upload.single('receipt'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file' });
+  // Verify the expense belongs to this tenant + that crew can only
+  // attach to their own.
+  const { data: existing } = await supabaseAdmin
+    .from('expenses').select('id, reimburse_employee_id')
+    .eq('id', req.params.id).eq('tenant_id', req.tenantId).maybeSingle();
+  if (!existing) return res.status(404).json({ error: 'Expense not found' });
+  const isMgr = req.role === 'owner' || req.role === 'admin' || req.role === 'manager';
+  if (!isMgr && existing.reimburse_employee_id !== req.employeeId) {
+    return res.status(403).json({ error: 'Not your expense' });
+  }
+  const mime = String(req.file.mimetype || 'image/jpeg');
+  const ext = (req.file.originalname || '').split('.').pop()?.toLowerCase() || 'jpg';
+  const safeExt = /^(jpg|jpeg|png|webp|heic|pdf)$/.test(ext) ? ext : 'jpg';
+  const filePath = `expenses/${req.tenantId}/${req.params.id}.${safeExt}`;
+  const { error: upErr } = await supabaseAdmin.storage
+    .from('photos')
+    .upload(filePath, req.file.buffer, { contentType: mime, upsert: true });
+  if (upErr) return res.status(400).json({ error: upErr.message });
+  const { data: { publicUrl } } = supabaseAdmin.storage.from('photos').getPublicUrl(filePath);
+  const busted = `${publicUrl}?t=${Date.now()}`;
+  await supabaseAdmin.from('expenses').update({ receipt_url: busted }).eq('id', req.params.id);
+  res.json({ receipt_url: busted });
+});
+
 // ── Messaging (chat_threads / chat_thread_members / chat_messages) ──
 // Every endpoint is scoped to the caller's tenant via mobileAuth, and
 // every thread-specific operation enforces membership.
