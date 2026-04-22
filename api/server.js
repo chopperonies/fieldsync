@@ -5332,6 +5332,63 @@ app.get('/api/mobile/crew/schedule', mobileAuth, async (req, res) => {
   res.json(out);
 });
 
+// ── Self profile endpoints (universal — crew + owner) ──
+// Anyone with a mobile session can read + edit their own profile.
+// Avatar upload uses the existing 'photos' bucket to avoid new infra.
+
+app.get('/api/mobile/me', mobileAuth, async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from('employees')
+    .select('id, name, phone, role, status, avatar_url, tenant_id')
+    .eq('id', req.employeeId)
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.patch('/api/mobile/me', mobileAuth, async (req, res) => {
+  const updates = {};
+  if (typeof req.body?.name === 'string' && req.body.name.trim()) {
+    updates.name = req.body.name.trim().slice(0, 120);
+  }
+  if (typeof req.body?.avatar_url === 'string') {
+    // Allow clearing (empty string → null) or setting a new URL.
+    updates.avatar_url = req.body.avatar_url.trim() || null;
+  }
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: 'Nothing to update' });
+  }
+  const { data, error } = await supabaseAdmin
+    .from('employees')
+    .update(updates)
+    .eq('id', req.employeeId)
+    .select('id, name, phone, role, status, avatar_url, tenant_id')
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// Server-side avatar upload — accepts multipart image, stores in the
+// 'photos' bucket under avatars/<employee_id>.<ext>, updates the
+// employee record, returns the new public URL.
+app.post('/api/mobile/me/avatar', mobileAuth, upload.single('avatar'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const mime = String(req.file.mimetype || 'image/jpeg');
+  if (!mime.startsWith('image/')) return res.status(400).json({ error: 'Not an image' });
+  const ext = (req.file.originalname || '').split('.').pop()?.toLowerCase() || 'jpg';
+  const safeExt = /^(jpg|jpeg|png|webp|heic)$/.test(ext) ? ext : 'jpg';
+  const filePath = `avatars/${req.employeeId}.${safeExt}`;
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from('photos')
+    .upload(filePath, req.file.buffer, { contentType: mime, upsert: true });
+  if (uploadError) return res.status(400).json({ error: uploadError.message });
+  const { data: { publicUrl } } = supabaseAdmin.storage.from('photos').getPublicUrl(filePath);
+  // Cache-bust so the app picks up the new image immediately.
+  const bustedUrl = `${publicUrl}?t=${Date.now()}`;
+  await supabaseAdmin.from('employees').update({ avatar_url: bustedUrl }).eq('id', req.employeeId);
+  res.json({ avatar_url: bustedUrl });
+});
+
 // Today's job progress — crew + solo owners alike. Powers the "1/3 Jobs
 // Completed Today" gauge on Home.
 app.get('/api/mobile/me/today-progress', mobileAuth, async (req, res) => {
