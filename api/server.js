@@ -5035,6 +5035,185 @@ app.post('/api/login-email', async (req, res) => {
   res.json({ employee: { ...employee, mobile_session_token: token } });
 });
 
+// Public: mobile-first signup. Creates a Supabase auth user, a tenant,
+// an owner employees row with the phone as login handle, and mints a
+// mobile_session_token so the user is immediately signed in on the phone.
+// Mirrors /api/auth/signup (web) but ties the result back to a mobile
+// session — so an owner can create their account from the app, no web
+// signup needed first.
+app.post('/api/mobile/signup', async (req, res) => {
+  const { email, password, company_name, phone, owner_name } = req.body || {};
+  if (!email || !password || !company_name || !phone) {
+    return res.status(400).json({ error: 'Email, password, company name, and phone are required' });
+  }
+  if (String(password).length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+  // Normalize phone to digits only (strip +, spaces, parens, dashes; drop
+  // leading 1 on 11-digit US numbers so lookups match /api/login-phone).
+  let normalizedPhone = String(phone).replace(/\D/g, '');
+  if (normalizedPhone.length === 11 && normalizedPhone.startsWith('1')) {
+    normalizedPhone = normalizedPhone.slice(1);
+  }
+  if (!normalizedPhone) return res.status(400).json({ error: 'Invalid phone number' });
+  const emailLower = String(email).trim().toLowerCase();
+
+  // Create Supabase Auth user.
+  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    email: emailLower,
+    password,
+    email_confirm: true,
+  });
+  if (authError) return res.status(400).json({ error: authError.message });
+
+  const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+
+  // Tenant row.
+  const { data: tenant, error: tenantError } = await supabaseAdmin
+    .from('tenants')
+    .insert({
+      company_name: String(company_name).trim(),
+      owner_email: emailLower,
+      trial_ends_at: trialEndsAt,
+      plan: 'solo',
+      max_users: 1,
+      subscription_status: 'trialing',
+    })
+    .select().single();
+  if (tenantError) {
+    await supabaseAdmin.auth.admin.deleteUser(authData.user.id).catch(() => {});
+    return res.status(400).json({ error: tenantError.message });
+  }
+
+  // Link auth user → tenant as owner.
+  const linkPayload = { user_id: authData.user.id, tenant_id: tenant.id, role: 'owner', can_view_financials: true };
+  let { error: linkError } = await supabaseAdmin.from('tenant_users').insert(linkPayload);
+  if (linkError && /column/i.test(linkError.message || '')) {
+    // Legacy tenant_users schema (no role/financials cols) — retry bare.
+    const retry = await supabaseAdmin.from('tenant_users')
+      .insert({ user_id: authData.user.id, tenant_id: tenant.id });
+    linkError = retry.error;
+  }
+  if (linkError) {
+    await supabaseAdmin.auth.admin.deleteUser(authData.user.id).catch(() => {});
+    await supabaseAdmin.from('tenants').delete().eq('id', tenant.id).catch(() => {});
+    return res.status(400).json({ error: 'Failed to link account to organization' });
+  }
+
+  // Owner employees row — this is what the mobile client logs in as.
+  const ownerName = String(owner_name || '').trim() || emailLower.split('@')[0];
+  const token = `mob_${crypto.randomUUID()}`;
+  const { data: employee, error: empError } = await supabaseAdmin
+    .from('employees')
+    .insert({
+      tenant_id: tenant.id,
+      name: ownerName,
+      phone: normalizedPhone,
+      role: 'owner',
+      status: 'active',
+      mobile_session_token: token,
+      mobile_session_issued_at: new Date().toISOString(),
+    })
+    .select().single();
+  if (empError) {
+    // Soft-fail: auth user + tenant exist but employees insert failed.
+    // Return something useful rather than orphaning — the owner can still
+    // log in on web; phone login will fail until an employees row is created.
+    return res.status(400).json({ error: `Account created but employee profile failed: ${empError.message}` });
+  }
+
+  res.json({
+    ok: true,
+    employee: { ...employee, mobile_session_token: token },
+    tenant: { id: tenant.id, company_name: tenant.company_name, trial_ends_at: trialEndsAt },
+  });
+});
+
+// Request an email magic-link for the currently signed-in owner so they
+// can open the web dashboard on a laptop without re-entering credentials.
+// Supabase generates the link; we email it via our existing transport.
+app.post('/api/mobile/me/desktop-magic-link', mobileAuth, async (req, res) => {
+  if (req.role !== 'owner' && req.role !== 'manager' && req.role !== 'supervisor') {
+    return res.status(403).json({ error: 'Only owners and managers can open the web dashboard' });
+  }
+  const { data: tenant } = await supabaseAdmin
+    .from('tenants').select('owner_email, company_name').eq('id', req.tenantId).maybeSingle();
+  if (!tenant?.owner_email) return res.status(400).json({ error: 'No owner email on file' });
+  try {
+    const { data: linkData, error } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: tenant.owner_email,
+      options: { redirectTo: 'https://linkcrew.io/app' },
+    });
+    if (error) return res.status(500).json({ error: error.message });
+    const magicUrl = linkData?.properties?.action_link;
+    if (!magicUrl) return res.status(500).json({ error: 'Magic link generation failed' });
+    // Send via Resend (same transport as our invoice + payment emails).
+    try {
+      const { Resend } = require('resend');
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      await resend.emails.send({
+        from: 'LinkCrew <hello@linkcrew.io>',
+        to: tenant.owner_email,
+        subject: `Open ${tenant.company_name || 'LinkCrew'} on your desktop`,
+        html: `
+          <p>Tap the button below to open the LinkCrew dashboard on your laptop — no password needed.</p>
+          <p><a href="${magicUrl}" style="display:inline-block;background:#0f766e;color:#fff;padding:12px 22px;border-radius:8px;font-weight:700;text-decoration:none">Open LinkCrew on desktop</a></p>
+          <p style="color:#666;font-size:12px">If the button doesn't work, paste this link: ${magicUrl}</p>
+          <p style="color:#666;font-size:12px">Link expires in 1 hour.</p>
+        `,
+      });
+    } catch (e) {
+      // Fallback: return the link directly so the app can present it.
+      return res.json({ ok: true, magic_url: magicUrl, emailed: false, error: e?.message });
+    }
+    res.json({ ok: true, emailed: true, to: tenant.owner_email });
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'Failed to send magic link' });
+  }
+});
+
+// Apple App Store guideline 5.1.1 requires an in-app account deletion
+// path for apps with accounts. Deletes the caller's employees row and,
+// if they're the sole owner, the entire tenant + auth user + all tenant
+// data. Crew accounts just remove their employees row.
+app.post('/api/mobile/me/delete-account', mobileAuth, async (req, res) => {
+  const { confirm } = req.body || {};
+  if (confirm !== 'DELETE') return res.status(400).json({ error: 'Type DELETE to confirm' });
+  const tenantId = req.tenantId;
+  const employeeId = req.employeeId;
+  const isOwner = req.role === 'owner';
+
+  if (!isOwner) {
+    // Crew / manager / supervisor: just remove their employees row.
+    await supabaseAdmin.from('employees').delete().eq('id', employeeId).eq('tenant_id', tenantId);
+    return res.json({ ok: true, deleted: 'employee' });
+  }
+
+  // Owner: check if other owners exist on this tenant; if so, block.
+  const { count: ownerCount } = await supabaseAdmin
+    .from('employees').select('id', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId).eq('role', 'owner').neq('id', employeeId);
+  if ((ownerCount || 0) > 0) {
+    // Another owner exists — just remove this employee.
+    await supabaseAdmin.from('employees').delete().eq('id', employeeId);
+    return res.json({ ok: true, deleted: 'employee', note: 'Tenant kept (other owner exists)' });
+  }
+
+  // Sole owner — nuke the tenant. Cascades + best-effort cleanup.
+  // Tenants with ON DELETE CASCADE on tenant_id FKs will vacuum most
+  // rows. We don't try to delete storage objects — retention is fine.
+  const { data: tenantUsers } = await supabaseAdmin
+    .from('tenant_users').select('user_id').eq('tenant_id', tenantId);
+  await supabaseAdmin.from('tenants').delete().eq('id', tenantId);
+  for (const tu of (tenantUsers || [])) {
+    if (tu?.user_id) {
+      await supabaseAdmin.auth.admin.deleteUser(tu.user_id).catch(() => {});
+    }
+  }
+  res.json({ ok: true, deleted: 'tenant' });
+});
+
 // Public: mobile phone login — RLS blocks anon reads of employees, so
 // the mobile app hits this endpoint (service role) instead of the DB.
 // Issues a mobile_session_token which the app presents on every subsequent
