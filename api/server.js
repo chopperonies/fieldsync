@@ -4312,7 +4312,7 @@ app.post('/api/voice/kdg', async (req, res) => {
   const gather = twiml.gather({
     input: 'speech',
     action: '/api/voice/kdg/respond',
-    speechTimeout: '3',
+    speechTimeout: '2',
     timeout: 10,
     language: 'en-US',
   });
@@ -4363,7 +4363,7 @@ Contact: sales@kingstondatagroup.com`,
     const gather = twiml.gather({
       input: 'speech',
       action: '/api/voice/kdg/respond',
-      speechTimeout: '3',
+      speechTimeout: '2',
       timeout: 10,
      
       language: 'en-US',
@@ -4462,7 +4462,7 @@ app.post('/api/voice/contractor/:tenantId', async (req, res) => {
   const gather = twiml.gather({
     input: 'speech',
     action: `/api/voice/contractor/${tenantId}/respond`,
-    speechTimeout: '3',
+    speechTimeout: '2',
     timeout: 10,
     language: 'en-US',
   });
@@ -4480,7 +4480,7 @@ app.post('/api/voice/contractor/:tenantId/respond', async (req, res) => {
   const speech = (req.body.SpeechResult || '').trim();
   const safeFallback = (msg) => {
     const t = new VoiceResponse();
-    const g = t.gather({ input: 'speech', action: `/api/voice/contractor/${tenantId}/respond`, speechTimeout: '3', timeout: 10, language: 'en-US' });
+    const g = t.gather({ input: 'speech', action: `/api/voice/contractor/${tenantId}/respond`, speechTimeout: '2', timeout: 10, language: 'en-US' });
     g.say({ voice: 'Polly.Joanna' }, msg);
     t.redirect(`/api/voice/contractor/${tenantId}/end?sid=${callSid}`);
     res.type('text/xml');
@@ -4564,7 +4564,7 @@ ${conv.knowledge ? `LinkCrew product info:\n${conv.knowledge}` : ''}`;
     const gather2 = twiml2.gather({
       input: 'speech',
       action: `/api/voice/contractor/${tenantId}/respond`,
-      speechTimeout: '3',
+      speechTimeout: '2',
       timeout: 10,
       language: 'en-US',
     });
@@ -4580,7 +4580,7 @@ ${conv.knowledge ? `LinkCrew product info:\n${conv.knowledge}` : ''}`;
       const twimlSilence = new VoiceResponse();
       const gatherSilence = twimlSilence.gather({
         input: 'speech', action: `/api/voice/contractor/${tenantId}/respond`,
-        speechTimeout: '3', timeout: 10, language: 'en-US',
+        speechTimeout: '2', timeout: 10, language: 'en-US',
       });
       gatherSilence.say({ voice: 'Polly.Joanna' }, "Go ahead — what would you like to know?");
       twimlSilence.redirect(`/api/voice/contractor/${tenantId}/end?sid=${callSid}`);
@@ -4608,7 +4608,7 @@ ${isLastTurn ? `This is your last response. Wrap up the call warmly — thank th
   try {
     const result = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 80,
+      max_tokens: 60,
       system: systemPrompt,
       messages: conv.history.slice(-10),
     });
@@ -4652,7 +4652,7 @@ ${isLastTurn ? `This is your last response. Wrap up the call warmly — thank th
     const gather = twiml.gather({
       input: 'speech',
       action: `/api/voice/contractor/${tenantId}/respond`,
-      speechTimeout: '3',
+      speechTimeout: '2',
       timeout: 10,
      
       language: 'en-US',
@@ -4676,7 +4676,7 @@ app.post('/api/voice/contractor/:tenantId/silence', (req, res) => {
   const gather = twiml.gather({
     input: 'speech',
     action: `/api/voice/contractor/${tenantId}/respond`,
-    speechTimeout: '3',
+    speechTimeout: '2',
     timeout: 10,
    
     language: 'en-US',
@@ -4760,7 +4760,7 @@ app.post('/api/voice/incoming', async (req, res) => {
   const gather = twiml.gather({
     input: 'speech',
     action: '/api/voice/respond',
-    speechTimeout: '3',
+    speechTimeout: '2',
     timeout: 10,
    
     language: 'en-US',
@@ -4809,7 +4809,7 @@ app.post('/api/voice/respond', async (req, res) => {
     const gather = twiml.gather({
       input: 'speech',
       action: '/api/voice/respond',
-      speechTimeout: '3',
+      speechTimeout: '2',
       timeout: 10,
      
       language: 'en-US',
