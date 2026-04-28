@@ -7850,11 +7850,14 @@ app.get('/api/service-pro/templates', auth, requireSettingsAccess, async (req, r
 });
 
 app.get('/api/service-pro/workflows', auth, async (req, res) => {
-  const { data: workflows, error } = await supabaseAdmin
+  const includeDisabled = req.query.include_disabled === '1' || req.query.include_disabled === 'true';
+  let query = supabaseAdmin
     .from('service_workflows')
     .select('*')
     .eq('tenant_id', req.tenantId)
     .order('created_at', { ascending: true });
+  if (!includeDisabled) query = query.is('disabled_at', null);
+  const { data: workflows, error } = await query;
   if (error) return res.status(400).json({ error: error.message });
   const ids = (workflows || []).map(w => w.id);
   let statuses = [];
@@ -7884,11 +7887,22 @@ app.post('/api/service-pro/enable', auth, requireSettingsAccess, async (req, res
   if (tErr || !template) return res.status(404).json({ error: 'template not found' });
   const { data: existing } = await supabaseAdmin
     .from('service_workflows')
-    .select('id')
+    .select('id, disabled_at')
     .eq('tenant_id', req.tenantId)
     .eq('source_template_id', template_id)
     .limit(1);
-  if (existing && existing.length) return res.status(409).json({ error: 'already enabled', workflow_id: existing[0].id });
+  if (existing && existing.length) {
+    if (!existing[0].disabled_at) {
+      return res.status(409).json({ error: 'already enabled', workflow_id: existing[0].id });
+    }
+    const { error: restoreErr } = await supabaseAdmin
+      .from('service_workflows')
+      .update({ disabled_at: null })
+      .eq('id', existing[0].id)
+      .eq('tenant_id', req.tenantId);
+    if (restoreErr) return res.status(400).json({ error: restoreErr.message });
+    return res.json({ ok: true, workflow_id: existing[0].id, reenabled: true });
+  }
   const { data: templateStatuses, error: sErr } = await supabaseAdmin
     .from('workflow_statuses')
     .select('*')
@@ -7941,11 +7955,38 @@ async function fetchTenantWorkflow(workflowId, tenantId) {
     .select('*')
     .eq('id', workflowId)
     .eq('tenant_id', tenantId)
+    .is('disabled_at', null)
     .maybeSingle();
   if (error || !data) return null;
   if (data.is_template) return null;
   return data;
 }
+
+app.delete('/api/service-pro/workflows/:id', auth, requireSettingsAccess, async (req, res) => {
+  const { data: wf, error: wfErr } = await supabaseAdmin
+    .from('service_workflows')
+    .select('id, name, disabled_at, is_template')
+    .eq('id', req.params.id)
+    .eq('tenant_id', req.tenantId)
+    .maybeSingle();
+  if (wfErr) return res.status(400).json({ error: wfErr.message });
+  if (!wf || wf.is_template) return res.status(404).json({ error: 'workflow not found' });
+  if (wf.disabled_at) return res.json({ ok: true, workflow_id: wf.id, already_disabled: true });
+
+  const { count } = await supabaseAdmin
+    .from('jobs')
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', req.tenantId)
+    .eq('workflow_id', wf.id);
+
+  const { error } = await supabaseAdmin
+    .from('service_workflows')
+    .update({ disabled_at: new Date().toISOString() })
+    .eq('id', wf.id)
+    .eq('tenant_id', req.tenantId);
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ ok: true, workflow_id: wf.id, affected_jobs: count || 0 });
+});
 
 app.patch('/api/service-pro/workflows/:id', auth, requireSettingsAccess, async (req, res) => {
   const wf = await fetchTenantWorkflow(req.params.id, req.tenantId);
@@ -9203,9 +9244,22 @@ app.post('/api/dashboard/geocode-jobs', auth, async (req, res) => {
 // Expose the Maps JS API key to the dashboard (same key that has
 // Maps Static enabled — owner must turn on Maps JavaScript + Geocoding
 // APIs on it in GCP console).
-app.get('/api/dashboard/maps-config', auth, (req, res) => {
+app.get('/api/dashboard/maps-config', auth, async (req, res) => {
+  let tenant = null;
+  if (req.tenantId) {
+    const { data } = await supabaseAdmin
+      .from('tenants')
+      .select('company_name, address')
+      .eq('id', req.tenantId)
+      .maybeSingle();
+    tenant = data || null;
+  }
   res.json({
     api_key: process.env.GOOGLE_MAPS_STATIC_API_KEY || null,
+    tenant_address: tenant?.address || null,
+    tenant_name: tenant?.company_name || null,
+    fallback_center: { lat: 37.0849, lng: -121.6102 },
+    fallback_label: 'San Martin, CA',
     note: 'Enable Maps JavaScript API and Geocoding API on this key in GCP if not already done.',
   });
 });

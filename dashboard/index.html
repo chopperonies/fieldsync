@@ -6054,6 +6054,8 @@ let _liveMap = null;
 let _liveMarkers = [];
 let _liveMapsLoaded = false;
 let _liveMapRefreshTimer = null;
+let _liveMapHomeCenter = { lat: 37.0849, lng: -121.6102 };
+let _liveMapHomeLabel = 'San Martin, CA';
 
 function loadGoogleMapsScript(apiKey) {
   return new Promise((resolve, reject) => {
@@ -6082,9 +6084,13 @@ async function initLiveMap() {
 
   // Fetch Maps config key.
   let apiKey = null;
+  let mapConfig = {};
   try {
     const r = await authFetch('/api/dashboard/maps-config');
-    if (r.ok) apiKey = (await r.json()).api_key;
+    if (r.ok) {
+      mapConfig = await r.json();
+      apiKey = mapConfig.api_key;
+    }
   } catch {}
   const canvas = document.getElementById('livemap-canvas');
   if (!apiKey) {
@@ -6106,10 +6112,18 @@ async function initLiveMap() {
     canvas.innerHTML = `<div style="padding:40px;color:#991b1b">Failed to load Google Maps script. ${esc(e?.message || '')}</div>`;
     return;
   }
+  const fallback = normalizeLiveMapCenter(mapConfig.fallback_center) || _liveMapHomeCenter;
+  _liveMapHomeCenter = fallback;
+  _liveMapHomeLabel = mapConfig.fallback_label || 'San Martin, CA';
+  const tenantCenter = await geocodeLiveMapHome(mapConfig.tenant_address);
+  if (tenantCenter) {
+    _liveMapHomeCenter = tenantCenter;
+    _liveMapHomeLabel = mapConfig.tenant_name || mapConfig.tenant_address || _liveMapHomeLabel;
+  }
   canvas.innerHTML = '';
   _liveMap = new google.maps.Map(canvas, {
-    zoom: 11,
-    center: { lat: 40.7128, lng: -74.0060 },
+    zoom: 12,
+    center: _liveMapHomeCenter,
     mapTypeControl: false,
     fullscreenControl: true,
     streetViewControl: false,
@@ -6121,6 +6135,31 @@ async function initLiveMap() {
     const view = document.getElementById('livemap-view');
     if (view && view.style.display !== 'none') refreshLiveMap();
   }, 30000);
+}
+
+function normalizeLiveMapCenter(center) {
+  const lat = Number(center?.lat);
+  const lng = Number(center?.lng);
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+}
+
+function geocodeLiveMapHome(address) {
+  return new Promise(resolve => {
+    const cleanAddress = String(address || '').trim();
+    if (!cleanAddress || !(window.google && google.maps && google.maps.Geocoder)) {
+      resolve(null);
+      return;
+    }
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ address: cleanAddress }, (results, status) => {
+      if (status === 'OK' && results && results[0]?.geometry?.location) {
+        const loc = results[0].geometry.location;
+        resolve({ lat: loc.lat(), lng: loc.lng() });
+      } else {
+        resolve(null);
+      }
+    });
+  });
 }
 
 function setLiveMapRail(section) {
@@ -6307,6 +6346,9 @@ async function refreshLiveMap() {
   if (hasPoint) {
     _liveMap.fitBounds(bounds, 60);
     if (_liveMap.getZoom() > 15) _liveMap.setZoom(15);
+  } else if (_liveMapHomeCenter) {
+    _liveMap.setCenter(_liveMapHomeCenter);
+    _liveMap.setZoom(12);
   }
 }
 
@@ -7148,10 +7190,11 @@ async function openDetail(jobId, jobName) {
 
   // Render crew-driven flow actions (approve / reject / cancel / override).
   renderJobFlowActions(job);
-  if (!window._spWorkflows) {
+  if (!window._spWorkflows || !window._spWorkflowsIncludesDisabled) {
     try {
-      const wfRes = await authFetch('/api/service-pro/workflows');
+      const wfRes = await authFetch('/api/service-pro/workflows?include_disabled=1');
       window._spWorkflows = wfRes.ok ? await wfRes.json() : [];
+      window._spWorkflowsIncludesDisabled = true;
     } catch (_) { window._spWorkflows = []; }
   }
   const attachedWorkflow = job?.workflow_id
@@ -7245,6 +7288,7 @@ async function openDetail(jobId, jobName) {
     : `<div style="display:flex;align-items:flex-end;padding:12px 14px;border:1px solid #e8e8e8;border-radius:10px;background:#f8fafc;font-size:12px;color:#64748b;line-height:1.6">Financial details are hidden for your role.</div>`;
 
   const spWorkflows = window._spWorkflows || [];
+  const selectableWorkflows = spWorkflows.filter(w => !w.disabled_at || w.id === job?.workflow_id);
   const wfStatuses = (attachedWorkflow?.statuses || []).slice().sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
   const wfProgress = job?.workflow_progress || {};
   const wfCurrentId = attachedWorkflow
@@ -7259,7 +7303,7 @@ async function openDetail(jobId, jobName) {
       <label>Workflow</label>
       <select id="detail-job-workflow" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 10px;font-size:13px;color:#17191c">
         <option value="">— None —</option>
-        ${spWorkflows.map(w => `<option value="${w.id}" ${w.id === job?.workflow_id ? 'selected' : ''}>${spEsc(w.name)}</option>`).join('')}
+        ${selectableWorkflows.map(w => `<option value="${w.id}" ${w.id === job?.workflow_id ? 'selected' : ''}>${spEsc(w.name)}${w.disabled_at ? ' (disabled)' : ''}</option>`).join('')}
       </select>
     </div>
   `;
@@ -8248,7 +8292,11 @@ async function loadServicePro() {
     ]);
     const templates = await tplRes.json();
     const enabled = await enRes.json();
-    const enabledByTpl = new Set((enabled || []).map(w => w.source_template_id).filter(Boolean));
+    window._spWorkflows = Array.isArray(enabled) ? enabled : [];
+    window._spWorkflowsIncludesDisabled = false;
+    const enabledByTpl = new Map((enabled || [])
+      .filter(w => w.source_template_id)
+      .map(w => [w.source_template_id, w]));
     const summaryEl = document.getElementById('service-pro-templates-summary');
     if (!templates || !templates.length) {
       tplEl.innerHTML = '<div class="empty" style="padding:16px">No templates available yet.</div>';
@@ -8262,9 +8310,12 @@ async function loadServicePro() {
         const pills = (t.statuses || []).map(s =>
           `<span title="${spEsc(s.name)}" style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;background:${s.color}22;color:${s.color};font-size:10px;font-weight:600;border:1px solid ${s.color}44;white-space:nowrap">${spEsc(s.name)}</span>`
         ).join(' ');
-        const already = enabledByTpl.has(t.id);
+        const already = enabledByTpl.get(t.id);
         const btn = already
-          ? `<button class="owner-btn" disabled style="opacity:0.6;cursor:default;padding:5px 10px;font-size:11px;white-space:nowrap">Enabled</button>`
+          ? `<div style="display:flex;align-items:center;gap:6px">
+              <button class="owner-btn" disabled style="opacity:0.6;cursor:default;padding:5px 10px;font-size:11px;white-space:nowrap">Enabled</button>
+              <button class="lc-link danger sm" onclick="disableServiceProWorkflow('${already.id}')" style="font-size:11px;white-space:nowrap">Disable</button>
+            </div>`
           : `<button class="owner-btn primary" onclick="enableServiceProTemplate('${t.id}')" style="padding:5px 10px;font-size:11px;white-space:nowrap">Enable</button>`;
         return `
           <div style="display:grid;gap:8px;padding:12px;border:1px solid #e2e8f0;border-radius:8px;background:#fff">
@@ -8288,7 +8339,10 @@ async function loadServicePro() {
           <div onclick="openWorkflowEditor('${w.id}')" style="padding:14px 16px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px">
               <div style="font-size:14px;font-weight:700;color:#0f172a">${spEsc(w.name)}</div>
-              <div style="font-size:11px;color:#64748b">${(w.statuses || []).length} statuses · Edit →</div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <button class="lc-link danger sm" onclick="event.stopPropagation();disableServiceProWorkflow('${w.id}')" style="font-size:11px">Disable</button>
+                <div style="font-size:11px;color:#64748b">${(w.statuses || []).length} statuses · Edit →</div>
+              </div>
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:6px">${pills}</div>
           </div>`;
@@ -8314,10 +8368,31 @@ async function enableServiceProTemplate(templateId) {
       return;
     }
     window._spWorkflows = null;
+    window._spWorkflowsIncludesDisabled = false;
     loadServicePro();
   } catch (err) {
     console.error('enableServiceProTemplate failed', err);
     alert('Failed to enable workflow.');
+  }
+}
+
+async function disableServiceProWorkflow(workflowId) {
+  const label = (window._spWorkflows || []).find(w => w.id === workflowId)?.name || 'this workflow';
+  if (!confirm(`Disable ${label}? Existing jobs keep their workflow history, but this workflow will no longer be offered for new jobs.`)) return;
+  try {
+    const res = await authFetch(`/api/service-pro/workflows/${workflowId}`, { method: 'DELETE' });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(json.error || json.message || 'Failed to disable workflow.');
+      return;
+    }
+    if (_spEditingWorkflow?.id === workflowId) closeWorkflowEditor();
+    window._spWorkflows = null;
+    window._spWorkflowsIncludesDisabled = false;
+    await loadServicePro();
+  } catch (err) {
+    console.error('disableServiceProWorkflow failed', err);
+    alert('Failed to disable workflow.');
   }
 }
 
@@ -8383,6 +8458,7 @@ function closeWorkflowEditor() {
   if (ed) { ed.style.display = 'none'; ed.innerHTML = ''; }
   _spEditingWorkflow = null;
   window._spWorkflows = null;
+  window._spWorkflowsIncludesDisabled = false;
   loadServicePro();
 }
 
