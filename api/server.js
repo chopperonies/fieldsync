@@ -3889,7 +3889,13 @@ app.get('/api/billing/status', auth, requireFinancialAccess, async (req, res) =>
   const { data } = await supabaseAdmin.from('tenants')
     .select('plan, subscription_status, trial_ends_at, stripe_customer_id, max_users, extra_users')
     .eq('id', tenantId).single();
-  res.json(data || {});
+  if (!data) return res.json({});
+  // Compute feature flags so the client doesn't duplicate the matrix
+  const features = {};
+  for (const feature of Object.keys(FEATURES)) {
+    features[feature] = hasFeature(data.plan, feature);
+  }
+  res.json({ ...data, features });
 });
 
 app.post('/api/billing/checkout', auth, requireSettingsAccess, requireFinancialAccess, async (req, res) => {
