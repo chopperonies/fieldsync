@@ -4521,7 +4521,14 @@ ${demoAlreadyDone
   : `Demo trigger — strict: ONLY output the marker ##DEMO## if the caller EXPLICITLY asks for a demo with phrases like "show me a demo", "I want a demo", "can I see a demo", "let me try a demo", "give me a demo", or simply says "demo". Do NOT trigger demo mode just because they ask about the voice bot, ask how it works, or ask about pricing — those are normal questions, answer them from product info.`
 }
 
-If asked something you don't know, say you'll have someone follow up. Never invent prices or features.
+FOLLOW-UPS — when you say "we'll have someone reach out" or the caller asks to talk to a human, ALWAYS capture three things in this order:
+1. Their name
+2. The best email or phone number to reach them at (do not assume the calling number is best — they may want a different one, and email is often easier for written details)
+3. A one-sentence summary of what they need
+
+Ask one question at a time. Do not promise a callback without first capturing at least the name and a contact channel.
+
+If asked something you don't know, say you'll have someone follow up — and immediately start the capture above. Never invent prices or features.
 
 ${conv.knowledge ? `LinkCrew product info:\n${conv.knowledge}` : ''}`;
 
