@@ -326,7 +326,18 @@
     }
 
     /* ── App layout ── */
-    .app-layout { display: flex; height: 100vh; overflow: hidden; }
+    #app-shell {
+      width: 100vw;
+      max-width: none;
+      overflow: hidden;
+    }
+    .app-layout {
+      display: flex;
+      width: 100vw;
+      max-width: none;
+      height: 100vh;
+      overflow: hidden;
+    }
 
     /* ── Sidebar ── */
     .sidebar {
@@ -396,7 +407,7 @@
 
     /* ── Content area ── */
     .content-area {
-      flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; height: 100vh;
+      flex: 1 1 auto; min-width: 0; width: calc(100vw - 240px); max-width: none; display: flex; flex-direction: column; overflow: hidden; height: 100vh;
       background: #fff;
     }
 
@@ -692,6 +703,228 @@
     .workspace-summary-label { font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); }
     .workspace-summary-value { font-size:18px; font-weight:800; color:var(--text); margin-top:4px; letter-spacing:-0.02em; }
     .workspace-summary-sub { font-size:10px; color:var(--text-soft); margin-top:3px; line-height:1.45; }
+    .console-strip {
+      display: flex;
+      align-items: stretch;
+      border-bottom: 1px solid var(--border);
+      background: #fafaf9;
+      overflow-x: auto;
+    }
+    .console-metric {
+      flex: 1;
+      min-width: 140px;
+      padding: 12px 18px;
+      border: none;
+      border-right: 1px solid var(--border);
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .console-metric:last-child { border-right: none; }
+    .console-metric:hover { background: rgba(14,165,233,0.04); }
+    .console-metric.neutral { box-shadow: inset 0 -2px 0 #0ea5e9; }
+    .console-metric.urgent { box-shadow: inset 0 -2px 0 #ef4444; }
+    .console-metric.warning { box-shadow: inset 0 -2px 0 #f59e0b; }
+    .console-metric-label {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .console-metric-value {
+      margin-top: 4px;
+      font-size: 22px;
+      line-height: 1;
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: -0.03em;
+    }
+    .console-metric-sub {
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--text-soft);
+      line-height: 1.4;
+    }
+    .dashboard-console-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.8fr);
+      border-top: 1px solid var(--border);
+    }
+    .dashboard-console-main,
+    .dashboard-console-rail {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .dashboard-console-rail { border-left: 1px solid var(--border); }
+    .console-section {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      background: transparent;
+    }
+    .console-section:last-child { border-bottom: none; }
+    .console-section-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .console-kicker {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .console-title {
+      margin-top: 3px;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+    .console-sub {
+      margin-top: 3px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--text-soft);
+    }
+    .dispatch-layout {
+      height: calc(100vh - 136px);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      border-top: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .dispatch-map-shell {
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: #eef2f7;
+    }
+    .dispatch-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 54px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      z-index: 1;
+    }
+    .dispatch-segments {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px;
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .dispatch-segment {
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: #64748b;
+      padding: 6px 9px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .dispatch-segment.active {
+      background: #fff;
+      color: #0369a1;
+      box-shadow: 0 1px 2px rgba(15,23,42,0.08);
+    }
+    .dispatch-map {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      font-size: 13px;
+      background: #eef2f7;
+    }
+    .dispatch-rail {
+      min-width: 0;
+      border-left: 1px solid var(--border);
+      background: #fff;
+      overflow-y: auto;
+    }
+    .dispatch-rail-section {
+      display: none;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .dispatch-rail-section.active { display: block; }
+    .dispatch-list {
+      display: grid;
+      gap: 0;
+      font-size: 12px;
+      color: #475569;
+    }
+    .workflow-builder-layout {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      border-top: 1px solid var(--border);
+      min-height: calc(100vh - 136px);
+    }
+    .workflow-library-panel {
+      border-right: 1px solid var(--border);
+      background: #fafaf9;
+      min-width: 0;
+    }
+    .workflow-workbench {
+      min-width: 0;
+      background: #fdfdfc;
+    }
+    .workflow-panel-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .workflow-scroll {
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+    .schedule-console-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      border-top: 1px solid var(--border);
+    }
+    .schedule-main,
+    .schedule-rail {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .schedule-rail {
+      border-left: 1px solid var(--border);
+      background: #fff;
+    }
+    .schedule-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      background: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
     .composer-layout { display:grid; grid-template-columns:minmax(0, 1.7fr) minmax(260px, 0.95fr); gap:16px; margin-top:16px; }
     .composer-stack { display:grid; gap:0; }
     .composer-panel {
@@ -752,7 +985,7 @@
     .referral-share-btn:hover { border-color:rgba(31,143,95,0.24); background:#f8fbf4; }
     .referral-summary-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
     .referral-footer-links { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:12px; }
-    @media (max-width: 1080px) {
+    @media (max-width: 720px) {
       .topbar { flex-direction:column; align-items:stretch; gap:12px; padding:14px 20px; }
       .topbar-left { flex-direction:column; align-items:stretch; }
       .topbar-search { min-width:0; width:100%; }
@@ -760,6 +993,32 @@
       .composer-layout { grid-template-columns:1fr; }
       .composer-field-grid.tight { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .composer-field.span-4 { grid-column: span 2; }
+      .dashboard-console-layout,
+      .dispatch-layout,
+      .workflow-builder-layout,
+      .schedule-console-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 0;
+      }
+      .dashboard-console-rail,
+      .dispatch-rail,
+      .workflow-library-panel,
+      .schedule-rail {
+        border-left: none;
+        border-right: none;
+        border-top: 1px solid var(--border);
+      }
+      .dispatch-map { min-height: 520px; }
+      .dispatch-toolbar,
+      .schedule-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+      .dispatch-segments {
+        width: 100%;
+        overflow-x: auto;
+      }
     }
 
     /* legacy compat */
@@ -1119,7 +1378,7 @@
     .jh-status { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
 
     /* ── Mobile / Responsive ── */
-    @media (max-width: 900px) {
+    @media (max-width: 720px) {
       /* Sidebar collapses to a compact bottom nav */
       .app-layout { flex-direction: column; height: auto; overflow: visible; }
       .sidebar {
@@ -1150,7 +1409,9 @@
       .nav-item i { width: 18px; height: 18px; }
       .nav-item > span { white-space: nowrap; }
       .nav-group-trigger .nav-group-main { flex-direction: column; gap: 2px; align-items: center; }
-      .content-area { height: auto; min-height: calc(100vh - 60px); margin-bottom: 60px; overflow-y: auto; }
+      #app-shell,
+      .app-layout { width: 100%; overflow: visible; }
+      .content-area { width: 100%; height: auto; min-height: calc(100vh - 60px); margin-bottom: 60px; overflow-y: auto; }
       body { overflow-y: auto; }
       #mobile-user-menu-btn { display: flex !important; }
       .mobile-brand { display: flex !important; }
@@ -1367,10 +1628,12 @@
   </div>
 
   <nav class="sidebar-nav">
-    <div class="sidebar-section-label">Workspace</div>
+    <div class="sidebar-section-label">Today</div>
     <div class="nav-item active" id="mtab-dashboard" onclick="switchMainTab('dashboard')">
       <i data-lucide="layout-dashboard"></i><span>Dashboard</span>
     </div>
+
+    <div class="sidebar-section-label">Work</div>
     <div class="nav-item" id="mtab-livemap" onclick="switchMainTab('livemap')">
       <i data-lucide="map-pin"></i><span>Live Map</span>
     </div>
@@ -1385,7 +1648,7 @@
     </div>
     <div class="nav-item nav-group-trigger" id="mtab-quotes">
       <div class="nav-group-main" onclick="switchMainTab('quotes');toggleQuotesSidebarGroup();">
-        <i data-lucide="file-signature"></i><span>Quotes</span>
+        <i data-lucide="file-signature"></i><span>Estimates</span>
       </div>
       <span class="nav-group-chevron" id="quotes-nav-chevron" onclick="event.stopPropagation();toggleQuotesSidebarGroup()">⌄</span>
     </div>
@@ -1395,19 +1658,13 @@
     <div class="nav-item" id="mtab-schedule" onclick="switchMainTab('schedule')">
       <i data-lucide="calendar-days"></i><span>Schedule</span>
     </div>
-    <div class="nav-item" id="mtab-team" onclick="switchMainTab('team')">
-      <i data-lucide="users"></i><span>Team</span>
-    </div>
-    <div class="nav-item" id="mtab-service-pro" onclick="switchMainTab('service-pro')">
-      <i data-lucide="wrench"></i><span>Service PRO</span>
-    </div>
+
+    <div class="sidebar-section-label">Customers</div>
     <div class="nav-item" id="mtab-clients" onclick="switchMainTab('clients')">
       <i data-lucide="building-2"></i><span>Clients</span>
     </div>
-    <div class="nav-item" id="mtab-timesheets" onclick="switchMainTab('timesheets')">
-      <i data-lucide="clock"></i><span>Timesheets</span>
-    </div>
-    <div class="sidebar-section-label">Business</div>
+
+    <div class="sidebar-section-label">Money</div>
     <div class="nav-item nav-group-trigger" id="mtab-invoices">
       <div class="nav-group-main" onclick="switchMainTab('invoices');toggleInvoicesSidebarGroup();">
         <i data-lucide="receipt-text"></i><span>Invoices</span>
@@ -1420,8 +1677,24 @@
     <div class="nav-item" id="mtab-expenses" onclick="switchMainTab('expenses')">
       <i data-lucide="wallet-cards"></i><span>Expenses</span>
     </div>
+    <div class="nav-item" id="mtab-agreements" onclick="switchMainTab('agreements')">
+      <i data-lucide="file-check"></i><span>Agreements</span>
+    </div>
     <div class="nav-item" id="mtab-reports" onclick="switchMainTab('reports')">
       <i data-lucide="bar-chart-2"></i><span>Reports</span>
+    </div>
+
+    <div class="sidebar-section-label">Team</div>
+    <div class="nav-item" id="mtab-team" onclick="switchMainTab('team')">
+      <i data-lucide="users"></i><span>Team</span>
+    </div>
+    <div class="nav-item" id="mtab-timesheets" onclick="switchMainTab('timesheets')">
+      <i data-lucide="clock"></i><span>Timesheets</span>
+    </div>
+
+    <div class="sidebar-section-label">Configure</div>
+    <div class="nav-item" id="mtab-service-pro" onclick="switchMainTab('service-pro')">
+      <i data-lucide="workflow"></i><span>Workflows</span>
     </div>
     <div class="nav-item" id="mtab-settings" onclick="switchMainTab('settings')">
       <i data-lucide="settings"></i><span>Settings</span>
@@ -1429,13 +1702,13 @@
     <div class="nav-item" id="mtab-referrals" onclick="switchMainTab('referrals')">
       <i data-lucide="gift"></i><span>Refer and Save</span>
     </div>
-    <div class="sidebar-chrome" style="height:1px;background:rgba(255,255,255,0.07);margin:10px 8px 8px"></div>
+    <div class="sidebar-chrome" style="height:1px;background:#e2e8f0;margin:10px 8px 8px"></div>
 
     <div class="sidebar-live sidebar-chrome"><div class="live-dot"></div> Live updates on</div>
-    <div class="sidebar-chrome" style="margin:10px 8px 8px;padding:10px 12px;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:rgba(255,255,255,0.04)">
-      <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.48);margin-bottom:4px">Signed In As</div>
-      <div id="sidebar-account-email" style="font-size:12px;font-weight:700;color:#fff;word-break:break-word;line-height:1.5">—</div>
-      <div id="sidebar-account-role" style="font-size:11px;color:rgba(255,255,255,0.62);margin-top:2px">—</div>
+    <div class="sidebar-chrome" style="margin:10px 8px 8px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc">
+      <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#94a3b8;margin-bottom:4px">Signed In As</div>
+      <div id="sidebar-account-email" style="font-size:12px;font-weight:700;color:#0f172a;word-break:break-word;line-height:1.5">—</div>
+      <div id="sidebar-account-role" style="font-size:11px;color:#64748b;margin-top:2px">—</div>
     </div>
     <button id="invite-crew-btn" class="sidebar-action-btn crew" onclick="goToCrewInvite()">
       <i data-lucide="user-plus" style="width:13px;height:13px"></i> Invite Crew
@@ -1464,7 +1737,7 @@
     </button>
     <button class="quick-launch-tile" style="--tile-bg:rgba(244,114,182,0.12);--tile-color:#be185d" onclick="launchQuickAction('quote')">
       <span class="quick-launch-tile-icon"><i data-lucide="file-signature"></i></span>
-      <strong>Quote</strong>
+      <strong>Estimate</strong>
     </button>
     <button class="quick-launch-tile" style="--tile-bg:rgba(34,197,94,0.12);--tile-color:#15803d" onclick="launchQuickAction('job')">
       <span class="quick-launch-tile-icon"><i data-lucide="briefcase"></i></span>
@@ -1569,72 +1842,102 @@
 <div id="dashboard-view">
   <div class="owner-page">
     <div class="owner-page-shell">
-      <!-- Dashboard hero header -->
-      <div style="position:relative;overflow:hidden;padding:22px 28px 20px;border-bottom:1px solid rgba(14,165,233,0.1);margin-bottom:0;background:linear-gradient(180deg,#e8f4fd 0%,#f0f9ff 30%,#f7fbff 60%,#fdfdfc 100%)">
-        <!-- Subtle dot grid -->
-        <div style="position:absolute;inset:0;opacity:0.06;background-image:radial-gradient(circle,#0ea5e9 1px,transparent 1px);background-size:22px 22px;pointer-events:none"></div>
-        <!-- Soft glow -->
-        <div style="position:absolute;top:-40px;right:-20px;width:220px;height:180px;background:radial-gradient(ellipse,rgba(14,165,233,0.12),transparent 70%);pointer-events:none"></div>
-
-        <div style="position:relative;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-          <div style="flex:0 0 auto;display:flex;flex-direction:column;gap:10px">
-            <div>
-              <div id="dash-greeting-label" style="font-size:11px;font-weight:700;color:#0369a1;opacity:0.75;margin-bottom:2px">Good morning</div>
-              <div id="dash-greeting-date" style="font-size:18px;font-weight:800;color:#0f172a;letter-spacing:-0.025em;line-height:1.2">Today</div>
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <button class="stat-chip" id="stat-chip-jobs" onclick="switchMainTab('jobs')" title="Open Jobs page">
-                <span class="stat-chip-dot"></span><span class="stat-chip-num" id="stat-jobs">—</span><span class="stat-chip-label">Active</span>
-              </button>
-              <button class="stat-chip" id="stat-chip-crew" onclick="showOverlay('crew')" title="Crew on site">
-                <span class="stat-chip-dot"></span><span class="stat-chip-num" id="stat-crew">—</span><span class="stat-chip-label">On Site</span>
-              </button>
-              <button class="stat-chip" id="stat-chip-supplies" onclick="showOverlay('supplies')" title="Supply requests">
-                <span class="stat-chip-dot"></span><span class="stat-chip-num" id="stat-supplies">—</span><span class="stat-chip-label">Supplies</span>
-              </button>
-              <button class="stat-chip" id="stat-chip-bottlenecks" onclick="showOverlay('bottlenecks')" title="Bottlenecks">
-                <span class="stat-chip-dot"></span><span class="stat-chip-num" id="stat-bottlenecks">—</span><span class="stat-chip-label">Blockers</span>
-              </button>
-            </div>
-          </div>
-          <div style="display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap">
-            <div style="display:none"><span id="dashboard-active-count">—</span></div>
-            <button class="owner-mini-btn" onclick="switchMainTab('requests')" style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.7);border-color:rgba(14,165,233,0.2)">
-              Requests <span id="dashboard-request-count" style="background:rgba(14,165,233,0.12);color:#0369a1;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
-            </button>
-            <button class="owner-mini-btn" onclick="switchMainTab('quotes')" style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.7);border-color:rgba(14,165,233,0.2)">
-              Quotes <span id="dashboard-quote-count" style="background:rgba(14,165,233,0.12);color:#0369a1;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
-            </button>
-            <button class="owner-mini-btn" onclick="switchMainTab('invoices')" style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.7);border-color:rgba(14,165,233,0.2)">
-              Billing <span id="dashboard-invoice-count" style="background:rgba(14,165,233,0.12);color:#0369a1;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800">—</span>
-            </button>
-          </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 24px;border-bottom:1px solid var(--border);background:#fff">
+        <div>
+          <div id="dash-greeting-label" class="console-kicker">Good morning</div>
+          <div id="dash-greeting-date" class="console-title">Today</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="owner-mini-btn" onclick="switchMainTab('requests')">Requests <span id="dashboard-request-count">—</span></button>
+          <button class="owner-mini-btn" onclick="switchMainTab('quotes')">Estimates <span id="dashboard-quote-count">—</span></button>
+          <button class="owner-mini-btn" onclick="switchMainTab('invoices')">Billing <span id="dashboard-invoice-count">—</span></button>
+          <span id="dashboard-active-count" style="display:none">—</span>
+        </div>
       </div>
-      </div><!-- end dashboard hero -->
 
-      <!-- Fade bridge: carries the blue tint down through first row -->
-      <div style="background:linear-gradient(180deg,#f7fbff 0%,#fdfdfc 100%);padding-bottom:1px">
-      <div class="owner-ops-layout">
-        <div class="owner-section-stack">
-          <div class="owner-card">
-            <div class="owner-card-header">
+      <div class="console-strip">
+        <button class="console-metric" id="stat-chip-jobs" onclick="switchMainTab('jobs')" title="Open active jobs">
+          <div class="console-metric-label">Active Jobs</div>
+          <div class="console-metric-value" id="stat-jobs">—</div>
+          <div class="console-metric-sub">Work currently in motion.</div>
+        </button>
+        <button class="console-metric" id="stat-chip-crew" onclick="showOverlay('crew')" title="Crew on site">
+          <div class="console-metric-label">Crew On Site</div>
+          <div class="console-metric-value" id="stat-crew">—</div>
+          <div class="console-metric-sub">Clocked into active work.</div>
+        </button>
+        <button class="console-metric" id="stat-chip-supplies" onclick="showOverlay('supplies')" title="Supply requests">
+          <div class="console-metric-label">Supplies</div>
+          <div class="console-metric-value" id="stat-supplies">—</div>
+          <div class="console-metric-sub">Pending field requests.</div>
+        </button>
+        <button class="console-metric" id="stat-chip-bottlenecks" onclick="showOverlay('bottlenecks')" title="Bottlenecks">
+          <div class="console-metric-label">Blockers</div>
+          <div class="console-metric-value" id="stat-bottlenecks">—</div>
+          <div class="console-metric-sub">Reported today.</div>
+        </button>
+      </div>
+
+      <div class="dashboard-console-layout">
+        <div class="dashboard-console-main">
+          <section class="console-section">
+            <div class="console-section-header">
               <div>
-                <div class="owner-card-title">Needs Attention</div>
-                <div class="owner-card-headline">Requests and recent outcomes</div>
-                <div class="owner-card-sub">Keep fresh intake and recently closed work visible without leaving the owner landing page.</div>
+                <div class="console-kicker">Needs action</div>
+                <div class="console-title">Owner queue</div>
+                <div class="console-sub">Requests, billing, blockers, approvals, and field document requests.</div>
               </div>
+              <button class="owner-mini-btn" onclick="loadDashboard()">Refresh</button>
             </div>
             <div class="workspace-list" id="dashboard-attention-list"><div class="empty"><div class="e-icon">📌</div>Loading dashboard view...</div></div>
-          </div>
+          </section>
+
+          <section class="console-section" id="approvals-card">
+            <div class="console-section-header">
+              <div>
+                <div class="console-kicker">Crew handoff</div>
+                <div class="console-title">Approvals and work-order requests</div>
+              </div>
+              <button class="owner-mini-btn" onclick="loadApprovalsAndRequests()">Refresh</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px">
+              <div>
+                <div class="panel-title" style="display:flex;align-items:center;gap:8px">
+                  <span>Closure approvals</span>
+                  <span id="approvals-count" style="background:#dcfce7;color:#166534;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:800">—</span>
+                </div>
+                <div id="approvals-list" style="margin-top:8px"><div class="empty"><div class="e-icon">✅</div>Loading...</div></div>
+              </div>
+              <div>
+                <div class="panel-title" style="display:flex;align-items:center;gap:8px">
+                  <span>Work-order requests</span>
+                  <span id="wo-requests-count" style="background:#fef3c7;color:#92400e;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:800">—</span>
+                </div>
+                <div id="wo-requests-list" style="margin-top:8px"><div class="empty"><div class="e-icon">📄</div>Loading...</div></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="console-section">
+            <div class="console-section-header">
+              <div>
+                <div class="console-kicker">Active today</div>
+                <div class="console-title">Jobs already moving</div>
+              </div>
+              <button class="owner-mini-btn" onclick="switchMainTab('jobs')">Open Jobs</button>
+            </div>
+            <div id="dashboard-jobs-list" class="workspace-list"><div class="empty"><div class="e-icon">📋</div>Loading active jobs...</div></div>
+            <div id="client-requests-list" style="display:none"></div>
+            <div id="dashboard-request-list" style="display:none"></div>
+          </section>
         </div>
 
-        <div class="owner-section-stack">
-          <div class="owner-card">
-            <div class="owner-card-header">
+        <aside class="dashboard-console-rail">
+          <section class="console-section">
+            <div class="console-section-header">
               <div>
-                <div class="owner-card-title">Live Feed</div>
-                <div class="owner-card-headline">Supplies and photos</div>
-                <div class="owner-card-sub">Pending supply requests and recent site photos across all active jobs.</div>
+                <div class="console-kicker">Live feed</div>
+                <div class="console-title">Supplies and photos</div>
               </div>
             </div>
             <div id="supplies-view">
@@ -1645,59 +1948,23 @@
               <div id="supplies-content"><div id="supplies-list"><div class="empty"><div class="e-icon">📦</div>No pending requests</div></div></div>
               <div id="photos-content" style="display:none"><div id="photos-list"><div class="empty"><div class="e-icon">📸</div>Loading photos...</div></div></div>
             </div>
-          </div>
-          <div id="client-requests-list" style="display:none"></div>
-          <div id="dashboard-request-list" style="display:none"></div>
-          <div id="dashboard-jobs-list" style="display:none"></div>
-        </div>
-      </div>
-      </div><!-- end fade bridge -->
+          </section>
 
-      <!-- Approvals + Work Order Requests — side by side landscape card -->
-      <div class="owner-card" style="margin-top:20px" id="approvals-card">
-        <div class="owner-card-header">
-          <div>
-            <div class="owner-card-title">Crew-Driven Flow</div>
-            <div class="owner-card-headline">Pending approvals & work-order requests</div>
-            <div class="owner-card-sub">Crew marks jobs complete and requests plans from the field — you approve or supply documents here.</div>
-          </div>
-          <div class="owner-card-actions">
-            <button class="owner-mini-btn" onclick="loadApprovalsAndRequests()">Refresh</button>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px">
-          <div>
-            <div class="panel-title" style="display:flex;align-items:center;gap:8px">
-              <span>✅ Closure approvals</span>
-              <span id="approvals-count" style="background:#dcfce7;color:#166534;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:800">—</span>
+          <section class="console-section">
+            <div class="console-section-header">
+              <div>
+                <div class="console-kicker">Ready to bill</div>
+                <div class="console-title">Recent outcomes</div>
+              </div>
+              <div class="owner-card-actions">
+                <button class="owner-mini-btn" id="jobs-outcome-filter-7-btn" onclick="setRecentOutcomeRange(7)">7d</button>
+                <button class="owner-mini-btn" id="jobs-outcome-filter-30-btn" onclick="setRecentOutcomeRange(30)">30d</button>
+                <button class="owner-mini-btn" id="jobs-outcome-filter-all-btn" onclick="setRecentOutcomeRange(0)">All</button>
+              </div>
             </div>
-            <div id="approvals-list" style="margin-top:8px"><div class="empty"><div class="e-icon">✅</div>Loading…</div></div>
-          </div>
-          <div>
-            <div class="panel-title" style="display:flex;align-items:center;gap:8px">
-              <span>📄 Work-order requests</span>
-              <span id="wo-requests-count" style="background:#fef3c7;color:#92400e;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:800">—</span>
-            </div>
-            <div id="wo-requests-list" style="margin-top:8px"><div class="empty"><div class="e-icon">📄</div>Loading…</div></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recent Outcomes — full-width landscape card -->
-      <div class="owner-card" style="margin-top:20px">
-        <div class="owner-card-header">
-          <div>
-            <div class="owner-card-title">Recent Outcomes</div>
-            <div class="owner-card-headline">Completed and paid jobs</div>
-            <div class="owner-card-sub">Recently finished work so warranty questions and payment follow-up stay visible.</div>
-          </div>
-          <div class="owner-card-actions">
-            <button class="owner-mini-btn" id="jobs-outcome-filter-7-btn" onclick="setRecentOutcomeRange(7)">7d</button>
-            <button class="owner-mini-btn" id="jobs-outcome-filter-30-btn" onclick="setRecentOutcomeRange(30)">30d</button>
-            <button class="owner-mini-btn" id="jobs-outcome-filter-all-btn" onclick="setRecentOutcomeRange(0)">All</button>
-          </div>
-        </div>
-        <div id="recent-outcomes-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px"><div class="empty"><div class="e-icon">✅</div>Loading recent outcomes...</div></div>
+            <div id="recent-outcomes-list" style="display:grid;gap:10px"><div class="empty"><div class="e-icon">✅</div>Loading recent outcomes...</div></div>
+          </section>
+        </aside>
       </div>
     </div>
   </div>
@@ -1798,7 +2065,7 @@
           </div>
         </div>
         <div class="owner-page-actions">
-          <button class="owner-btn" onclick="switchMainTab('quotes')">Open Quotes</button>
+          <button class="owner-btn" onclick="switchMainTab('quotes')">Open Estimates</button>
           <button class="owner-btn primary" onclick="quickLaunchCreate('request')">+ Add Request</button>
         </div>
       </div>
@@ -1814,7 +2081,7 @@
               <div class="owner-card-actions" style="display:flex;gap:6px;flex-wrap:wrap">
                 <button class="owner-mini-btn active" id="requests-filter-all-btn" onclick="setRequestsFilter('all')">All <span id="requests-filter-all-count"></span></button>
                 <button class="owner-mini-btn" id="requests-filter-new-btn" onclick="setRequestsFilter('new')">New This Week <span id="requests-filter-new-count"></span></button>
-                <button class="owner-mini-btn" id="requests-filter-quoted-btn" onclick="setRequestsFilter('quoted')">Quoted <span id="requests-filter-quoted-count"></span></button>
+                <button class="owner-mini-btn" id="requests-filter-quoted-btn" onclick="setRequestsFilter('quoted')">Estimated <span id="requests-filter-quoted-count"></span></button>
               </div>
             </div>
             <div class="workspace-list" id="requests-queue-list"><div class="empty"><div class="e-icon">✉️</div>Loading requests...</div></div>
@@ -1825,21 +2092,21 @@
   </div>
 </div>
 
-<!-- Quotes view -->
+<!-- Estimates view -->
 <div id="quotes-view" style="display:none">
   <div class="owner-page">
     <div class="owner-page-shell">
       <div class="owner-page-header">
         <div class="owner-page-copy">
           <div>
-            <div class="owner-page-eyebrow">Quotes</div>
+            <div class="owner-page-eyebrow">Estimates</div>
             <div class="owner-page-title">Keep estimate-stage work out of the live job board.</div>
-            <div class="owner-page-subtitle">Quoted work needs its own queue for follow-up, revisions, and approval before it reaches scheduling or active production.</div>
+            <div class="owner-page-subtitle">Estimated work needs its own queue for follow-up, revisions, and approval before it reaches scheduling or active production.</div>
           </div>
         </div>
         <div class="owner-page-actions">
           <button class="owner-btn" onclick="switchMainTab('requests')">Back to Requests</button>
-          <button class="owner-btn primary" onclick="quickLaunchCreate('quote')">+ Add Quote</button>
+          <button class="owner-btn primary" onclick="quickLaunchCreate('quote')">+ Add Estimate</button>
         </div>
       </div>
       <div class="owner-ops-layout" style="grid-template-columns:1fr">
@@ -1847,9 +2114,9 @@
           <div class="owner-card">
             <div class="owner-card-header">
               <div>
-                <div class="owner-card-title">Quotes Queue</div>
+                <div class="owner-card-title">Estimates Queue</div>
                 <div class="owner-card-headline">Open estimates and proposal-stage jobs</div>
-                <div class="owner-card-sub">Review quoted work here, then move approved jobs into scheduling when the client is ready.</div>
+                <div class="owner-card-sub">Review estimated work here, then move approved jobs into scheduling when the client is ready.</div>
               </div>
               <div class="owner-card-actions" style="display:flex;gap:6px;flex-wrap:wrap">
                 <button class="owner-mini-btn active" id="quotes-filter-all-btn" onclick="setQuotesFilter('all')">All <span id="quotes-filter-all-count"></span></button>
@@ -1857,7 +2124,7 @@
                 <button class="owner-mini-btn" id="quotes-filter-with-amount-btn" onclick="setQuotesFilter('with-amount')">With Amount <span id="quotes-filter-with-amount-count"></span></button>
               </div>
             </div>
-            <div class="workspace-list" id="quotes-queue-list"><div class="empty"><div class="e-icon">🧾</div>Loading quotes...</div></div>
+            <div class="workspace-list" id="quotes-queue-list"><div class="empty"><div class="e-icon">🧾</div>Loading estimates...</div></div>
           </div>
         </div>
       </div>
@@ -2694,46 +2961,31 @@
 <div id="service-pro-view" style="display:none">
   <div class="owner-page">
     <div class="owner-page-shell">
-      <div class="owner-page-header">
-        <div class="owner-page-copy">
-          <div class="owner-page-eyebrow">Operations</div>
-          <div class="owner-page-title">Service PRO</div>
-          <div class="owner-page-subtitle">Per-status workflows for your jobs — checklists, colored status pills, and tech-facing action buttons. Enable a template or start from scratch.</div>
-        </div>
+      <div id="service-pro-library" class="workflow-builder-layout">
+        <aside class="workflow-library-panel">
+          <div class="workflow-panel-head">
+            <div class="console-kicker">Templates</div>
+            <div class="console-title">Workflow library</div>
+            <div class="console-sub" id="service-pro-templates-summary">Loading...</div>
+          </div>
+          <div id="service-pro-templates" class="workflow-scroll">
+            <div class="empty" style="padding:16px">Loading templates...</div>
+          </div>
+        </aside>
+
+        <main class="workflow-workbench">
+          <div class="workflow-panel-head">
+            <div class="console-kicker">Enabled</div>
+            <div class="console-title">Account workflows</div>
+            <div class="console-sub">Select a workflow to edit statuses, checklist steps, and field action buttons.</div>
+          </div>
+          <div id="service-pro-enabled" class="workflow-scroll">
+            <div class="empty" style="padding:16px">Loading...</div>
+          </div>
+        </main>
       </div>
 
-      <div id="service-pro-library">
-        <details class="owner-card" id="service-pro-library-details" style="padding:0">
-          <summary style="list-style:none;cursor:pointer;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px">
-            <div style="min-width:0">
-              <div class="owner-card-title">Template library</div>
-              <div class="owner-card-headline" style="font-size:14px">Browse templates</div>
-              <div class="owner-card-sub" id="service-pro-templates-summary" style="font-size:12px">Loading…</div>
-            </div>
-            <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#64748b;white-space:nowrap">Expand ▾</div>
-          </summary>
-          <div style="padding:0 20px 20px">
-            <div id="service-pro-templates" style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
-              <div class="empty" style="padding:16px">Loading templates…</div>
-            </div>
-          </div>
-        </details>
-
-        <div class="owner-card" style="margin-top:16px">
-          <div class="owner-card-header">
-            <div>
-              <div class="owner-card-title">Your workflows</div>
-              <div class="owner-card-headline">Enabled on this account</div>
-              <div class="owner-card-sub">Click a workflow to customize statuses, colors, and checklists.</div>
-            </div>
-          </div>
-          <div id="service-pro-enabled" style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
-            <div class="empty" style="padding:16px">Loading…</div>
-          </div>
-        </div>
-      </div>
-
-      <div id="service-pro-editor" style="display:none"></div>
+      <div id="service-pro-editor" class="workflow-workbench" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -3031,37 +3283,45 @@
 <div id="livemap-view" style="display:none">
   <div class="owner-page">
     <div class="owner-page-shell">
-      <div class="owner-page-header">
-        <div class="owner-page-copy">
-          <div class="owner-page-eyebrow">Live Map</div>
-          <div class="owner-page-title">See where the crew is right now, and where they clocked in and out today.</div>
-          <div class="owner-page-sub">Crew phones send a location ping every 5 minutes while clocked in. Toggle the date picker to review prior days.</div>
+      <div class="dispatch-layout">
+        <div class="dispatch-map-shell">
+          <div class="dispatch-toolbar">
+            <div class="dispatch-segments">
+              <button class="dispatch-segment active" id="livemap-rail-crew-btn" onclick="setLiveMapRail('crew')">Crew</button>
+              <button class="dispatch-segment" id="livemap-rail-punches-btn" onclick="setLiveMapRail('punches')">Punches</button>
+              <button class="dispatch-segment" id="livemap-rail-jobs-btn" onclick="setLiveMapRail('jobs')">Jobs</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <label style="font-size:11px;color:#64748b;display:flex;align-items:center;gap:6px;font-weight:700">
+                Date
+                <input type="date" id="livemap-date" style="font-size:13px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px">
+              </label>
+              <button class="owner-mini-btn" onclick="refreshLiveMap()">Refresh</button>
+              <button class="owner-mini-btn" onclick="geocodeAllJobs()" title="Geocode any jobs that don't have coordinates yet">Geocode jobs</button>
+            </div>
+          </div>
+          <div id="livemap-canvas" class="dispatch-map">
+            Loading map...
+          </div>
         </div>
-        <div class="owner-page-actions" style="display:flex;align-items:center;gap:10px">
-          <label style="font-size:11px;color:#64748b;display:flex;align-items:center;gap:6px">
-            Date
-            <input type="date" id="livemap-date" style="font-size:13px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px">
-          </label>
-          <button class="owner-mini-btn" onclick="refreshLiveMap()">Refresh</button>
-          <button class="owner-mini-btn" onclick="geocodeAllJobs()" title="Geocode any jobs that don't have coordinates yet">Geocode jobs</button>
-        </div>
-      </div>
 
-      <div class="lc-card" style="padding:0;overflow:hidden;margin-top:14px">
-        <div id="livemap-canvas" style="width:100%;height:640px;background:#eef2f7;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:13px">
-          Loading map…
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px">
-        <div class="lc-card" style="padding:14px">
-          <div class="panel-title">Active crew <span id="livemap-crew-count" style="font-size:11px;color:var(--muted);font-weight:600;margin-left:6px">0</span></div>
-          <div id="livemap-crew-list" style="font-size:12px;color:#475569">No active crew yet.</div>
-        </div>
-        <div class="lc-card" style="padding:14px">
-          <div class="panel-title">Today's punches <span id="livemap-punch-count" style="font-size:11px;color:var(--muted);font-weight:600;margin-left:6px">0</span></div>
-          <div id="livemap-punch-list" style="font-size:12px;color:#475569">No punches yet.</div>
-        </div>
+        <aside class="dispatch-rail">
+          <section class="dispatch-rail-section active" id="livemap-rail-crew">
+            <div class="console-kicker">Active crew</div>
+            <div class="console-title">On the map <span id="livemap-crew-count" style="font-size:12px;color:var(--muted);font-weight:800;margin-left:6px">0</span></div>
+            <div id="livemap-crew-list" class="dispatch-list" style="margin-top:10px">No active crew yet.</div>
+          </section>
+          <section class="dispatch-rail-section" id="livemap-rail-punches">
+            <div class="console-kicker">Punches</div>
+            <div class="console-title">Selected day <span id="livemap-punch-count" style="font-size:12px;color:var(--muted);font-weight:800;margin-left:6px">0</span></div>
+            <div id="livemap-punch-list" class="dispatch-list" style="margin-top:10px">No punches yet.</div>
+          </section>
+          <section class="dispatch-rail-section" id="livemap-rail-jobs">
+            <div class="console-kicker">Jobs</div>
+            <div class="console-title">Geocoded work <span id="livemap-job-count" style="font-size:12px;color:var(--muted);font-weight:800;margin-left:6px">0</span></div>
+            <div id="livemap-job-list" class="dispatch-list" style="margin-top:10px">No mapped jobs yet.</div>
+          </section>
+        </aside>
       </div>
     </div>
   </div>
@@ -3263,14 +3523,15 @@
 <div id="calendar-view" style="display:none">
   <div class="owner-page">
     <div class="owner-page-shell">
-      <div class="owner-page-header">
-        <div class="owner-page-copy">
-          <div class="owner-page-eyebrow">Schedule</div>
-          <div class="owner-page-title">See the week, answer client questions, and schedule the next move.</div>
-          <div class="owner-page-subtitle">This should feel like a scheduling console for the owner: daily visibility, quick appointment creation, and a simple assistant for “what does my week look like?” questions.</div>
+      <div class="schedule-toolbar">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button class="owner-mini-btn" onclick="calGoToday()">Today</button>
+          <button class="owner-mini-btn" onclick="calWeekOffset(-1)">Prev</button>
+          <button class="owner-mini-btn" onclick="calWeekOffset(1)">Next</button>
+          <button class="owner-btn primary" onclick="openApptModal()" style="padding:6px 14px;font-size:12px">+ Add Appointment</button>
         </div>
-        <div class="owner-page-actions">
-          <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e8eef3;border-radius:10px;padding:8px 14px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;background:#fff;border:1px solid #e8eef3;border-radius:10px;padding:8px 14px">
             <i data-lucide="bell" style="width:14px;height:14px;color:#64748b"></i>
             <label for="set-appt-reminder" style="font-size:12px;font-weight:600;color:#475569;white-space:nowrap">Email me</label>
             <select id="set-appt-reminder" onchange="saveApptReminder()"
@@ -3288,12 +3549,11 @@
         </div>
       </div>
 
-      <!-- 5-day agenda snapshot -->
-      <div style="margin-bottom:24px">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px;padding:0 4px">
+      <div class="console-section">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px">
           <div>
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Next 5 days</div>
-            <div id="cal-attention-title" style="font-size:15px;font-weight:800;color:var(--text);letter-spacing:-0.02em;margin-top:3px">Loading the visible week.</div>
+            <div class="console-kicker">Next 5 days</div>
+            <div id="cal-attention-title" class="console-title">Loading the visible week.</div>
           </div>
           <div style="display:flex;gap:18px;align-items:baseline">
             <div style="text-align:right">
@@ -3312,35 +3572,37 @@
         <span id="cal-inline-selected" style="display:none"></span>
       </div>
 
-      <!-- Top row: planner (dominant) + assistant -->
-      <div class="owner-ops-layout">
-        <div class="owner-section-stack">
-          <div class="owner-card">
-            <div class="owner-card-header">
+      <div class="schedule-console-layout">
+        <main class="schedule-main">
+          <section class="console-section">
+            <div class="console-section-header">
               <div>
-                <div class="owner-card-title">4-Week Planner</div>
-                <div class="owner-card-headline" id="cal-week-label">—</div>
-                <div class="owner-card-sub">Click any day to see the agenda. Use Previous / Next to move the window.</div>
-              </div>
-              <div class="owner-card-actions">
-                <button class="owner-mini-btn" onclick="calGoToday()">Today</button>
-                <button class="owner-mini-btn" onclick="calWeekOffset(-1)">‹ Prev</button>
-                <button class="owner-mini-btn" onclick="calWeekOffset(1)">Next ›</button>
-                <button class="owner-btn primary" onclick="openApptModal()" style="padding:6px 14px;font-size:12px">+ Add Appointment</button>
+                <div class="console-kicker">4-week planner</div>
+                <div class="console-title" id="cal-week-label">—</div>
               </div>
             </div>
             <div class="mobile-scroll-hint">← Swipe to scroll weeks →</div>
             <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px"></div>
-          </div>
-        </div>
+          </section>
+        </main>
 
-        <div class="owner-section-stack">
-          <!-- Schedule Assistant -->
-          <div class="owner-card">
-            <div class="owner-card-header">
+        <aside class="schedule-rail">
+          <section class="console-section">
+            <div class="console-section-header">
               <div>
-                <div class="owner-card-title">Schedule Assistant</div>
-                <div class="owner-card-headline">Ask in plain language</div>
+                <div class="console-kicker">Unscheduled</div>
+                <div class="console-title">Ready to place</div>
+              </div>
+              <button class="owner-mini-btn" onclick="switchMainTab('quotes')">Open Estimates</button>
+            </div>
+            <div id="calendar-unscheduled-list" class="workspace-list"><div class="empty"><div class="e-icon">📆</div>Loading schedule...</div></div>
+          </section>
+
+          <section class="console-section">
+            <div class="console-section-header">
+              <div>
+                <div class="console-kicker">Assistant</div>
+                <div class="console-title">Ask the schedule</div>
               </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
@@ -3351,17 +3613,15 @@
               <button onclick="askSchedule()" id="appt-ask-btn" class="lc-btn sm primary">Ask</button>
             </div>
             <div id="appt-ask-answer" style="display:none;margin-top:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);line-height:1.6"></div>
-          </div>
+          </section>
 
-          <!-- Team Availability — moved up to fill the right column -->
-          <div class="owner-card">
-            <div class="owner-card-header">
+          <section class="console-section">
+            <div class="console-section-header">
               <div>
-                <div class="owner-card-title">Team Availability</div>
-                <div class="owner-card-headline">Who is available before you assign work</div>
+                <div class="console-kicker">Team</div>
+                <div class="console-title">Availability</div>
               </div>
             </div>
-            <!-- Flat inline counts -->
             <div style="display:flex;align-items:stretch;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px">
               <div style="flex:1;padding:10px 14px;border-right:1px solid var(--border)">
                 <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted)">Active</div>
@@ -3377,8 +3637,8 @@
               </div>
             </div>
             <div id="cal-team-status-list" style="display:grid;gap:0;max-height:280px;overflow-y:auto"></div>
-          </div>
-        </div>
+          </section>
+        </aside>
       </div>
 
       <!-- Hidden anchors for legacy JS that targets day agenda elements -->
@@ -3433,7 +3693,7 @@
       <input type="checkbox" id="appt-notify-team" style="cursor:pointer">
       Notify assigned team in mobile app
     </label>
-    <div style="margin-top:6px;font-size:12px;color:#64748b">Only applies when a related job is selected. Standalone calendar events like meetings or quote visits can remain private to the office.</div>
+    <div style="margin-top:6px;font-size:12px;color:#64748b">Only applies when a related job is selected. Standalone calendar events like meetings or estimate visits can remain private to the office.</div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
       <button id="appt-delete-btn" class="lc-btn sm danger" onclick="deleteAppt()" style="display:none"><i data-lucide="trash-2"></i> Delete</button>
       <div style="display:flex;gap:8px;margin-left:auto">
@@ -5434,7 +5694,7 @@ function updateJobsAttention(activeCount, crewCount, supplyCount, bottleneckCoun
 
   if (requestCount > 0) {
     setText('jobs-attention-title', `${requestCount} client request${requestCount > 1 ? 's are' : ' is'} waiting for review.`);
-    setText('jobs-attention-copy', 'A client submitted new work through the portal. Review the quoted request, estimate it, and move it into scheduling if it should go forward.');
+    setText('jobs-attention-copy', 'A client submitted new work through the portal. Review the estimated request and move it into scheduling if it should go forward.');
     return;
   }
   if (supplyCount > 0) {
@@ -5449,7 +5709,7 @@ function updateJobsAttention(activeCount, crewCount, supplyCount, bottleneckCoun
   }
   if (activeCount === 0) {
     setText('jobs-attention-title', 'No active jobs in motion right now.');
-    setText('jobs-attention-copy', 'The board is clear. New work can be scheduled, quoted, or moved into the calendar without operational backlog.');
+    setText('jobs-attention-copy', 'The board is clear. New work can be scheduled, estimated, or moved into the calendar without operational backlog.');
     return;
   }
   setText('jobs-attention-title', `${crewCount} crew member${crewCount === 1 ? '' : 's'} currently on site.`);
@@ -5582,7 +5842,7 @@ function renderClientRequests(jobs = []) {
         <div class="workspace-row-sub">${job.address || 'No address'} ${job.created_at ? '· ' + new Date(job.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }) : ''}</div>
       </div>
       <div class="workspace-row-meta">
-        <span class="chip chip-blue">Quoted</span>
+        <span class="chip chip-blue">Estimated</span>
       </div>
     </div>
   `).join('');
@@ -5863,6 +6123,13 @@ async function initLiveMap() {
   }, 30000);
 }
 
+function setLiveMapRail(section) {
+  ['crew', 'punches', 'jobs'].forEach(key => {
+    document.getElementById(`livemap-rail-${key}`)?.classList.toggle('active', key === section);
+    document.getElementById(`livemap-rail-${key}-btn`)?.classList.toggle('active', key === section);
+  });
+}
+
 function clearLiveMarkers() {
   for (const m of _liveMarkers) { try { m.setMap(null); } catch {} }
   _liveMarkers = [];
@@ -5984,6 +6251,29 @@ async function refreshLiveMap() {
   }
 
   // Job pins (geocoded).
+  const jobList = document.getElementById('livemap-job-list');
+  const jobCnt = document.getElementById('livemap-job-count');
+  const mappedJobs = jobs.filter(j => j.lat != null && j.lng != null);
+  if (jobCnt) jobCnt.textContent = mappedJobs.length;
+  if (jobList) {
+    if (!mappedJobs.length) {
+      jobList.innerHTML = '<em style="color:#94a3b8">No geocoded jobs are available.</em>';
+    } else {
+      jobList.innerHTML = mappedJobs.slice(0, 40).map(j => {
+        const label = `${j.name || 'Job'} — ${j.status || 'scheduled'}`;
+        return `
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;cursor:pointer"
+               onclick="focusLivePin(${j.lat}, ${j.lng}, ${JSON.stringify(label)}, 'job')">
+            <div style="min-width:0">
+              <strong style="display:block;font-size:13px;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(j.name || 'Untitled job')}</strong>
+              <span style="display:block;color:#64748b;font-size:11px;line-height:1.4;margin-top:2px">${esc(j.address || 'No address')}</span>
+            </div>
+            <span class="chip chip-blue" style="flex-shrink:0">${esc(j.status || 'Job')}</span>
+          </div>
+        `;
+      }).join('');
+    }
+  }
   for (const j of jobs) {
     if (j.lat == null || j.lng == null) continue;
     const marker = new google.maps.Marker({
@@ -6454,7 +6744,7 @@ function renderDashboardOverview(jobs = []) {
         <div class="workspace-row-title">${(job.name || '').replace(/^Request –\s*/, '') || 'Portal request'}</div>
         <div class="workspace-row-sub">${job.address || 'No address provided'}${job.created_at ? ` • ${new Date(job.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })}` : ''}</div>
       </div>
-      <div class="workspace-row-meta"><span class="chip chip-blue">Quoted</span></div>
+      <div class="workspace-row-meta"><span class="chip chip-blue">Estimated</span></div>
     </div>
   `), '✉️', 'No new requests are waiting right now.');
 
@@ -6536,7 +6826,7 @@ function paintRequestsList() {
         <div class="workspace-row-title">${(job.name || '').replace(/^Request –\s*/, '') || 'Portal request'}</div>
         <div class="workspace-row-sub">${job.address || 'No address provided'}${job.created_at ? ` • ${new Date(job.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })}` : ''}</div>
       </div>
-      <div class="workspace-row-meta"><span class="chip chip-blue">Quoted</span></div>
+      <div class="workspace-row-meta"><span class="chip chip-blue">Estimated</span></div>
     </div>
   `), '✉️', 'No request intake is waiting right now.');
 }
@@ -6548,12 +6838,12 @@ function paintQuotesList() {
   renderWorkspaceRows('quotes-queue-list', filtered.map(job => `
     <div class="workspace-row" onclick="openDetail('${job.id}','${String(job.name || '').replace(/'/g,"\\'")}')" style="cursor:pointer">
       <div class="workspace-row-main">
-        <div class="workspace-row-title">${job.name || 'Untitled quote'}</div>
+        <div class="workspace-row-title">${job.name || 'Untitled estimate'}</div>
         <div class="workspace-row-sub">${job.address || 'No address provided'}${Number(job?.invoice_amount || 0) > 0 ? ` • Estimate $${Number(job.invoice_amount).toLocaleString()}` : ''}</div>
       </div>
       <div class="workspace-row-meta"><span class="chip chip-blue">Lead / Estimate</span></div>
     </div>
-  `), '🧾', 'No quote-stage work is open.');
+  `), '🧾', 'No estimate-stage work is open.');
 }
 
 function setCount(id, n) { const el = document.getElementById(id); if (el) el.textContent = n > 0 ? `(${n})` : ''; }
@@ -6585,7 +6875,7 @@ function renderScheduleWorkspace(jobs = []) {
     <div class="workspace-summary-card"><div class="workspace-summary-label">Scheduled / Active</div><div class="workspace-summary-value">${scheduled.length}</div><div class="workspace-summary-sub">Work already on this week’s board.</div></div>
     <div class="workspace-summary-card"><div class="workspace-summary-label">Next Step</div><div class="workspace-summary-value">${schedulable.length ? 'Plan' : 'Clear'}</div><div class="workspace-summary-sub">Use the full calendar for placement details.</div></div>
   `;
-  renderWorkspaceRows('schedule-queue-list', schedulable.slice(0, 8).map(job => {
+  const scheduleRows = schedulable.slice(0, 8).map(job => {
     const status = getJobStatusChip(job.status);
     return `
       <div class="workspace-row" onclick="openDetail('${job.id}','${String(job.name || '').replace(/'/g,"\\'")}')" style="cursor:pointer">
@@ -6596,7 +6886,9 @@ function renderScheduleWorkspace(jobs = []) {
         <div class="workspace-row-meta"><span class="chip ${status.cls}">${status.label}</span></div>
       </div>
     `;
-  }), '📆', 'No schedule-stage work is waiting right now.');
+  });
+  renderWorkspaceRows('schedule-queue-list', scheduleRows, '📆', 'No schedule-stage work is waiting right now.');
+  renderWorkspaceRows('calendar-unscheduled-list', scheduleRows, '📆', 'No schedule-stage work is waiting right now.');
 }
 
 let invoicesFilter = 'all';
@@ -7426,11 +7718,11 @@ function getJobCreateModeConfig(mode = 'job') {
       prefix: 'Request – ',
     },
     quote: {
-      title: 'Add New Quote',
-      button: 'Create Quote',
+      title: 'Add New Estimate',
+      button: 'Create Estimate',
       namePlaceholder: 'e.g. Exterior repaint estimate',
       addressPlaceholder: 'e.g. 123 Main St, Miami FL',
-      descPlaceholder: 'Describe the quoted work, assumptions, and pricing notes...',
+      descPlaceholder: 'Describe the estimated work, assumptions, and pricing notes...',
       status: 'quoted',
       prefix: '',
     },
@@ -7975,11 +8267,13 @@ async function loadServicePro() {
           ? `<button class="owner-btn" disabled style="opacity:0.6;cursor:default;padding:5px 10px;font-size:11px;white-space:nowrap">Enabled</button>`
           : `<button class="owner-btn primary" onclick="enableServiceProTemplate('${t.id}')" style="padding:5px 10px;font-size:11px;white-space:nowrap">Enable</button>`;
         return `
-          <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff">
-            <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#64748b;background:#f1f5f9;border-radius:6px;padding:3px 8px;white-space:nowrap">${spEsc(t.industry || 'Generic')}</div>
-            <div style="font-size:13px;font-weight:700;color:#0f172a;white-space:nowrap;min-width:140px" title="${spEsc(t.description || '')}">${spEsc(t.name)}</div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px;flex:1;min-width:0">${pills}</div>
-            ${btn}
+          <div style="display:grid;gap:8px;padding:12px;border:1px solid #e2e8f0;border-radius:8px;background:#fff">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#64748b;background:#f1f5f9;border-radius:6px;padding:3px 8px;white-space:nowrap">${spEsc(t.industry || 'Generic')}</div>
+              ${btn}
+            </div>
+            <div style="font-size:13px;font-weight:800;color:#0f172a" title="${spEsc(t.description || '')}">${spEsc(t.name)}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;min-width:0">${pills}</div>
           </div>`;
       }).join('');
     }
@@ -7991,7 +8285,7 @@ async function loadServicePro() {
           `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:${s.color}22;color:${s.color};font-size:11px;font-weight:600;border:1px solid ${s.color}44">${spEsc(s.name)}</span>`
         ).join(' ');
         return `
-          <div onclick="openWorkflowEditor('${w.id}')" style="padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
+          <div onclick="openWorkflowEditor('${w.id}')" style="padding:14px 16px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px">
               <div style="font-size:14px;font-weight:700;color:#0f172a">${spEsc(w.name)}</div>
               <div style="font-size:11px;color:#64748b">${(w.statuses || []).length} statuses · Edit →</div>
@@ -9005,9 +9299,10 @@ function updateWorkspaceHeader(tab) {
   const header = {
     dashboard: ['LinkCrew', 'Command Center', 'Active jobs, crew, billing, and live feed in one place.'],
     requests: ['Intake', 'Client Requests', 'New inbound work waiting to qualify, estimate, or schedule.'],
-    quotes: ['Pre-sales', 'Quotes', 'Estimate-stage work, follow-ups, and approval pipeline.'],
+    quotes: ['Pre-sales', 'Estimates', 'Estimate-stage work, follow-ups, and approval pipeline.'],
     jobs: ['Operations', 'Active Jobs', 'Live work, crew status, supply requests, and field updates.'],
     schedule: ['Operations', 'Schedule', 'Lay out the week and place work where it belongs.'],
+    livemap: ['Dispatch', 'Live Map', 'Crew, punches, and job locations on the same board.'],
     team: ['People', 'Crew', 'Roster, invite links, roles, and onboarding.'],
     clients: ['Relationships', 'Clients', 'Customer records, follow-ups, and recurring work.'],
     invoices: ['Billing', 'Invoices', 'Outstanding, paid, and ready-to-send billing work.'],
@@ -9020,6 +9315,7 @@ function updateWorkspaceHeader(tab) {
     'jobs-records': ['Archive', 'Job History', 'Completed, deferred, cancelled, and archived work.'],
     agreements: ['Billing', 'Agreements', 'Recurring client agreements and contract history.'],
     'service-catalog': ['Billing', 'Service Catalog', 'Pre-defined services for fast invoice line items.'],
+    'service-pro': ['Configure', 'Workflows', 'Status pipelines, checklists, and field actions.'],
   }[tab] || ['Owner Workspace', 'Dashboard', 'Run the day without bouncing between jobs, clients, and billing.'];
   setText('topbar-kicker', header[0]);
   setText('topbar-title', header[1]);
@@ -9035,7 +9331,7 @@ function updateTopbarCreateButton(tab) {
   const config = {
     dashboard: { label: '+ Create', visible: true },
     requests: { label: '+ Add Request', visible: true },
-    quotes: { label: '+ Add Quote', visible: true },
+    quotes: { label: '+ Add Estimate', visible: true },
     jobs: { label: '+ Add Job', visible: true },
     schedule: { label: '+ Add Job', visible: true },
     team: { label: '+ Add Team Member', visible: true },
@@ -9243,7 +9539,7 @@ function toggleJobsSidebarGroup() {
   setJobsSidebarExpanded(!submenu?.classList.contains('visible'));
 }
 
-// ── Quotes Sidebar Group ──────────────────────────────────────────────────────
+// ── Estimates Sidebar Group ───────────────────────────────────────────────────
 
 function setQuotesSidebarExpanded(open) {
   const submenu = document.getElementById('quotes-nav-submenu');
@@ -9734,7 +10030,7 @@ function switchMainTab(tab) {
   if (tab !== 'jobs' && tab !== 'jobs-records') setJobsSidebarExpanded(false);
   // Let full-height views (crm, ag, jobs) control their own overflow
   if (contentArea) {
-    contentArea.style.overflowY = ['dashboard','jobs','jobs-records','clients','agreements','calendar'].includes(tab) ? 'hidden' : 'auto';
+    contentArea.style.overflowY = ['dashboard','jobs','jobs-records','clients','agreements','calendar','livemap','service-pro'].includes(tab) ? 'hidden' : 'auto';
   }
   // Stats bar only relevant on dashboard and jobs views
   const statsEl = document.querySelector('.stats');
@@ -9950,7 +10246,7 @@ function renderFiveDayOutlook() {
       .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
     const isToday = dateStr === toLocalDateInputValue(new Date());
     const borderRight = i < 4 ? 'border-right:1px solid var(--border);' : '';
-    return `<div style="${borderRight}display:flex;flex-direction:column;min-width:0">
+    return `<div onclick="openApptModal('${dateStr}')" title="Add appointment on ${dayLabels[day.getDay()]}, ${monthLabels[day.getMonth()]} ${day.getDate()}" style="${borderRight}display:flex;flex-direction:column;min-width:0;cursor:pointer">
       <div style="padding:10px 12px;background:${isToday?'#f0f9ff':'var(--bg)'};border-bottom:1px solid var(--border)">
         <div style="display:flex;align-items:baseline;gap:6px">
           <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:${isToday?'#0369a1':'var(--muted)'}">${dayLabels[day.getDay()]}</span>
@@ -9960,9 +10256,9 @@ function renderFiveDayOutlook() {
       </div>
       <div style="flex:1;padding:8px;display:flex;flex-direction:column;gap:5px;overflow-y:auto;max-height:200px">
         ${appts.length === 0
-          ? '<div style="font-size:11px;color:var(--muted);font-style:italic;padding:8px 4px">No appointments</div>'
+          ? '<div style="font-size:11px;color:var(--muted);font-style:italic;padding:8px 4px">Click to add appointment</div>'
           : appts.map(a => `
-            <div style="padding:7px 9px;background:${isToday?'#f0f9ff':'var(--bg)'};border:1px solid ${isToday?'rgba(14,165,233,0.18)':'var(--border)'};border-radius:6px;cursor:pointer" onclick="openApptModal('${dateStr}','${a.id}')">
+            <div style="padding:7px 9px;background:${isToday?'#f0f9ff':'var(--bg)'};border:1px solid ${isToday?'rgba(14,165,233,0.18)':'var(--border)'};border-radius:6px;cursor:pointer" onclick="event.stopPropagation();openApptModal('${dateStr}','${a.id}')">
               ${fmtTime(a) ? `<div style="font-size:10px;font-weight:700;color:#0369a1;letter-spacing:0.02em">${fmtTime(a)}</div>` : ''}
               <div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${a.title || 'Untitled'}</div>
             </div>`).join('')
@@ -12350,7 +12646,7 @@ function renderConversionFunnel(f) {
   const el = document.getElementById('rep-funnel');
   if (!el) return;
   const stages = [
-    ['Quotes sent', f.quotes || 0, '#3b82f6'],
+    ['Estimates sent', f.quotes || 0, '#3b82f6'],
     ['Won (scheduled+)', f.won || 0, '#0ea5e9'],
     ['Paid', f.paid || 0, '#15803d'],
   ];
