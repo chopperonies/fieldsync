@@ -6144,6 +6144,14 @@ app.get('/api/mobile/owner/crew-pins', mobileAuth, requireMobileOwnerOrManager, 
 const _mapCache = new Map(); // hash -> { buffer, contentType, ts }
 const MAP_CACHE_TTL_MS = 5 * 60 * 1000;
 
+function getGoogleMapsApiKey() {
+  return process.env.GOOGLE_MAPS_STATIC_API_KEY
+    || process.env.GOOGLE_MAPS_API_KEY
+    || process.env.GOOGLE_MAPS_BROWSER_KEY
+    || process.env.GOOGLE_API_KEY
+    || null;
+}
+
 // Inline auth for /api/mobile/map because React Native <Image> sends
 // limited headers depending on platform — accept token via ?token= too.
 async function mapAuth(req, res, next) {
@@ -6163,7 +6171,7 @@ async function mapAuth(req, res, next) {
 }
 
 app.get('/api/mobile/map', mapAuth, async (req, res) => {
-  const key = process.env.GOOGLE_MAPS_STATIC_API_KEY;
+  const key = getGoogleMapsApiKey();
   const size = String(req.query.size || '640x320');
   const zoom = String(req.query.zoom || '13');
   const center = String(req.query.center || '');
@@ -9211,8 +9219,8 @@ app.post('/api/dashboard/geocode-jobs', auth, async (req, res) => {
   if (!JOB_APPROVER_ROLES.has(req.role || 'owner')) {
     return res.status(403).json({ error: 'Approver role required' });
   }
-  const apiKey = process.env.GOOGLE_MAPS_STATIC_API_KEY;
-  if (!apiKey) return res.status(400).json({ error: 'GOOGLE_MAPS_STATIC_API_KEY not set' });
+  const apiKey = getGoogleMapsApiKey();
+  if (!apiKey) return res.status(400).json({ error: 'Google Maps API key not set' });
   // Fire-and-forget; report queue size.
   const { data: jobs } = await supabaseAdmin
     .from('jobs')
@@ -9255,7 +9263,7 @@ app.get('/api/dashboard/maps-config', auth, async (req, res) => {
     tenant = data || null;
   }
   res.json({
-    api_key: process.env.GOOGLE_MAPS_STATIC_API_KEY || null,
+    api_key: getGoogleMapsApiKey(),
     tenant_address: tenant?.address || null,
     tenant_name: tenant?.company_name || null,
     fallback_center: { lat: 37.0849, lng: -121.6102 },
