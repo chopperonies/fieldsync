@@ -759,6 +759,9 @@
       display: flex;
       flex-direction: column;
     }
+    .dashboard-console-main .ready-bill-section {
+      border-top: 1px solid var(--border);
+    }
     .dashboard-console-rail { border-left: 1px solid var(--border); }
     .console-section {
       padding: 18px 24px;
@@ -845,6 +848,38 @@
       color: #0369a1;
       box-shadow: 0 1px 2px rgba(15,23,42,0.08);
     }
+    .dispatch-map-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .dispatch-map-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #dbe4ef;
+      border-radius: 999px;
+      background: #fff;
+      color: #0f172a;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(15,23,42,0.05);
+    }
+    .dispatch-map-pill.primary {
+      border-color: rgba(37,99,235,0.22);
+      color: #1d4ed8;
+      background: #eff6ff;
+    }
+    .dispatch-map-pill:disabled {
+      cursor: default;
+      opacity: 0.68;
+    }
     .dispatch-map {
       flex: 1;
       min-height: 0;
@@ -861,6 +896,30 @@
       border-left: 1px solid var(--border);
       background: #fff;
       overflow-y: auto;
+    }
+    .dispatch-rail-summary {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      background: #f8fafc;
+    }
+    .dispatch-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .dispatch-summary-cell {
+      padding: 10px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #fff;
+    }
+    .dispatch-summary-cell strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+      font-weight: 900;
+      color: #0f172a;
     }
     .dispatch-rail-section {
       display: none;
@@ -1014,6 +1073,9 @@
       .schedule-toolbar {
         align-items: stretch;
         flex-direction: column;
+      }
+      .dispatch-map-actions {
+        justify-content: flex-start;
       }
       .dispatch-segments {
         width: 100%;
@@ -1237,13 +1299,16 @@
     .section-divider { border: none; border-top: 1px solid #e8e8e8; margin: 18px 0; }
 
     /* ── Photos ── */
-    .photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
-    .photo-card { background: #fff; border: 1px solid rgba(15,23,42,0.06); border-radius: 2px; overflow: hidden; cursor: pointer; box-shadow: 0 12px 24px rgba(15,23,42,0.06), 0 4px 10px rgba(15,23,42,0.04); transition: box-shadow 0.18s, transform 0.18s, border-color 0.18s; }
-    .photo-card:hover { transform: translateY(-2px); box-shadow: 0 20px 40px rgba(15,23,42,0.10), 0 8px 16px rgba(15,23,42,0.05); }
-    .photo-card img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
-    .photo-meta { padding: 5px 7px; }
-    .photo-meta .pm-job { font-size: 10px; color: #0265dc; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .photo-meta .pm-info { font-size: 9px; color: #17191c; margin-top: 1px; }
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 7px; }
+    .photo-card { position: relative; background: #fff; border: 1px solid rgba(15,23,42,0.08); border-radius: 6px; overflow: hidden; cursor: pointer; box-shadow: none; transition: box-shadow 0.18s, transform 0.18s, border-color 0.18s; }
+    .photo-card:hover { transform: translateY(-1px); border-color: rgba(2,101,220,0.24); box-shadow: 0 10px 22px rgba(15,23,42,0.08); }
+    .photo-card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+    .photo-meta { padding: 4px 6px; }
+    .photo-meta .pm-job { font-size: 9px; color: #0265dc; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .photo-meta .pm-info { font-size: 8px; color: #64748b; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .photo-delete-btn { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.92); border: 1px solid rgba(220,38,38,0.16); border-radius: 999px; cursor: pointer; color: #dc2626; font-size: 12px; line-height: 1; opacity: 0; transition: opacity 0.12s; }
+    .photo-card:hover .photo-delete-btn { opacity: 1; }
+    .photo-expanded-img { width: 100%; max-height: 72vh; object-fit: contain; border-radius: 8px; background: #0f172a; }
 
     /* ── Side tabs ── */
     .side-tabs { display: flex; gap: 0; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
@@ -1528,7 +1593,7 @@
       .agd-grid { grid-template-columns: 1fr; }
 
       /* Photo grid */
-      .photo-grid { grid-template-columns: 1fr 1fr; }
+      .photo-grid { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
     }
 
     @media (max-width: 480px) {
@@ -1838,6 +1903,21 @@
   </div>
 </div>
 
+<!-- Photo preview -->
+<div class="modal-overlay" id="photo-preview-modal" onclick="closePhotoPreview(event)">
+  <div class="modal" style="width:min(860px,94vw);padding:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px">
+      <div>
+        <div class="console-kicker">Site photo</div>
+        <div class="console-title" id="photo-preview-title" style="font-size:15px">Preview</div>
+      </div>
+      <button class="btn-cancel" onclick="closePhotoPreview()" style="padding:4px 10px">✕</button>
+    </div>
+    <img class="photo-expanded-img" id="photo-preview-img" src="" alt="Expanded site photo">
+    <div id="photo-preview-meta" style="font-size:12px;color:#64748b;margin-top:10px;line-height:1.5"></div>
+  </div>
+</div>
+
 <!-- Dashboard view -->
 <div id="dashboard-view">
   <div class="owner-page">
@@ -1930,6 +2010,21 @@
             <div id="client-requests-list" style="display:none"></div>
             <div id="dashboard-request-list" style="display:none"></div>
           </section>
+
+          <section class="console-section ready-bill-section">
+            <div class="console-section-header">
+              <div>
+                <div class="console-kicker">Ready to bill</div>
+                <div class="console-title">Completed, unpaid work</div>
+              </div>
+              <div class="owner-card-actions">
+                <button class="owner-mini-btn" id="jobs-outcome-filter-7-btn" onclick="setRecentOutcomeRange(7)">7d</button>
+                <button class="owner-mini-btn" id="jobs-outcome-filter-30-btn" onclick="setRecentOutcomeRange(30)">30d</button>
+                <button class="owner-mini-btn" id="jobs-outcome-filter-all-btn" onclick="setRecentOutcomeRange(0)">All</button>
+              </div>
+            </div>
+            <div id="recent-outcomes-list" class="workspace-list"><div class="empty"><div class="e-icon">✅</div>Loading recent outcomes...</div></div>
+          </section>
         </div>
 
         <aside class="dashboard-console-rail">
@@ -1948,21 +2043,6 @@
               <div id="supplies-content"><div id="supplies-list"><div class="empty"><div class="e-icon">📦</div>No pending requests</div></div></div>
               <div id="photos-content" style="display:none"><div id="photos-list"><div class="empty"><div class="e-icon">📸</div>Loading photos...</div></div></div>
             </div>
-          </section>
-
-          <section class="console-section">
-            <div class="console-section-header">
-              <div>
-                <div class="console-kicker">Ready to bill</div>
-                <div class="console-title">Recent outcomes</div>
-              </div>
-              <div class="owner-card-actions">
-                <button class="owner-mini-btn" id="jobs-outcome-filter-7-btn" onclick="setRecentOutcomeRange(7)">7d</button>
-                <button class="owner-mini-btn" id="jobs-outcome-filter-30-btn" onclick="setRecentOutcomeRange(30)">30d</button>
-                <button class="owner-mini-btn" id="jobs-outcome-filter-all-btn" onclick="setRecentOutcomeRange(0)">All</button>
-              </div>
-            </div>
-            <div id="recent-outcomes-list" style="display:grid;gap:10px"><div class="empty"><div class="e-icon">✅</div>Loading recent outcomes...</div></div>
           </section>
         </aside>
       </div>
@@ -2390,7 +2470,8 @@
 
           <div class="composer-actions">
             <button class="owner-btn" onclick="closeInvoiceWorksheet()">Cancel</button>
-            <button class="owner-btn primary" onclick="saveInvoiceWorksheet()">Save Invoice</button>
+            <button class="owner-btn" onclick="previewInvoiceWorksheet()">Preview Invoice</button>
+            <button class="owner-btn primary" onclick="saveInvoiceWorksheet()">Save / Send Invoice</button>
           </div>
         </div>
       </div>
@@ -2419,7 +2500,7 @@
       <!-- Add form (hidden by default) -->
       <div id="catalog-add-form" style="display:none;margin-bottom:20px">
         <div class="owner-card" style="padding:22px">
-          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px">New Service</div>
+          <div id="catalog-form-title" style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px">New Service</div>
           <div class="composer-field-grid">
             <div class="composer-field span-2">
               <label>Service Name *</label>
@@ -2447,7 +2528,7 @@
           <div id="cat-svc-status" style="display:none;font-size:13px;padding:8px 12px;border-radius:6px;margin-top:12px"></div>
           <div class="composer-actions" style="margin-top:16px">
             <button class="owner-btn" onclick="closeAddServiceInline()">Cancel</button>
-            <button class="owner-btn primary" onclick="saveServiceInline()">Save Service</button>
+            <button class="owner-btn primary" onclick="saveServiceInline()" id="cat-svc-save-btn">Save Service</button>
           </div>
         </div>
       </div>
@@ -2483,7 +2564,7 @@
 
       <div class="workspace-summary-grid">
         <div class="workspace-summary-card"><div class="workspace-summary-label">Total Logged</div><div class="workspace-summary-value" id="exp-count">—</div><div class="workspace-summary-sub">Expenses recorded for this account.</div></div>
-        <div class="workspace-summary-card"><div class="workspace-summary-label">Needs Review</div><div class="workspace-summary-value" id="exp-needs-review">—</div><div class="workspace-summary-sub">Reimbursable items still pending settlement.</div></div>
+        <div class="workspace-summary-card" onclick="filterExpensesByTip('reimbursable')" style="cursor:pointer" title="Show pending reimbursable expenses"><div class="workspace-summary-label">Needs Review</div><div class="workspace-summary-value" id="exp-needs-review">—</div><div class="workspace-summary-sub">Reimbursable items still pending settlement.</div></div>
         <div class="workspace-summary-card"><div class="workspace-summary-label">Total Spend</div><div class="workspace-summary-value" id="exp-total-spend">—</div><div class="workspace-summary-sub">Sum of all logged expense amounts.</div></div>
       </div>
 
@@ -2588,7 +2669,7 @@
             <div class="owner-card-header">
               <div>
                 <div class="owner-card-title">All Expenses</div>
-                <div class="owner-card-sub">Most recent first. Click New Expense above to log a purchase.</div>
+                <div class="owner-card-sub" id="expenses-list-subtitle">Most recent first. Click any expense to view the full record.</div>
               </div>
             </div>
             <div class="workspace-list" id="expenses-list"><div class="empty"><div class="e-icon">📋</div>Loading expenses...</div></div>
@@ -2600,13 +2681,55 @@
             <div class="owner-signal-title">Keep spend capture consistent.</div>
             <div class="owner-signal-copy">Tag expenses to jobs so you can see true job profitability. Mark reimbursables clearly so they don't get lost at payroll time.</div>
             <div class="owner-inline-list">
-              <div class="owner-inline-row"><span>Materials</span><strong>Tag to the job they're for</strong></div>
-              <div class="owner-inline-row"><span>Employee spend</span><strong>Mark reimbursable at entry</strong></div>
-              <div class="owner-inline-row"><span>Fuel / travel</span><strong>Log same day, capture amount</strong></div>
+              <div class="owner-inline-row" onclick="filterExpensesByTip('materials')" style="cursor:pointer" title="Show material expenses missing a job"><span>Materials</span><strong>Show untagged materials</strong></div>
+              <div class="owner-inline-row" onclick="filterExpensesByTip('reimbursable')" style="cursor:pointer" title="Show reimbursable expenses"><span>Employee spend</span><strong>Review reimbursables</strong></div>
+              <div class="owner-inline-row" onclick="filterExpensesByTip('fuel-travel')" style="cursor:pointer" title="Show fuel and travel expenses"><span>Fuel / travel</span><strong>Audit fuel and travel</strong></div>
+              <div class="owner-inline-row" onclick="filterExpensesByTip('all')" style="cursor:pointer" title="Clear expense filters"><span>Current view</span><strong id="expense-filter-label">All expenses</strong></div>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Expense Detail Modal -->
+<div class="modal-overlay" id="expense-detail-modal">
+  <div class="modal" style="width:min(560px,92vw)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <h3 style="margin:0">Expense Details</h3>
+      <button class="btn-cancel" onclick="closeExpenseDetail()" style="padding:4px 10px">✕</button>
+    </div>
+    <div id="expense-detail-content"></div>
+  </div>
+</div>
+
+<!-- Client Quick Invoice Preview Modal -->
+<div class="modal-overlay" id="client-invoice-preview-modal">
+  <div class="modal" style="width:min(640px,92vw)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <h3 style="margin:0">Preview Invoice</h3>
+      <button class="btn-cancel" onclick="closeClientInvoicePreview()" style="padding:4px 10px">✕</button>
+    </div>
+    <div id="client-invoice-preview-content"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-cancel" onclick="closeClientInvoicePreview()">Keep Editing</button>
+      <button class="btn-save" id="client-invoice-preview-send-btn">Send Invoice</button>
+    </div>
+  </div>
+</div>
+
+<!-- Invoice Worksheet Preview Modal -->
+<div class="modal-overlay" id="invoice-preview-modal">
+  <div class="modal" style="width:min(720px,92vw)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <h3 style="margin:0">Preview Invoice</h3>
+      <button class="btn-cancel" onclick="closeInvoicePreview()" style="padding:4px 10px">✕</button>
+    </div>
+    <div id="invoice-preview-content"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-cancel" onclick="closeInvoicePreview()">Keep Editing</button>
+      <button class="btn-save" onclick="saveInvoiceWorksheet()">Save / Send Invoice</button>
     </div>
   </div>
 </div>
@@ -2816,6 +2939,8 @@
           <div class="owner-card-actions" style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="owner-mini-btn" id="job-records-filter-all-btn" onclick="setJobRecordsFilter('all')">All</button>
             <button class="owner-mini-btn" id="job-records-filter-completed-btn" onclick="setJobRecordsFilter('completed')">Completed</button>
+            <button class="owner-mini-btn" id="job-records-filter-paid-btn" onclick="setJobRecordsFilter('paid')">Paid</button>
+            <button class="owner-mini-btn" id="job-records-filter-unpaid-btn" onclick="setJobRecordsFilter('unpaid')">Unpaid</button>
             <button class="owner-mini-btn" id="job-records-filter-saved_for_later-btn" onclick="setJobRecordsFilter('saved_for_later')">Saved For Later</button>
             <button class="owner-mini-btn" id="job-records-filter-cancelled-btn" onclick="setJobRecordsFilter('cancelled')">Cancelled</button>
             <button class="owner-mini-btn" id="job-records-filter-archived-btn" onclick="setJobRecordsFilter('archived')">Archived</button>
@@ -3282,6 +3407,7 @@
       <div class="form-group"><label>Start Date</label><input type="date" id="ag-start"></div>
       <div class="form-group"><label>Next Due Date</label><input type="date" id="ag-next-due"></div>
     </div>
+    <div class="form-group"><label>Preferred Time Slot</label><input type="time" id="ag-due-time"><div style="font-size:11px;color:#737475;margin-top:4px">Optional. Use this for recurring service windows tied to the next due date.</div></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeAgreementModal()">Cancel</button>
       <button class="btn-save" id="ag-modal-save" onclick="saveAgreement()">Add Agreement</button>
@@ -3301,11 +3427,14 @@
               <button class="dispatch-segment" id="livemap-rail-punches-btn" onclick="setLiveMapRail('punches')">Punches</button>
               <button class="dispatch-segment" id="livemap-rail-jobs-btn" onclick="setLiveMapRail('jobs')">Jobs</button>
             </div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div class="dispatch-map-actions">
               <label style="font-size:11px;color:#64748b;display:flex;align-items:center;gap:6px;font-weight:700">
                 Date
                 <input type="date" id="livemap-date" style="font-size:13px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px">
               </label>
+              <button class="dispatch-map-pill primary" id="livemap-load-google-btn" onclick="loadLiveGoogleMap()" title="Load Google Maps only when you need the interactive map">
+                <i data-lucide="map"></i><span id="livemap-load-google-label">Load Google Maps</span>
+              </button>
               <button class="owner-mini-btn" onclick="refreshLiveMap()">Refresh</button>
               <button class="owner-mini-btn" onclick="geocodeAllJobs()" title="Geocode any jobs that don't have coordinates yet">Geocode jobs</button>
             </div>
@@ -3316,6 +3445,26 @@
         </div>
 
         <aside class="dispatch-rail">
+          <section class="dispatch-rail-summary">
+            <div class="console-kicker">Dispatch Center</div>
+            <div class="console-title">Map center</div>
+            <div class="console-sub" id="livemap-center-label">Browser location when available.</div>
+            <div class="console-sub" id="livemap-center-coords" style="font-family:ui-monospace,Menlo,monospace;margin-top:4px">--</div>
+            <div class="dispatch-summary-grid">
+              <div class="dispatch-summary-cell">
+                <div class="console-kicker">Active crew</div>
+                <strong id="livemap-summary-crew">0</strong>
+              </div>
+              <div class="dispatch-summary-cell">
+                <div class="console-kicker">Mapped jobs</div>
+                <strong id="livemap-summary-jobs">0</strong>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px">
+              <button class="owner-mini-btn" onclick="useBrowserLiveMapCenter()">Use browser location</button>
+              <span id="livemap-location-status" style="font-size:11px;color:#64748b"></span>
+            </div>
+          </section>
           <section class="dispatch-rail-section active" id="livemap-rail-crew">
             <div class="console-kicker">Active crew</div>
             <div class="console-title">On the map <span id="livemap-crew-count" style="font-size:12px;color:var(--muted);font-weight:800;margin-left:6px">0</span></div>
@@ -3535,15 +3684,24 @@
     <div class="owner-page-shell">
       <div class="schedule-toolbar">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <button class="owner-mini-btn" onclick="calGoToday()">Today</button>
-          <button class="owner-mini-btn" onclick="calWeekOffset(-1)">Prev</button>
-          <button class="owner-mini-btn" onclick="calWeekOffset(1)">Next</button>
+          <button class="owner-mini-btn" onclick="calFiveDayToday()">Today</button>
+          <button class="owner-mini-btn" onclick="calFiveDayOffset(-1)">Prev</button>
+          <button class="owner-mini-btn" onclick="calFiveDayOffset(1)">Next</button>
           <button class="owner-btn primary" onclick="openApptModal()" style="padding:6px 14px;font-size:12px">+ Add Appointment</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;background:#fff;border:1px solid #e8eef3;border-radius:10px;padding:8px 14px">
             <i data-lucide="bell" style="width:14px;height:14px;color:#64748b"></i>
-            <label for="set-appt-reminder" style="font-size:12px;font-weight:600;color:#475569;white-space:nowrap">Email me</label>
+            <label for="set-appt-reminder" style="font-size:12px;font-weight:600;color:#475569;white-space:nowrap">Remind me</label>
+            <select id="set-appt-reminder-channel" onchange="saveApptReminder()"
+              style="background:transparent;border:none;padding:6px 4px;font-size:13px;font-weight:700;color:#17191c;cursor:pointer;font-family:inherit;appearance:menulist">
+              <option value="email">Email</option>
+              <option value="app">App push</option>
+              <option value="sms">Text</option>
+              <option value="email_app">Email + app</option>
+              <option value="email_sms">Email + text</option>
+              <option value="all">Email + app + text</option>
+            </select>
             <select id="set-appt-reminder" onchange="saveApptReminder()"
               style="background:transparent;border:none;padding:6px 4px;font-size:13px;font-weight:700;color:#17191c;cursor:pointer;font-family:inherit;appearance:menulist">
               <option value="0">Never</option>
@@ -3590,6 +3748,11 @@
                 <div class="console-kicker">4-week planner</div>
                 <div class="console-title" id="cal-week-label">—</div>
               </div>
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                <button class="owner-mini-btn" onclick="calGoToday()">Today</button>
+                <button class="owner-mini-btn" onclick="calWeekOffset(-1)">Prev</button>
+                <button class="owner-mini-btn" onclick="calWeekOffset(1)">Next</button>
+              </div>
             </div>
             <div class="mobile-scroll-hint">← Swipe to scroll weeks →</div>
             <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px"></div>
@@ -3603,7 +3766,6 @@
                 <div class="console-kicker">Unscheduled</div>
                 <div class="console-title">Ready to place</div>
               </div>
-              <button class="owner-mini-btn" onclick="switchMainTab('quotes')">Open Estimates</button>
             </div>
             <div id="calendar-unscheduled-list" class="workspace-list"><div class="empty"><div class="e-icon">📆</div>Loading schedule...</div></div>
           </section>
@@ -3633,15 +3795,15 @@
               </div>
             </div>
             <div style="display:flex;align-items:stretch;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px">
-              <div style="flex:1;padding:10px 14px;border-right:1px solid var(--border)">
+              <div onclick="openTeamAvailability('active')" title="View active team members" style="flex:1;padding:10px 14px;border-right:1px solid var(--border);cursor:pointer">
                 <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted)">Active</div>
                 <div id="cal-team-active-count" style="font-size:20px;font-weight:900;color:#15803d;margin-top:3px;letter-spacing:-0.02em">—</div>
               </div>
-              <div style="flex:1;padding:10px 14px;border-right:1px solid var(--border)">
+              <div onclick="openTeamAvailability('vacation')" title="View team members on vacation" style="flex:1;padding:10px 14px;border-right:1px solid var(--border);cursor:pointer">
                 <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted)">Vacation</div>
                 <div id="cal-team-vacation-count" style="font-size:20px;font-weight:900;color:#b45309;margin-top:3px;letter-spacing:-0.02em">—</div>
               </div>
-              <div style="flex:1;padding:10px 14px">
+              <div onclick="openTeamAvailability('suspended')" title="View suspended team members" style="flex:1;padding:10px 14px;cursor:pointer">
                 <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted)">Suspended</div>
                 <div id="cal-team-suspended-count" style="font-size:20px;font-weight:900;color:#b91c1c;margin-top:3px;letter-spacing:-0.02em">—</div>
               </div>
@@ -3769,10 +3931,10 @@
     </div>
 
     <div class="owner-kpi-grid">
-      <div class="owner-kpi-card">
+      <div class="owner-kpi-card" onclick="openPlanUpgradeCheckout()" style="cursor:pointer" title="Upgrade or manage your subscription">
         <div class="owner-kpi-label">Current Plan</div>
         <div class="owner-kpi-value" id="settings-plan-card">—</div>
-        <div class="owner-kpi-meta">Active subscription tier for this owner account.</div>
+        <div class="owner-kpi-meta">Active subscription tier for this owner account. <strong style="color:#0265dc">Upgrade →</strong></div>
       </div>
       <div class="owner-kpi-card">
         <div class="owner-kpi-label">Voice Bot</div>
@@ -3963,7 +4125,10 @@
     <div data-owner-settings style="background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:28px;margin-top:20px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px">
         <div style="font-size:15px;font-weight:700;color:#17191c">Plan Usage</div>
-        <a href="/pricing" style="font-size:12px;font-weight:700;color:#0265dc;text-decoration:none">View Plans</a>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button class="lc-btn sm" onclick="openPlanUpgradeCheckout()"><i data-lucide="arrow-up-right"></i> Upgrade Plan</button>
+          <button class="lc-btn sm" onclick="openBillingPortal()"><i data-lucide="credit-card"></i> Manage Billing</button>
+        </div>
       </div>
       <div style="font-size:13px;color:#737475;margin-bottom:20px">See how many crew seats are included in your plan, how many are in use, and how much room is left before you need to upgrade or add extra users.</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
@@ -4089,10 +4254,27 @@
           <div style="font-size:13px;font-weight:700;color:#17191c;margin-bottom:4px">Running a larger fleet?</div>
           <div style="font-size:12px;color:#64748b;line-height:1.6">Teams of <strong>20+ users</strong> qualify for volume discounts, priority support, and custom onboarding. We'll put together a quote tailored to your crew size and use case.</div>
         </div>
-        <a href="mailto:sales@linkcrew.io?subject=Custom%20quote%20for%20larger%20team&body=Hi%20LinkCrew%20team%2C%0A%0AI'd%20like%20a%20custom%20quote%20for%20my%20organization.%0A%0ACompany%20name%3A%0ACurrent%20team%20size%3A%0AExpected%20seats%20needed%3A%0AIndustry%2Ftrade%3A%0A%0AThanks%21"
-          style="background:#0265dc;color:#fff;text-decoration:none;border-radius:7px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap">
+        <button onclick="openSalesContact()"
+          style="background:#0265dc;color:#fff;border:none;text-decoration:none;border-radius:7px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer">
           Contact Sales →
-        </a>
+        </button>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="sales-contact-modal">
+      <div class="modal" style="width:min(520px,92vw)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <h3 style="margin:0">Contact Sales</h3>
+          <button class="btn-cancel" onclick="closeSalesContact()" style="padding:4px 10px">✕</button>
+        </div>
+        <div style="font-size:13px;color:#737475;line-height:1.7;margin-bottom:16px">Use your preferred email option, or copy the address and paste it into any webmail account.</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <a id="sales-mailto-link" class="lc-btn primary" style="justify-content:center;text-decoration:none" href="#">Open email app</a>
+          <a id="sales-gmail-link" class="lc-btn" style="justify-content:center;text-decoration:none" target="_blank" rel="noopener" href="#">Open Gmail</a>
+          <a id="sales-outlook-link" class="lc-btn" style="justify-content:center;text-decoration:none" target="_blank" rel="noopener" href="#">Open Outlook</a>
+          <button class="lc-btn" onclick="copySalesEmail()" style="justify-content:center">Copy sales@linkcrew.io</button>
+        </div>
+        <div id="sales-contact-status" style="font-size:12px;color:#64748b;margin-top:12px"></div>
       </div>
     </div>
 
@@ -4335,6 +4517,10 @@
     </div>
     <div class="form-group"><label>Job Name</label><input type="text" id="new-job-name" placeholder="e.g. Downtown Office Renovation"></div>
     <div class="form-group"><label>Address</label><input type="text" id="new-job-address" placeholder="e.g. 123 Main St, Miami FL"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>Date</label><input type="date" id="new-job-scheduled-date"></div>
+      <div class="form-group"><label>Time</label><input type="time" id="new-job-scheduled-time"></div>
+    </div>
     <div class="form-group"><label>Scope of Work / Description</label><textarea id="new-job-desc" placeholder="Describe the work to be done, materials, timeline..." rows="3" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:6px;padding:8px 10px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit"></textarea></div>
     <div class="form-group" id="new-job-estimate-wrap"><label>Estimate Amount</label>
       <input type="text" inputmode="decimal" id="new-job-estimate" placeholder="$0.00"
@@ -4519,6 +4705,10 @@ document.addEventListener('click', event => {
   const trigger = document.querySelector('.sidebar-quick-launch');
   if (panel?.contains(event.target) || trigger?.contains(event.target)) return;
   closeQuickLaunchPanel();
+});
+window.addEventListener('popstate', () => {
+  if (!dashboardHistoryReady) return;
+  switchMainTab(getTabFromLocationHash() || 'dashboard', false);
 });
 
 // ── Auth state ────────────────────────────────────────────────────────────────
@@ -4843,11 +5033,10 @@ async function loadBillingStatus() {
 
     // Show Upgrade button in header during trial
     if (data.subscription_status === 'trialing') {
-      const btn = document.createElement('a');
+      const btn = document.createElement('button');
       btn.className = 'hdr-btn accent';
       btn.textContent = 'Upgrade';
-      btn.href = '/pricing';
-      btn.style.textDecoration = 'none';
+      btn.onclick = openPlanUpgradeCheckout;
       document.querySelector('.header-right').insertBefore(btn, document.querySelector('.header-right').firstChild);
     }
 
@@ -4896,7 +5085,7 @@ function updateSettingsUsageCard() {
   const copyEl = document.getElementById('settings-usage-copy');
   const seatsLeft = Math.max(0, (currentMaxUsers || 0) - (currentEmployeeCount || 0));
   const baseSeats = Math.max(0, (currentMaxUsers || 0) - (currentExtraUsers || 0));
-  planEl.textContent = String(currentPlan || 'beta').toUpperCase();
+  planEl.textContent = formatPlanLabel(currentPlan || 'beta');
   maxEl.textContent = currentMaxUsers || 0;
   currentEl.textContent = currentEmployeeCount || 0;
   leftEl.textContent = seatsLeft;
@@ -4904,6 +5093,40 @@ function updateSettingsUsageCard() {
   copyEl.textContent = currentExtraUsers > 0
     ? `${baseSeats} seat${baseSeats === 1 ? '' : 's'} come from your plan and ${currentExtraUsers} from extra users. ${seatsLeft} seat${seatsLeft === 1 ? '' : 's'} remaining right now.`
     : `${seatsLeft} seat${seatsLeft === 1 ? '' : 's'} remaining on your current plan before you need extra users or an upgrade.`;
+}
+
+function formatPlanLabel(plan) {
+  const labels = { free: 'Free', crew: 'Crew', solo: 'Crew', team: 'Team', pro: 'Pro', business: 'Pro', beta: 'Beta' };
+  return labels[String(plan || '').toLowerCase()] || String(plan || 'Beta').toUpperCase();
+}
+
+function getNextUpgradePlan() {
+  const plan = String(currentPlan || 'free').toLowerCase();
+  if (plan === 'free' || plan === 'crew' || plan === 'solo') return 'team';
+  if (plan === 'team') return 'pro';
+  if (plan === 'business' || plan === 'pro') return null;
+  return 'team';
+}
+
+async function startPlanCheckout(plan) {
+  if (!plan) return openBillingPortal();
+  try {
+    const res = await authFetch('/api/billing/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ plan }),
+    });
+    const json = await res.json();
+    if (!res.ok) return alert('Error: ' + (json.error || 'Could not start checkout.'));
+    location.href = json.url;
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+function openPlanUpgradeCheckout() {
+  const targetPlan = getNextUpgradePlan();
+  if (!targetPlan) return openBillingPortal();
+  startPlanCheckout(targetPlan);
 }
 
 function showLockout(data) {
@@ -4971,6 +5194,41 @@ function updateExtraUsersPrice() {
   const qty = parseInt(document.getElementById('extra-users-qty')?.value) || 1;
   const priceEl = document.getElementById('extra-users-price');
   if (priceEl) priceEl.textContent = (qty * 29).toLocaleString();
+}
+
+const SALES_EMAIL = 'sales@linkcrew.io';
+const SALES_SUBJECT = 'Custom quote for larger team';
+const SALES_BODY = `Hi LinkCrew team,\n\nI'd like a custom quote for my organization.\n\nCompany name:\nCurrent team size:\nExpected seats needed:\nIndustry/trade:\n\nThanks!`;
+
+function openSalesContact() {
+  const modal = document.getElementById('sales-contact-modal');
+  const subject = encodeURIComponent(SALES_SUBJECT);
+  const body = encodeURIComponent(SALES_BODY);
+  const mailto = `mailto:${SALES_EMAIL}?subject=${subject}&body=${body}`;
+  const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(SALES_EMAIL)}&su=${subject}&body=${body}`;
+  const outlook = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(SALES_EMAIL)}&subject=${subject}&body=${body}`;
+  const mailtoLink = document.getElementById('sales-mailto-link');
+  const gmailLink = document.getElementById('sales-gmail-link');
+  const outlookLink = document.getElementById('sales-outlook-link');
+  if (mailtoLink) mailtoLink.href = mailto;
+  if (gmailLink) gmailLink.href = gmail;
+  if (outlookLink) outlookLink.href = outlook;
+  setText('sales-contact-status', SALES_EMAIL);
+  if (modal) modal.classList.add('visible');
+}
+
+function closeSalesContact() {
+  const modal = document.getElementById('sales-contact-modal');
+  if (modal) modal.classList.remove('visible');
+}
+
+async function copySalesEmail() {
+  try {
+    await navigator.clipboard.writeText(SALES_EMAIL);
+    setText('sales-contact-status', `Copied ${SALES_EMAIL}`);
+  } catch (_) {
+    setText('sales-contact-status', SALES_EMAIL);
+  }
 }
 
 function switchAuthTab(tab) {
@@ -5342,6 +5600,7 @@ let allJobsData = [], allAssignmentsData = [], allSuppliesData = [], allUpdatesD
 let ownerTwilioConfigured = false;
 let recentOutcomeRangeDays = 7;
 let jobsRecordsFilter = 'all';
+let dashboardHistoryReady = false;
 const jobInvoiceUiState = {};
 const clientInvoiceUiState = {};
 const DASHBOARD_STATE_KEY = 'lc_owner_dashboard_state_v1';
@@ -5488,7 +5747,7 @@ function writeDashboardState(patch) {
 
 function getTabFromLocationHash() {
   const raw = window.location.hash.replace(/^#/, '').trim();
-  const allowed = new Set(['jobs','jobs-records','team','clients','reports','agreements','calendar','timesheets','settings','ideas']);
+  const allowed = new Set(['dashboard','requests','quotes','jobs','jobs-records','team','clients','invoices','expenses','reports','agreements','calendar','timesheets','settings','referrals','service-catalog','service-pro','livemap']);
   return allowed.has(raw) ? raw : null;
 }
 
@@ -5497,14 +5756,16 @@ async function init() {
   if (!supabaseClient) supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
   const state = readDashboardState();
   recentOutcomeRangeDays = Number.isFinite(state.recentOutcomeRangeDays) ? Number(state.recentOutcomeRangeDays) : 7;
-  jobsRecordsFilter = ['all','completed','saved_for_later','cancelled','archived'].includes(state.jobsRecordsFilter) ? state.jobsRecordsFilter : 'all';
+  jobsRecordsFilter = ['all','completed','paid','unpaid','saved_for_later','cancelled','archived'].includes(state.jobsRecordsFilter) ? state.jobsRecordsFilter : 'all';
   await Promise.all([loadDashboard(), loadSupplies(), loadPhotos(), loadOnboardingBanner(), loadClients(), loadAllEmployees(), loadNotificationCapabilities()]);
   if (state.calendarWeekStart) calWeekStart = new Date(state.calendarWeekStart);
   if (state.calendarSelectedDate) calSelectedDate = state.calendarSelectedDate;
+  if (state.calendarFiveDayStart) calFiveDayStart = new Date(state.calendarFiveDayStart);
   const accessibleTabs = getAccessibleTabs();
   const requestedTab = getTabFromLocationHash() || state.mainTab || 'dashboard';
   const restoredTab = accessibleTabs.includes(requestedTab) ? requestedTab : (accessibleTabs[0] || 'dashboard');
-  switchMainTab(restoredTab);
+  switchMainTab(restoredTab, false);
+  dashboardHistoryReady = true;
   if (restoredTab === 'clients') {
     const requestedClientsSubtab = state.clientsSubtab || 'all';
     switchClientsTab(requestedClientsSubtab === 'recurring' && !canViewFinancials() ? 'all' : requestedClientsSubtab);
@@ -5758,7 +6019,7 @@ function updateJobsAttention(activeCount, crewCount, supplyCount, bottleneckCoun
 }
 
 function updateJobRecordsFilterUI() {
-  ['all','completed','saved_for_later','cancelled','archived'].forEach((filter) => {
+  ['all','completed','paid','unpaid','saved_for_later','cancelled','archived'].forEach((filter) => {
     const btn = document.getElementById(`job-records-filter-${filter}-btn`);
     if (!btn) return;
     btn.style.background = '';
@@ -5769,13 +6030,17 @@ function updateJobRecordsFilterUI() {
   const headlineMap = {
     all: 'All non-active jobs',
     completed: 'Completed jobs',
+    paid: 'Paid jobs',
+    unpaid: 'Unpaid jobs',
     saved_for_later: 'Saved for later',
     cancelled: 'Cancelled jobs',
     archived: 'Archived jobs',
   };
   const copyMap = {
     all: 'Choose a lifecycle bucket to review finished, deferred, cancelled, or archived work without cluttering the live operations board.',
-    completed: 'Use this view for finished work, invoice follow-up, callbacks, and closeout review.',
+    completed: 'Finished work, invoiced jobs, and paid jobs that need closeout review.',
+    paid: 'Jobs with invoices already marked paid.',
+    unpaid: 'Jobs with invoice amounts still awaiting payment.',
     saved_for_later: 'Deferred jobs stay visible here until they are ready to reopen and move back into scheduling.',
     cancelled: 'Cancelled jobs remain searchable here without cluttering active operations.',
     archived: 'Archived jobs are preserved for records and client history, but hidden from daily workflows.',
@@ -5785,7 +6050,7 @@ function updateJobRecordsFilterUI() {
 }
 
 function setJobRecordsFilter(filter) {
-  jobsRecordsFilter = ['completed','saved_for_later','cancelled','archived'].includes(filter) ? filter : 'all';
+  jobsRecordsFilter = ['completed','paid','unpaid','saved_for_later','cancelled','archived'].includes(filter) ? filter : 'all';
   writeDashboardState({ jobsRecordsFilter });
   updateJobRecordsFilterUI();
   renderJobRecords(allJobsData || []);
@@ -6012,10 +6277,19 @@ function renderJobRecords(jobs = []) {
   if (!list) return;
   const records = (jobs || [])
     .filter(isJobRecord)
-    .filter(job => jobsRecordsFilter === 'all' ? true : normalizeJobStatus(job.status) === jobsRecordsFilter)
+    .filter(job => {
+      const status = normalizeJobStatus(job.status);
+      const paymentStatus = String(job.payment_status || '').toLowerCase();
+      const hasInvoice = parseFloat(job.invoice_amount || 0) > 0;
+      if (jobsRecordsFilter === 'all') return true;
+      if (jobsRecordsFilter === 'completed') return ['completed', 'invoiced'].includes(status) || paymentStatus === 'paid';
+      if (jobsRecordsFilter === 'paid') return paymentStatus === 'paid';
+      if (jobsRecordsFilter === 'unpaid') return hasInvoice && paymentStatus !== 'paid';
+      return status === jobsRecordsFilter;
+    })
     .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
 
-  const completedCount = (jobs || []).filter(job => normalizeJobStatus(job.status) === 'completed').length;
+  const completedCount = (jobs || []).filter(job => ['completed', 'invoiced'].includes(normalizeJobStatus(job.status)) || String(job.payment_status || '').toLowerCase() === 'paid').length;
   const savedCount = (jobs || []).filter(job => normalizeJobStatus(job.status) === 'saved_for_later').length;
   const cancelledCount = (jobs || []).filter(job => normalizeJobStatus(job.status) === 'cancelled').length;
   const archivedCount = (jobs || []).filter(job => normalizeJobStatus(job.status) === 'archived').length;
@@ -6059,7 +6333,11 @@ function renderRecentOutcomes(jobs = []) {
   if (!list) return;
   const now = Date.now();
   const outcomes = (jobs || [])
-    .filter(job => ['completed', 'invoiced', 'archived'].includes(normalizeJobStatus(job?.status)) || String(job?.payment_status || '').toLowerCase() === 'paid')
+    .filter(job => {
+      const status = normalizeJobStatus(job?.status);
+      const paid = String(job?.payment_status || '').toLowerCase() === 'paid';
+      return !paid && ['completed', 'invoiced'].includes(status) && Number(job?.invoice_amount || job?.estimate_amount || 0) > 0;
+    })
     .filter(job => {
       if (!recentOutcomeRangeDays) return true;
       const ts = new Date(job.updated_at || job.created_at || 0).getTime();
@@ -6069,7 +6347,7 @@ function renderRecentOutcomes(jobs = []) {
     .slice(0, 8);
 
   if (!outcomes.length) {
-    list.innerHTML = '<div class="empty"><div class="e-icon">✅</div>No completed or paid jobs in this range</div>';
+    list.innerHTML = '<div class="empty"><div class="e-icon">✅</div>No unpaid completed jobs in this range</div>';
     return;
   }
 
@@ -6098,6 +6376,8 @@ let _liveMapRequested = false;
 let _liveMapRefreshTimer = null;
 let _liveMapHomeCenter = { lat: 37.0849, lng: -121.6102 };
 let _liveMapHomeLabel = 'San Martin, CA';
+let _liveMapHasBrowserCenter = false;
+let _liveBrowserLocationAttempted = false;
 let _liveMapConfig = null;
 let _liveMapSnapshot = { crew: [], markers: [], jobs: [] };
 
@@ -6126,6 +6406,8 @@ async function initLiveMap() {
     dateEl._bound = true;
   }
   if (_liveMapConfig) {
+    primeLiveMapBrowserCenter();
+    syncLiveMapControls();
     renderLiveMapPlaceholder();
     await refreshLiveMap();
     return;
@@ -6140,6 +6422,8 @@ async function initLiveMap() {
   const fallback = normalizeLiveMapCenter(_liveMapConfig?.fallback_center) || _liveMapHomeCenter;
   _liveMapHomeCenter = fallback;
   _liveMapHomeLabel = _liveMapConfig?.tenant_address || _liveMapConfig?.fallback_label || 'San Martin, CA';
+  primeLiveMapBrowserCenter();
+  syncLiveMapControls();
   renderLiveMapPlaceholder();
   await refreshLiveMap();
 }
@@ -6148,15 +6432,10 @@ async function loadLiveGoogleMap() {
   const canvas = document.getElementById('livemap-canvas');
   const apiKey = _liveMapConfig?.api_key;
   _liveMapRequested = true;
+  syncLiveMapControls('loading');
   if (!apiKey) {
-    if (canvas) {
-      canvas.innerHTML = `<div style="text-align:center;padding:40px;color:#94a3b8">
-        <div style="font-weight:800;color:#334155">Maps key unavailable</div>
-        <div style="margin-top:6px;font-size:12px;max-width:360px;margin-left:auto;margin-right:auto;line-height:1.5">
-          Add a Google Maps key, then reload this view.
-        </div>
-      </div>`;
-    }
+    setLiveMapStatus('Maps key unavailable.');
+    syncLiveMapControls();
     return;
   }
   if (canvas) {
@@ -6166,12 +6445,8 @@ async function loadLiveGoogleMap() {
     await loadGoogleMapsScript(apiKey);
   } catch (e) {
     if (canvas) canvas.innerHTML = `<div style="padding:40px;color:#991b1b">Failed to load Google Maps script. ${esc(e?.message || '')}</div>`;
+    syncLiveMapControls();
     return;
-  }
-  const tenantCenter = await geocodeLiveMapHome(_liveMapConfig?.tenant_address);
-  if (tenantCenter) {
-    _liveMapHomeCenter = tenantCenter;
-    _liveMapHomeLabel = _liveMapConfig?.tenant_name || _liveMapConfig?.tenant_address || _liveMapHomeLabel;
   }
   if (canvas) canvas.innerHTML = '';
   _liveMap = new google.maps.Map(canvas, {
@@ -6181,6 +6456,8 @@ async function loadLiveGoogleMap() {
     fullscreenControl: true,
     streetViewControl: false,
   });
+  syncLiveMapControls();
+  updateLiveMapCenterUI();
   await refreshLiveMap();
   if (_liveMapRefreshTimer) clearInterval(_liveMapRefreshTimer);
   _liveMapRefreshTimer = setInterval(() => {
@@ -6195,48 +6472,96 @@ function renderLiveMapPlaceholder() {
   const c = _liveMapHomeCenter || {};
   const jobs = _liveMapSnapshot.jobs.filter(j => j.lat != null && j.lng != null).length;
   const crew = _liveMapSnapshot.crew.filter(c => c.active).length;
+  updateLiveMapSummary(_liveMapSnapshot.crew, _liveMapSnapshot.jobs);
+  updateLiveMapCenterUI();
   canvas.innerHTML = `
-    <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:24px">
-      <div style="width:min(520px,100%);border:1px solid #dbe4ef;border-radius:8px;background:#fff;box-shadow:0 18px 38px rgba(15,23,42,0.08);overflow:hidden">
-        <div style="height:170px;position:relative;background:#eef6fb">
-          <div style="position:absolute;inset:0;background-image:linear-gradient(90deg,rgba(37,99,235,0.08) 1px,transparent 1px),linear-gradient(0deg,rgba(37,99,235,0.08) 1px,transparent 1px);background-size:34px 34px"></div>
-          <div style="position:absolute;left:50%;top:50%;width:18px;height:18px;border-radius:50%;background:#2563eb;border:3px solid #fff;box-shadow:0 8px 18px rgba(37,99,235,0.35);transform:translate(-50%,-50%)"></div>
-          <div style="position:absolute;right:14px;bottom:12px;font-size:11px;font-weight:800;color:#64748b;background:rgba(255,255,255,0.86);border:1px solid #dbe4ef;border-radius:999px;padding:5px 9px">${esc(_liveMapHomeLabel)}</div>
-        </div>
-        <div style="padding:18px 20px;display:grid;gap:14px">
-          <div>
-            <div class="console-kicker">Dispatch Center</div>
-            <div class="console-title">Map ready</div>
-            <div class="console-sub">Current center: ${Number(c.lat || 0).toFixed(4)}, ${Number(c.lng || 0).toFixed(4)}.</div>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
-            <div style="padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc"><div class="console-kicker">Active crew</div><div style="font-size:22px;font-weight:900;color:#0f172a">${crew}</div></div>
-            <div style="padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc"><div class="console-kicker">Mapped jobs</div><div style="font-size:22px;font-weight:900;color:#0f172a">${jobs}</div></div>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="owner-btn primary" onclick="loadLiveGoogleMap()">Load Google Map</button>
-            <button class="owner-mini-btn" onclick="useBrowserLiveMapCenter()">Use browser location</button>
-          </div>
-        </div>
-      </div>
+    <div style="width:100%;height:100%;position:relative;background:#eef6fb;overflow:hidden">
+      <div style="position:absolute;inset:0;background-image:linear-gradient(90deg,rgba(37,99,235,0.08) 1px,transparent 1px),linear-gradient(0deg,rgba(37,99,235,0.08) 1px,transparent 1px);background-size:34px 34px"></div>
+      <div style="position:absolute;left:50%;top:50%;width:18px;height:18px;border-radius:50%;background:#2563eb;border:3px solid #fff;box-shadow:0 8px 18px rgba(37,99,235,0.35);transform:translate(-50%,-50%)"></div>
+      <div style="position:absolute;left:50%;top:calc(50% + 18px);transform:translateX(-50%);font-size:11px;font-weight:800;color:#64748b;background:rgba(255,255,255,0.88);border:1px solid #dbe4ef;border-radius:999px;padding:5px 9px;white-space:nowrap">${esc(_liveMapHomeLabel)}</div>
+      <div style="position:absolute;right:14px;top:14px;font-size:11px;font-weight:800;color:#64748b;background:rgba(255,255,255,0.88);border:1px solid #dbe4ef;border-radius:999px;padding:5px 9px">Preview · ${crew} crew · ${jobs} jobs</div>
+      <div style="position:absolute;left:14px;bottom:14px;font-size:11px;color:#64748b;background:rgba(255,255,255,0.88);border:1px solid #dbe4ef;border-radius:999px;padding:5px 9px;font-family:ui-monospace,Menlo,monospace">${Number(c.lat || 0).toFixed(4)}, ${Number(c.lng || 0).toFixed(4)}</div>
     </div>`;
+}
+
+function setLiveMapStatus(text) {
+  const el = document.getElementById('livemap-location-status');
+  if (el) el.textContent = text || '';
+}
+
+function updateLiveMapCenterUI() {
+  const c = _liveMapHomeCenter || {};
+  const labelEl = document.getElementById('livemap-center-label');
+  const coordsEl = document.getElementById('livemap-center-coords');
+  if (labelEl) labelEl.textContent = _liveMapHomeLabel || 'Browser location when available.';
+  if (coordsEl) coordsEl.textContent = Number.isFinite(Number(c.lat)) && Number.isFinite(Number(c.lng))
+    ? `${Number(c.lat).toFixed(5)}, ${Number(c.lng).toFixed(5)}`
+    : '--';
+}
+
+function updateLiveMapSummary(crew = [], jobs = []) {
+  const crewEl = document.getElementById('livemap-summary-crew');
+  const jobsEl = document.getElementById('livemap-summary-jobs');
+  if (crewEl) crewEl.textContent = crew.filter(c => c.active).length;
+  if (jobsEl) jobsEl.textContent = jobs.filter(j => j.lat != null && j.lng != null).length;
+}
+
+function syncLiveMapControls(state = '') {
+  const btn = document.getElementById('livemap-load-google-btn');
+  const label = document.getElementById('livemap-load-google-label');
+  if (!btn || !label) return;
+  if (_liveMap) {
+    btn.disabled = true;
+    label.textContent = 'Google Maps loaded';
+  } else if (_liveMapConfig && !_liveMapConfig.api_key) {
+    btn.disabled = true;
+    label.textContent = 'Maps key unavailable';
+  } else if (state === 'loading') {
+    btn.disabled = true;
+    label.textContent = 'Loading map...';
+  } else {
+    btn.disabled = false;
+    label.textContent = 'Load Google Maps';
+  }
+}
+
+function applyLiveMapBrowserCenter(position, label = 'Browser location') {
+  _liveMapHomeCenter = { lat: position.coords.latitude, lng: position.coords.longitude };
+  _liveMapHomeLabel = label;
+  _liveMapHasBrowserCenter = true;
+  updateLiveMapCenterUI();
+  setLiveMapStatus('Using browser location.');
+  if (_liveMap) {
+    _liveMap.setCenter(_liveMapHomeCenter);
+    _liveMap.setZoom(12);
+  } else {
+    renderLiveMapPlaceholder();
+  }
+}
+
+function primeLiveMapBrowserCenter() {
+  if (_liveBrowserLocationAttempted || _liveMapHasBrowserCenter || !navigator.geolocation) return;
+  _liveBrowserLocationAttempted = true;
+  setLiveMapStatus('Locating...');
+  navigator.geolocation.getCurrentPosition(
+    pos => applyLiveMapBrowserCenter(pos),
+    () => {
+      setLiveMapStatus('Using fallback center.');
+      updateLiveMapCenterUI();
+    },
+    { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
+  );
 }
 
 function useBrowserLiveMapCenter() {
   if (!navigator.geolocation) {
-    alert('Browser location is not available.');
+    setLiveMapStatus('Browser location is not available.');
     return;
   }
+  setLiveMapStatus('Locating...');
   navigator.geolocation.getCurrentPosition(pos => {
-    _liveMapHomeCenter = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-    _liveMapHomeLabel = 'Browser location';
-    if (_liveMap) {
-      _liveMap.setCenter(_liveMapHomeCenter);
-      _liveMap.setZoom(12);
-    } else {
-      renderLiveMapPlaceholder();
-    }
-  }, () => alert('Could not read browser location.'));
+    applyLiveMapBrowserCenter(pos);
+  }, () => setLiveMapStatus('Could not read browser location.'), { enableHighAccuracy: false, timeout: 8000, maximumAge: 0 });
 }
 
 function normalizeLiveMapCenter(center) {
@@ -6396,6 +6721,8 @@ async function refreshLiveMap() {
 }
 
 function renderLiveMapLists(crew = [], markers = [], jobs = []) {
+  updateLiveMapSummary(crew, jobs);
+  updateLiveMapCenterUI();
   const crewList = document.getElementById('livemap-crew-list');
   const crewCnt = document.getElementById('livemap-crew-count');
   if (crewCnt) crewCnt.textContent = crew.filter(c => c.active).length;
@@ -6755,6 +7082,9 @@ function renderJobAttachments(jobId, containerId) {
           </label>
         </span>
       </div>
+      <div style="margin-top:8px;padding:9px 11px;border:1px solid #dbeafe;background:#eff6ff;border-radius:8px;font-size:12px;color:#1e40af;line-height:1.45">
+        Plans and crew acknowledgements are internal only. Clients cannot view these files or ack status from the work order / estimate link.
+      </div>
       <div style="margin-top:8px">
         ${empty || rows}
       </div>
@@ -6887,7 +7217,11 @@ function renderDashboardOverview(jobs = []) {
   const activeJobs = (jobs || []).filter(isActiveJob);
   const requests = (jobs || []).filter(isPortalRequestJob);
   const quotes = (jobs || []).filter(job => normalizeJobStatus(job?.status) === 'quoted');
-  const invoiceJobs = (jobs || []).filter(job => normalizeJobStatus(job?.status) === 'completed' || normalizeJobStatus(job?.status) === 'invoiced' || String(job?.payment_status || '').toLowerCase() === 'paid');
+  const invoiceJobs = (jobs || []).filter(job => {
+    const status = normalizeJobStatus(job?.status);
+    const paid = String(job?.payment_status || '').toLowerCase() === 'paid';
+    return !paid && (status === 'completed' || status === 'invoiced') && Number(job?.invoice_amount || job?.estimate_amount || 0) > 0;
+  });
 
   setText('dashboard-active-count', activeJobs.length);
   setText('dashboard-request-count', requests.length);
@@ -7024,27 +7358,33 @@ function renderQuotesWorkspace(jobs = []) {
 function renderScheduleWorkspace(jobs = []) {
   const schedulable = (jobs || []).filter(job => ['quoted', 'scheduled', 'active', 'in_progress'].includes(normalizeJobStatus(job?.status)));
   const scheduled = schedulable.filter(job => ['scheduled', 'active', 'in_progress'].includes(normalizeJobStatus(job?.status)));
-  const unslotted = schedulable.filter(job => normalizeJobStatus(job?.status) === 'quoted');
+  const readyToPlace = schedulable.filter(job => {
+    const status = normalizeJobStatus(job?.status);
+    return !job?.scheduled_date && status === 'quoted';
+  });
+  const unslotted = readyToPlace;
   const summary = document.getElementById('schedule-summary-grid');
   if (summary) summary.innerHTML = `
     <div class="workspace-summary-card"><div class="workspace-summary-label">Ready To Place</div><div class="workspace-summary-value">${unslotted.length}</div><div class="workspace-summary-sub">Estimate-stage jobs that still need placement.</div></div>
     <div class="workspace-summary-card"><div class="workspace-summary-label">Scheduled / Active</div><div class="workspace-summary-value">${scheduled.length}</div><div class="workspace-summary-sub">Work already on this week’s board.</div></div>
     <div class="workspace-summary-card"><div class="workspace-summary-label">Next Step</div><div class="workspace-summary-value">${schedulable.length ? 'Plan' : 'Clear'}</div><div class="workspace-summary-sub">Use the full calendar for placement details.</div></div>
   `;
-  const scheduleRows = schedulable.slice(0, 8).map(job => {
+  const buildScheduleRows = (items = []) => items.slice(0, 8).map(job => {
     const status = getJobStatusChip(job.status);
     return `
       <div class="workspace-row" onclick="openDetail('${job.id}','${String(job.name || '').replace(/'/g,"\\'")}')" style="cursor:pointer">
         <div class="workspace-row-main">
           <div class="workspace-row-title">${job.name || 'Untitled job'}</div>
-          <div class="workspace-row-sub">${job.address || 'No address provided'}</div>
+          <div class="workspace-row-sub">${job.address || 'No address provided'}${job.scheduled_date ? ` • ${job.scheduled_date}` : ''}</div>
         </div>
         <div class="workspace-row-meta"><span class="chip ${status.cls}">${status.label}</span></div>
       </div>
     `;
   });
+  const scheduleRows = buildScheduleRows(schedulable);
+  const unscheduledRows = buildScheduleRows(readyToPlace);
   renderWorkspaceRows('schedule-queue-list', scheduleRows, '📆', 'No schedule-stage work is waiting right now.');
-  renderWorkspaceRows('calendar-unscheduled-list', scheduleRows, '📆', 'No schedule-stage work is waiting right now.');
+  renderWorkspaceRows('calendar-unscheduled-list', unscheduledRows, '📆', 'No unscheduled work is ready to place.');
 }
 
 let invoicesFilter = 'all';
@@ -7068,27 +7408,33 @@ function setInvoicesAgeFilter(bucket) {
 
 function renderInvoicesWorkspace(jobs = []) {
   const invoiceJobs = (jobs || []).filter(job => normalizeJobStatus(job?.status) === 'completed' || normalizeJobStatus(job?.status) === 'invoiced' || String(job?.payment_status || '').toLowerCase() === 'paid');
-  const unpaid = invoiceJobs.filter(job => String(job?.payment_status || '').toLowerCase() !== 'paid').length;
-  const paid = invoiceJobs.filter(job => String(job?.payment_status || '').toLowerCase() === 'paid').length;
-  const totalAmount = invoiceJobs.reduce((sum, job) => sum + (parseFloat(job?.invoice_amount) || 0), 0);
+  const invoicedJobs = invoiceJobs.filter(job => parseFloat(job?.invoice_amount) > 0);
+  const outstandingJobs = invoicedJobs.filter(job => String(job?.payment_status || '').toLowerCase() !== 'paid');
+  const readyToInvoice = invoiceJobs.filter(job => !(parseFloat(job?.invoice_amount) > 0) && String(job?.payment_status || '').toLowerCase() !== 'paid');
+  const paid = invoicedJobs.filter(job => String(job?.payment_status || '').toLowerCase() === 'paid').length;
+  const totalAmount = invoicedJobs.reduce((sum, job) => sum + (parseFloat(job?.invoice_amount) || 0), 0);
   const paidAmount = invoiceJobs
     .filter(job => String(job?.payment_status || '').toLowerCase() === 'paid')
     .reduce((sum, job) => sum + (parseFloat(job?.invoice_amount) || 0), 0);
-  const unpaidAmount = Math.max(totalAmount - paidAmount, 0);
+  const unpaidAmount = outstandingJobs.reduce((sum, job) => sum + (parseFloat(job?.invoice_amount) || 0), 0);
   const summary = document.getElementById('invoices-summary-grid');
   const activeStyle = 'background:#f0f9ff;border-bottom:2px solid #0369a1';
   if (summary) summary.innerHTML = `
     <div class="workspace-summary-card" onclick="setInvoicesFilter('all')" style="cursor:pointer;${invoicesFilter==='all'?activeStyle:''}">
-      <div class="workspace-summary-label">All Invoices</div><div class="workspace-summary-value">${invoiceJobs.length}</div>
-      <div class="workspace-summary-sub">Click to view all billing items.</div>
+      <div class="workspace-summary-label">Invoice Queue</div><div class="workspace-summary-value">${invoiceJobs.length}</div>
+      <div class="workspace-summary-sub">Sent, unpaid, paid, and ready-to-invoice work.</div>
     </div>
     <div class="workspace-summary-card" onclick="setInvoicesFilter('unpaid')" style="cursor:pointer;${invoicesFilter==='unpaid'?activeStyle:''}">
-      <div class="workspace-summary-label">Unpaid</div><div class="workspace-summary-value" style="color:#b45309">${unpaid}</div>
-      <div class="workspace-summary-sub">Click to filter unpaid only.</div>
+      <div class="workspace-summary-label">Outstanding</div><div class="workspace-summary-value" style="color:#b45309">$${Math.round(unpaidAmount).toLocaleString()}</div>
+      <div class="workspace-summary-sub">${outstandingJobs.length} unpaid invoice${outstandingJobs.length === 1 ? '' : 's'} match the AR card.</div>
     </div>
     <div class="workspace-summary-card" onclick="setInvoicesFilter('paid')" style="cursor:pointer;${invoicesFilter==='paid'?activeStyle:''}">
       <div class="workspace-summary-label">Paid</div><div class="workspace-summary-value" style="color:#15803d">${paid}</div>
       <div class="workspace-summary-sub">Click to filter paid only.</div>
+    </div>
+    <div class="workspace-summary-card" onclick="setInvoicesFilter('missing')" style="cursor:pointer;${invoicesFilter==='missing'?activeStyle:''}">
+      <div class="workspace-summary-label">Needs Invoice</div><div class="workspace-summary-value">${readyToInvoice.length}</div>
+      <div class="workspace-summary-sub">Completed work with no invoice amount yet.</div>
     </div>
   `;
   setText('invoice-composer-subtotal', `$${totalAmount.toFixed(2)}`);
@@ -7109,11 +7455,13 @@ function renderInvoicesWorkspace(jobs = []) {
 
   const filteredJobs = invoiceJobs.filter(job => {
     const isPaid = String(job?.payment_status || '').toLowerCase() === 'paid';
-    if (invoicesFilter === 'unpaid' && isPaid) return false;
+    const hasAmount = parseFloat(job?.invoice_amount) > 0;
+    if (invoicesFilter === 'unpaid' && (isPaid || !hasAmount)) return false;
     if (invoicesFilter === 'paid' && !isPaid) return false;
+    if (invoicesFilter === 'missing' && (isPaid || hasAmount)) return false;
     if (invoicesAgeFilter !== 'all') {
       if (isPaid) return false;
-      if (!(parseFloat(job?.invoice_amount) > 0)) return false;
+      if (!hasAmount) return false;
       if (ageBucket(job) !== invoicesAgeFilter) return false;
     }
     return true;
@@ -7125,7 +7473,7 @@ function renderInvoicesWorkspace(jobs = []) {
         <div class="workspace-row-title">${job.name || 'Untitled invoice item'}</div>
         <div class="workspace-row-sub">${job.address || 'No address provided'}${Number(job?.invoice_amount || 0) > 0 ? ` • $${Number(job.invoice_amount).toLocaleString()}` : ''}</div>
       </div>
-      <div class="workspace-row-meta"><span class="chip ${String(job?.payment_status || '').toLowerCase() === 'paid' ? 'chip-green' : 'chip-yellow'}">${String(job?.payment_status || '').toLowerCase() === 'paid' ? 'Paid' : 'Unpaid'}</span></div>
+      <div class="workspace-row-meta"><span class="chip ${String(job?.payment_status || '').toLowerCase() === 'paid' ? 'chip-green' : Number(job?.invoice_amount || 0) > 0 ? 'chip-yellow' : 'chip-grey'}">${String(job?.payment_status || '').toLowerCase() === 'paid' ? 'Paid' : Number(job?.invoice_amount || 0) > 0 ? 'Unpaid' : 'Needs invoice'}</span></div>
     </div>
   `), '💳', 'No billing items are queued right now.');
 
@@ -7198,15 +7546,19 @@ async function loadSupplies() {
   if (!supplies.length) { el.innerHTML = '<div class="empty"><div class="e-icon">✅</div>All supplies accounted for</div>'; return; }
   el.innerHTML = supplies.map(s => `
     <div class="supply-item" id="supply-item-${s.id}">
-      <div class="si-job">${s.jobs?.name} • <span style="color:${s.urgency==='same_day'?'#f87171':'#fbbf24'}">${s.urgency.replace('_',' ').toUpperCase()}</span></div>
-      <div class="si-items">${s.items}</div>
+      <div class="si-job">${escapeHtml(s.jobs?.name || 'No job')} • <span style="color:${s.urgency==='same_day'?'#f87171':'#fbbf24'}">${String(s.urgency || 'next_day').replace('_',' ').toUpperCase()}</span></div>
+      <div class="si-items">${escapeHtml(s.items)}</div>
+      <label style="display:block;margin:8px 0 6px;font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted)">Internal Notes</label>
+      <textarea id="supply-notes-${s.id}" rows="2" placeholder="Add vendor, pickup, purchasing, or office notes..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--text);resize:vertical;font-family:inherit">${escapeHtml(s.notes || '')}</textarea>
       <div class="si-meta">
-        <span class="si-by">👷 ${s.employees?.name}</span>
+        <span class="si-by">👷 ${escapeHtml(s.employees?.name || 'Unknown')}</span>
         <div style="display:flex;gap:5px">
+          <button class="status-btn" style="background:#e8f0fd;color:#0265dc" onclick="saveSupplyNotes('${s.id}')">Save notes</button>
           <button class="status-btn btn-prepare" onclick="updateSupply('${s.id}','preparing')">Preparing</button>
           <button class="status-btn btn-delivered" onclick="updateSupply('${s.id}','delivered')">Delivered ✓</button>
         </div>
       </div>
+      <div id="supply-notes-status-${s.id}" style="font-size:11px;color:#64748b;margin-top:6px"></div>
     </div>
   `).join('');
 }
@@ -7232,21 +7584,38 @@ async function loadPhotos() {
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#737475;margin-bottom:8px;padding:0 2px">${group.name}</div>
       <div class="photo-grid">
         ${group.photos.map(p => `
-          <div class="photo-card" id="photo-card-${p.id}">
-            <img src="${p.photo_url}" alt="${p.message||'Site photo'}" loading="lazy" onclick="window.open('${p.photo_url}','_blank')" onerror="this.parentElement.style.display='none'">
-            <div class="photo-meta" style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">
-              <div style="min-width:0">
-                <div class="pm-job">${p.jobs?.name||'—'}</div>
-                <div class="pm-info">👷 ${p.employees?.name||'?'} · ${new Date(p.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
-              </div>
-              <button onclick="deletePhoto('${p.id}')" title="Delete photo"
-                style="flex-shrink:0;background:none;border:none;cursor:pointer;color:#dc2626;font-size:14px;padding:0;line-height:1">🗑</button>
+          <div class="photo-card" id="photo-card-${p.id}" onclick="openPhotoPreview(${JSON.stringify(p.photo_url)}, ${JSON.stringify(p.jobs?.name || 'Site photo')}, ${JSON.stringify(`${p.employees?.name || 'Unknown'} · ${new Date(p.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`)})">
+            <img src="${escapeHtml(p.photo_url)}" alt="${escapeHtml(p.message || 'Site photo')}" loading="lazy" onerror="this.parentElement.style.display='none'">
+            <button class="photo-delete-btn" onclick="event.stopPropagation(); deletePhoto('${p.id}')" title="Delete photo">×</button>
+            <div class="photo-meta">
+              <div class="pm-job">${escapeHtml(p.jobs?.name || '—')}</div>
+              <div class="pm-info">👷 ${escapeHtml(p.employees?.name || '?')} · ${new Date(p.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
             </div>
           </div>
         `).join('')}
       </div>
     </div>
   `).join('');
+}
+
+function openPhotoPreview(url, title, meta) {
+  const modal = document.getElementById('photo-preview-modal');
+  const img = document.getElementById('photo-preview-img');
+  if (!modal || !img) return;
+  img.src = url || '';
+  img.alt = title || 'Expanded site photo';
+  setText('photo-preview-title', title || 'Site photo');
+  setText('photo-preview-meta', meta || '');
+  modal.classList.add('visible');
+}
+
+function closePhotoPreview(event) {
+  const modal = document.getElementById('photo-preview-modal');
+  if (!modal) return;
+  if (event && event.target !== modal) return;
+  modal.classList.remove('visible');
+  const img = document.getElementById('photo-preview-img');
+  if (img) img.src = '';
 }
 
 async function deletePhoto(id) {
@@ -7283,10 +7652,40 @@ function handleDashboardInlineSearch() {
 }
 
 async function updateSupply(id, status) {
-  await authFetch(`/api/supplies/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  const notesEl = document.getElementById(`supply-notes-${id}`) || document.getElementById(`detail-supply-notes-${id}`);
+  const payload = { status };
+  if (notesEl) payload.notes = notesEl.value;
+  await authFetch(`/api/supplies/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
   if (status === 'delivered') document.getElementById(`supply-item-${id}`)?.remove();
   await loadSupplies();
   if (selectedJobId) await openDetail(selectedJobId, document.getElementById('detail-title').textContent);
+}
+
+async function saveSupplyNotes(id) {
+  const notesEl = document.getElementById(`supply-notes-${id}`) || document.getElementById(`detail-supply-notes-${id}`);
+  const statusEl = document.getElementById(`supply-notes-status-${id}`) || document.getElementById(`detail-supply-notes-status-${id}`);
+  if (!notesEl) return;
+  if (statusEl) {
+    statusEl.style.color = '#64748b';
+    statusEl.textContent = 'Saving...';
+  }
+  try {
+    const res = await authFetch(`/api/supplies/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ notes: notesEl.value }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Could not save notes.');
+    if (statusEl) {
+      statusEl.style.color = '#166534';
+      statusEl.textContent = 'Notes saved.';
+    }
+  } catch (err) {
+    if (statusEl) {
+      statusEl.style.color = '#dc2626';
+      statusEl.textContent = 'Error: ' + err.message;
+    }
+  }
 }
 
 async function openDetail(jobId, jobName) {
@@ -7500,6 +7899,10 @@ async function openDetail(jobId, jobName) {
         </div>
       </div>
       <div class="form-group" style="margin-top:12px;margin-bottom:0"><label>Address</label><input type="text" id="detail-job-address" value="${job?.address || ''}" placeholder="123 Main St"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div class="form-group" style="margin-bottom:0"><label>Date</label><input type="date" id="detail-job-scheduled-date" value="${job?.scheduled_date || ''}"></div>
+        <div class="form-group" style="margin-bottom:0"><label>Time</label><input type="time" id="detail-job-scheduled-time" value="${job?.scheduled_time ? String(job.scheduled_time).slice(0,5) : ''}"></div>
+      </div>
       ${statusRowHtml}
       ${actionButtonsHtml}
       ${workflowRowHtml}
@@ -7609,14 +8012,18 @@ async function openDetail(jobId, jobName) {
   const suppliesArr = supplies || [];
   suppliesEl.innerHTML = suppliesArr.length ? suppliesArr.map(s => `
     <div class="supply-item" style="margin-bottom:8px" id="detail-supply-${s.id}">
-      <div class="si-job">${s.urgency ? s.urgency.replace('_',' ').toUpperCase() : 'REQUEST'}${s.status ? ` • ${s.status.toUpperCase()}` : ''}</div>
-      <div class="si-items">${s.items || 'No items listed'}</div>
+      <div class="si-job">${s.urgency ? String(s.urgency).replace('_',' ').toUpperCase() : 'REQUEST'}${s.status ? ` • ${String(s.status).toUpperCase()}` : ''}</div>
+      <div class="si-items">${escapeHtml(s.items || 'No items listed')}</div>
+      <label style="display:block;margin:8px 0 6px;font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted)">Internal Notes</label>
+      <textarea id="detail-supply-notes-${s.id}" rows="2" placeholder="Add vendor, pickup, purchasing, or office notes..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--text);resize:vertical;font-family:inherit">${escapeHtml(s.notes || '')}</textarea>
       <div class="si-meta">
-        <span class="si-by">👷 ${s.employees?.name || 'Unknown'}</span>
+        <span class="si-by">👷 ${escapeHtml(s.employees?.name || 'Unknown')}</span>
         <div style="display:flex;gap:5px">
+          <button class="status-btn" style="background:#e8f0fd;color:#0265dc" onclick="saveSupplyNotes('${s.id}')">Save notes</button>
           ${s.status === 'pending' ? `<button class="status-btn btn-prepare" onclick="updateSupply('${s.id}','preparing')">Preparing</button><button class="status-btn btn-delivered" onclick="updateSupply('${s.id}','delivered')">Delivered ✓</button>` : `<span style="font-size:11px;color:#737475">${s.status || '—'}</span>`}
         </div>
       </div>
+      <div id="detail-supply-notes-status-${s.id}" style="font-size:11px;color:#64748b;margin-top:6px"></div>
     </div>
   `).join('') : '<div style="font-size:13px;color:#949596;font-style:italic">No supply issues recorded on this job yet.</div>';
   setDetailsState('detail-supplies-wrapper', 'detail-supplies-count', suppliesArr.length);
@@ -7668,6 +8075,8 @@ async function saveJobOverview(jobId) {
     name: document.getElementById('detail-job-name').value.trim(),
     primary_supervisor_employee_id: getSelectedSupervisorId('detail-job-supervisor'),
     address: document.getElementById('detail-job-address').value.trim() || null,
+    scheduled_date: document.getElementById('detail-job-scheduled-date')?.value || null,
+    scheduled_time: document.getElementById('detail-job-scheduled-time')?.value || null,
     status: document.getElementById('detail-job-status').value,
     description: document.getElementById('detail-job-description').value.trim() || null,
   };
@@ -7821,6 +8230,67 @@ async function createClientInvoice(clientId) {
   }
   await openClientDetail(clientId);
   await loadClients();
+}
+
+function getClientInvoiceDraft(clientId) {
+  const amountInput = document.getElementById(`client-invoice-amount-${clientId}`);
+  const descInput = document.getElementById(`client-invoice-desc-${clientId}`);
+  const amount = parseMoneyInputValue(amountInput);
+  const description = descInput?.value.trim() || `Invoice for ${(allClientsData || []).find(c => c.id === clientId)?.name || 'Client'}`;
+  const client = (allClientsData || []).find(c => c.id === clientId) || {};
+  return { amount, description, client };
+}
+
+async function previewClientInvoice(clientId) {
+  const { amount, description, client } = getClientInvoiceDraft(clientId);
+  if (!amount || amount <= 0) {
+    setInvoiceUiState(clientInvoiceUiState, `client-${clientId}`, { tone: 'error', text: 'Enter a valid invoice amount before previewing.' });
+    await openClientDetail(clientId);
+    return;
+  }
+  const modal = document.getElementById('client-invoice-preview-modal');
+  const content = document.getElementById('client-invoice-preview-content');
+  const sendBtn = document.getElementById('client-invoice-preview-send-btn');
+  if (!modal || !content || !sendBtn) return;
+  content.innerHTML = `
+    <div style="border:1px solid #e8e8e8;border-radius:10px;padding:18px;background:#fff">
+      <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px">
+        <div>
+          <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#737475">LinkCrew Invoice</div>
+          <div style="font-size:20px;font-weight:900;color:#17191c;margin-top:4px">${escapeHtml(description)}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#737475">Amount Due</div>
+          <div style="font-size:24px;font-weight:900;color:#0265dc;margin-top:4px">$${amount.toFixed(2)}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px">
+        <div style="background:#f8fafc;border:1px solid #e8eef3;border-radius:8px;padding:12px">
+          <div style="font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#737475">Bill To</div>
+          <div style="font-size:14px;font-weight:800;color:#17191c;margin-top:5px">${escapeHtml(client.name || 'Client')}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:3px">${escapeHtml(client.email || 'No email on file')}</div>
+        </div>
+        <div style="background:#f8fafc;border:1px solid #e8eef3;border-radius:8px;padding:12px">
+          <div style="font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#737475">Delivery</div>
+          <div style="font-size:14px;font-weight:800;color:#17191c;margin-top:5px">${client.email ? 'Ready to email' : 'Will save without email'}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:3px">Sending creates the invoice record and client-facing invoice page.</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #e8e8e8;padding-top:12px">
+        <span style="font-size:13px;color:#64748b">One-off invoice</span>
+        <strong style="font-size:16px;color:#17191c">$${amount.toFixed(2)}</strong>
+      </div>
+    </div>`;
+  sendBtn.onclick = () => {
+    closeClientInvoicePreview();
+    createClientInvoice(clientId);
+  };
+  modal.classList.add('visible');
+}
+
+function closeClientInvoicePreview() {
+  const modal = document.getElementById('client-invoice-preview-modal');
+  if (modal) modal.classList.remove('visible');
 }
 
 function closeDetail() {
@@ -7979,15 +8449,19 @@ async function saveJob() {
   const primary_supervisor_employee_id = getSelectedSupervisorId('new-job-supervisor');
   const initial_employee_ids = getSelectedNewJobCrewIds();
   const client_id = document.getElementById('new-job-client')?.value || null;
+  const scheduled_date = document.getElementById('new-job-scheduled-date')?.value || null;
+  const scheduled_time = document.getElementById('new-job-scheduled-time')?.value || null;
   if (!name) return alert('Job name is required');
   if (config.prefix && !name.startsWith(config.prefix)) name = `${config.prefix}${name}`;
-  const payload = { name, address, description, status: config.status, primary_supervisor_employee_id, initial_employee_ids };
+  const payload = { name, address, description, status: config.status, scheduled_date, scheduled_time, primary_supervisor_employee_id, initial_employee_ids };
   if (client_id) payload.client_id = client_id;
   if (canManageFinancials()) payload.estimate_amount = estimate_amount;
   await authFetch('/api/jobs', { method: 'POST', body: JSON.stringify(payload) });
   closeAddJob();
   document.getElementById('new-job-name').value = '';
   document.getElementById('new-job-address').value = '';
+  document.getElementById('new-job-scheduled-date').value = '';
+  document.getElementById('new-job-scheduled-time').value = '';
   document.getElementById('new-job-desc').value = '';
   if (estimateInput) estimateInput.value = '';
   const clientSelect = document.getElementById('new-job-client');
@@ -9208,6 +9682,9 @@ function applyTeamFilter(employees = []) {
   if (teamRoleFilter === 'all') return employees;
   if (teamRoleFilter === 'crew') return employees.filter(e => e.role === 'crew');
   if (teamRoleFilter === 'manager') return employees.filter(e => e.role === 'manager' || e.role === 'supervisor' || e.role === 'owner');
+  if (['active', 'vacation', 'suspended'].includes(teamRoleFilter)) {
+    return employees.filter(e => normalizeEmployeeStatus(e.status) === teamRoleFilter);
+  }
   return employees;
 }
 
@@ -9221,6 +9698,11 @@ function setTeamFilter(f) {
   const inline = document.getElementById('team-list-inline');
   if (inline) { inline.innerHTML = renderTeamListHtml(filtered, true); refreshLucideIcons(inline); }
   document.getElementById('team-roster-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function openTeamAvailability(status = 'all') {
+  switchMainTab('team');
+  setTimeout(() => setTeamFilter(status), 80);
 }
 
 async function loadTeam() {
@@ -9759,6 +10241,7 @@ function toggleInvoicesSidebarGroup() {
 }
 
 // ── Service Catalog Page ──────────────────────────────────────────────────────
+let editingCatalogServiceId = null;
 
 function renderCatalogPage() {
   const el = document.getElementById('catalog-page-list');
@@ -9769,30 +10252,51 @@ function renderCatalogPage() {
   }
   const catLabels = { service:'Service', labor:'Labor', material:'Material', equipment:'Equipment', other:'Other' };
   el.innerHTML = serviceCatalogData.map(s => `
-    <div class="workspace-row" style="padding:14px 20px">
+    <div class="workspace-row" onclick="openEditServiceInline('${s.id}')" style="padding:14px 20px;cursor:pointer" title="Edit service">
       <div class="workspace-row-main">
-        <div class="workspace-row-title">${s.name}</div>
-        <div class="workspace-row-sub">${catLabels[s.category] || s.category}${s.description ? ' · ' + s.description : ''}</div>
+        <div class="workspace-row-title">${escapeHtml(s.name)}</div>
+        <div class="workspace-row-sub">${escapeHtml(catLabels[s.category] || s.category)}${s.description ? ' · ' + escapeHtml(s.description) : ''}</div>
       </div>
       <div class="workspace-row-meta" style="gap:10px">
         <strong style="font-size:14px;color:var(--accent)">$${parseFloat(s.unit_price).toFixed(2)}</strong>
-        <button onclick="deleteServiceFromPage('${s.id}')"
+        <button onclick="event.stopPropagation(); deleteServiceFromPage('${s.id}')"
           style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:13px;padding:3px 6px;opacity:0.7" title="Remove">🗑</button>
       </div>
     </div>`).join('');
 }
 
 function openAddServiceInline() {
+  editingCatalogServiceId = null;
   const f = document.getElementById('catalog-add-form');
   if (f) f.style.display = '';
+  setText('catalog-form-title', 'New Service');
+  setText('cat-svc-save-btn', 'Save Service');
   ['cat-svc-name','cat-svc-price','cat-svc-desc'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   const cat = document.getElementById('cat-svc-category'); if (cat) cat.value = 'service';
   const st = document.getElementById('cat-svc-status'); if (st) st.style.display = 'none';
+  setTimeout(() => f?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40);
+}
+
+function openEditServiceInline(id) {
+  const service = serviceCatalogData.find(s => s.id === id);
+  if (!service) return;
+  editingCatalogServiceId = id;
+  const f = document.getElementById('catalog-add-form');
+  if (f) f.style.display = '';
+  setText('catalog-form-title', 'Edit Service');
+  setText('cat-svc-save-btn', 'Save Changes');
+  document.getElementById('cat-svc-name').value = service.name || '';
+  document.getElementById('cat-svc-price').value = service.unit_price ?? '';
+  document.getElementById('cat-svc-category').value = service.category || 'service';
+  document.getElementById('cat-svc-desc').value = service.description || '';
+  const st = document.getElementById('cat-svc-status'); if (st) st.style.display = 'none';
+  setTimeout(() => f?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40);
 }
 
 function closeAddServiceInline() {
   const f = document.getElementById('catalog-add-form');
   if (f) f.style.display = 'none';
+  editingCatalogServiceId = null;
 }
 
 async function saveServiceInline() {
@@ -9809,17 +10313,19 @@ async function saveServiceInline() {
     statusEl.textContent = msg;
   };
   if (!name) { showStatus('Service name is required.', 'error'); return; }
-  const btn = document.querySelector('#catalog-add-form .owner-btn.primary');
+  const btn = document.getElementById('cat-svc-save-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
   showStatus('Saving…', 'info');
   try {
-    const res = await authFetch('/api/service-catalog', {
-      method: 'POST', body: JSON.stringify({ name, unit_price: price, category, description }),
-    });
+    const url = editingCatalogServiceId ? `/api/service-catalog/${editingCatalogServiceId}` : '/api/service-catalog';
+    const method = editingCatalogServiceId ? 'PATCH' : 'POST';
+    const res = await authFetch(url, { method, body: JSON.stringify({ name, unit_price: price, category, description }) });
     const json = await res.json();
     if (!res.ok) { showStatus(json.error || 'Failed to save.', 'error'); }
     else {
-      serviceCatalogData = [json, ...serviceCatalogData];
+      serviceCatalogData = editingCatalogServiceId
+        ? serviceCatalogData.map(s => s.id === editingCatalogServiceId ? json : s)
+        : [json, ...serviceCatalogData];
       renderCatalogPage();
       renderServiceCatalogSettings();
       const btn2 = document.getElementById('inv-service-picker-btn');
@@ -9827,7 +10333,7 @@ async function saveServiceInline() {
       closeAddServiceInline();
     }
   } catch (err) { showStatus('Error: ' + err.message, 'error'); }
-  if (btn) { btn.disabled = false; btn.textContent = 'Save Service'; }
+  if (btn) { btn.disabled = false; btn.textContent = editingCatalogServiceId ? 'Save Changes' : 'Save Service'; }
 }
 
 async function deleteServiceFromPage(id) {
@@ -9844,6 +10350,10 @@ async function deleteServiceFromPage(id) {
 
 function openInvoiceWorksheet() {
   const el = document.getElementById('invoice-worksheet-section');
+  const summary = document.getElementById('invoices-summary-grid');
+  if (el && summary?.parentElement && summary.previousElementSibling !== el) {
+    summary.parentElement.insertBefore(el, summary);
+  }
   if (el) { el.style.display = ''; setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); }
   initInvoiceWorksheet();
 }
@@ -9950,11 +10460,13 @@ function showInvoiceStatus(msg, tone) {
   el.textContent = msg;
 }
 
-async function saveInvoiceWorksheet() {
+function collectInvoiceWorksheetDraft() {
   const clientId = document.getElementById('inv-client-id')?.value;
-  if (!clientId) { showInvoiceStatus('Please select a client.', 'error'); return; }
+  if (!clientId) return { error: 'Please select a client.' };
+  const client = (allClientsData || []).find(c => c.id === clientId);
   const subject = document.getElementById('inv-subject')?.value.trim() || 'For Services Rendered';
   const sendEmail = document.getElementById('inv-send-email')?.checked !== false;
+  const notes = document.getElementById('inv-notes')?.value.trim() || '';
   const rows = [];
   document.querySelectorAll('#inv-line-items tr').forEach(tr => {
     const inputs = tr.querySelectorAll('input');
@@ -9965,16 +10477,77 @@ async function saveInvoiceWorksheet() {
   });
   const taxPct = parseFloat(document.getElementById('inv-tax-pct')?.value || 0) || 0;
   const subtotal = rows.reduce((s, r) => s + r.qty * r.price, 0);
-  const total = subtotal * (1 + taxPct / 100);
-  if (total <= 0) { showInvoiceStatus('Total must be greater than $0.', 'error'); return; }
+  const taxAmount = subtotal * taxPct / 100;
+  const total = subtotal + taxAmount;
+  if (total <= 0) return { error: 'Total must be greater than $0.' };
   const lineDesc = rows.map(r => `${r.qty}× ${r.name || 'Item'} @ $${r.price.toFixed(2)}`).join(', ');
-  const description = subject + (lineDesc ? ' (' + lineDesc + ')' : '');
+  const description = subject + (lineDesc ? ' (' + lineDesc + ')' : '') + (notes ? ` Notes: ${notes}` : '');
+  return { clientId, client, subject, sendEmail, notes, rows, taxPct, subtotal, taxAmount, total, description };
+}
+
+function previewInvoiceWorksheet() {
+  const draft = collectInvoiceWorksheetDraft();
+  if (draft.error) { showInvoiceStatus(draft.error, 'error'); return; }
+  const modal = document.getElementById('invoice-preview-modal');
+  const content = document.getElementById('invoice-preview-content');
+  if (!modal || !content) return;
+  const rowsHtml = draft.rows.map(row => `
+    <tr>
+      <td style="padding:8px 0;border-bottom:1px solid #e5e7eb">${escapeHtml(row.name || 'Item')}</td>
+      <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right">${row.qty}</td>
+      <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right">$${row.price.toFixed(2)}</td>
+      <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:800">$${(row.qty * row.price).toFixed(2)}</td>
+    </tr>
+  `).join('');
+  content.innerHTML = `
+    <div style="border:1px solid #e5e7eb;border-radius:8px;padding:18px;background:#fff">
+      <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:16px">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.08em">Client</div>
+          <div style="font-size:17px;font-weight:900;color:#0f172a;margin-top:3px">${escapeHtml(draft.client?.name || 'Selected client')}</div>
+          ${draft.client?.email ? `<div style="font-size:12px;color:#64748b;margin-top:3px">${escapeHtml(draft.client.email)}</div>` : ''}
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.08em">${draft.sendEmail ? 'Will email client' : 'Save only'}</div>
+          <div style="font-size:20px;font-weight:900;color:#0265dc;margin-top:3px">$${draft.total.toFixed(2)}</div>
+        </div>
+      </div>
+      <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:10px">${escapeHtml(draft.subject)}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:0.06em">
+            <th style="text-align:left;padding-bottom:6px">Description</th>
+            <th style="text-align:right;padding-bottom:6px">Qty</th>
+            <th style="text-align:right;padding-bottom:6px">Unit</th>
+            <th style="text-align:right;padding-bottom:6px">Total</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+      <div style="display:grid;gap:6px;justify-content:end;margin-top:14px;font-size:13px">
+        <div style="display:flex;justify-content:space-between;gap:60px"><span style="color:#64748b">Subtotal</span><strong>$${draft.subtotal.toFixed(2)}</strong></div>
+        <div style="display:flex;justify-content:space-between;gap:60px"><span style="color:#64748b">Tax ${draft.taxPct}%</span><strong>$${draft.taxAmount.toFixed(2)}</strong></div>
+        <div style="display:flex;justify-content:space-between;gap:60px;font-size:16px"><span style="font-weight:800">Total Due</span><strong style="color:#0265dc">$${draft.total.toFixed(2)}</strong></div>
+      </div>
+      ${draft.notes ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:12px;color:#475569;line-height:1.5">${escapeHtml(draft.notes)}</div>` : ''}
+    </div>`;
+  modal.classList.add('visible');
+}
+
+function closeInvoicePreview() {
+  const modal = document.getElementById('invoice-preview-modal');
+  if (modal) modal.classList.remove('visible');
+}
+
+async function saveInvoiceWorksheet() {
+  const draft = collectInvoiceWorksheetDraft();
+  if (draft.error) { showInvoiceStatus(draft.error, 'error'); return; }
   const saveBtn = document.querySelector('#invoice-worksheet-section .owner-btn.primary');
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
   showInvoiceStatus('Saving invoice…', 'info');
   try {
-    const res = await authFetch('/api/clients/' + clientId + '/invoice', {
-      method: 'POST', body: JSON.stringify({ amount: total, description }),
+    const res = await authFetch('/api/clients/' + draft.clientId + '/invoice', {
+      method: 'POST', body: JSON.stringify({ amount: draft.total, description: draft.description }),
     });
     const json = await res.json();
     if (!res.ok) {
@@ -9982,6 +10555,7 @@ async function saveInvoiceWorksheet() {
     } else {
       // Upload receipt attachment if one was selected
       if (json.job?.id) await uploadReceiptForJob(json.job.id);
+      closeInvoicePreview();
       showInvoiceStatus(json.invoice_email_sent
         ? 'Invoice saved and emailed to ' + json.invoice_emailed_to + '.'
         : 'Invoice saved. No client email on file — not emailed.', 'success');
@@ -10009,12 +10583,23 @@ async function saveInvoiceWorksheet() {
   } catch (err) {
     showInvoiceStatus('Error: ' + err.message, 'error');
   }
-  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Invoice'; }
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save / Send Invoice'; }
 }
 
 // ── Expense Composer ──────────────────────────────────────────────────────────
 
 let allExpensesData = [];
+let expenseActiveFilter = 'all';
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[ch]));
+}
 
 function openExpenseComposer() {
   const el = document.getElementById('expense-composer-section');
@@ -10138,23 +10723,95 @@ async function loadExpenses() {
 function renderExpensesList() {
   const el = document.getElementById('expenses-list');
   if (!el) return;
-  if (!allExpensesData.length) {
-    el.innerHTML = '<div class="empty"><div class="e-icon">📋</div>No expenses logged yet. Click New Expense to add one.</div>';
+  const filtered = getFilteredExpenses();
+  updateExpenseFilterLabel(filtered.length);
+  if (!filtered.length) {
+    const emptyCopy = expenseActiveFilter === 'all'
+      ? 'No expenses logged yet. Click New Expense to add one.'
+      : 'No expenses match this filter.';
+    el.innerHTML = `<div class="empty"><div class="e-icon">📋</div>${emptyCopy}</div>`;
     return;
   }
   const catLabels = { materials:'Materials', labor:'Labor', equipment:'Equipment', fuel:'Fuel', tools:'Tools', food:'Food', travel:'Travel', other:'Other' };
-  el.innerHTML = allExpensesData.slice(0, 60).map(e => `
-    <div class="workspace-row">
+  el.innerHTML = filtered.slice(0, 60).map(e => `
+    <div class="workspace-row" onclick="openExpenseDetail('${e.id}')" style="cursor:pointer" title="View expense details">
       <div class="workspace-row-main">
-        <div class="workspace-row-title">${e.name}</div>
-        <div class="workspace-row-sub">${new Date(e.date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · ${catLabels[e.category] || e.category}${e.jobs?.name ? ' · ' + e.jobs.name : ''}</div>
+        <div class="workspace-row-title">${escapeHtml(e.name)}</div>
+        <div class="workspace-row-sub">${new Date(e.date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · ${catLabels[e.category] || e.category}${e.jobs?.name ? ' · ' + escapeHtml(e.jobs.name) : ''}</div>
       </div>
       <div class="workspace-row-meta" style="gap:8px">
         <strong style="font-size:13px;min-width:60px;text-align:right">$${parseFloat(e.amount).toFixed(2)}</strong>
-        <span class="chip ${e.reimburse_to === 'none' ? 'chip-grey' : 'chip-yellow'}">${e.reimburse_to === 'none' ? 'No reimburse' : e.reimburse_to === 'owner' ? 'Owner' : 'Employee' + (e.employees?.name ? ': ' + e.employees.name : '')}</span>
-        <button class="lc-link danger" onclick="deleteExpense('${e.id}')" title="Delete expense" style="font-size:13px">🗑</button>
+        <span class="chip ${e.reimburse_to === 'none' ? 'chip-grey' : 'chip-yellow'}">${e.reimburse_to === 'none' ? 'No reimburse' : e.reimburse_to === 'owner' ? 'Owner' : 'Employee' + (e.employees?.name ? ': ' + escapeHtml(e.employees.name) : '')}</span>
+        <button class="lc-link danger" onclick="event.stopPropagation(); deleteExpense('${e.id}')" title="Delete expense" style="font-size:13px">🗑</button>
       </div>
     </div>`).join('');
+}
+
+function getFilteredExpenses() {
+  const list = allExpensesData || [];
+  if (expenseActiveFilter === 'materials') return list.filter(e => e.category === 'materials' && !e.job_id);
+  if (expenseActiveFilter === 'reimbursable') return list.filter(e => e.reimburse_to !== 'none');
+  if (expenseActiveFilter === 'fuel-travel') return list.filter(e => ['fuel', 'travel'].includes(e.category));
+  return list;
+}
+
+function updateExpenseFilterLabel(count) {
+  const labels = {
+    all: 'All expenses',
+    materials: 'Untagged materials',
+    reimbursable: 'Reimbursables',
+    'fuel-travel': 'Fuel and travel',
+  };
+  setText('expense-filter-label', labels[expenseActiveFilter] || 'All expenses');
+  const sub = document.getElementById('expenses-list-subtitle');
+  if (sub) sub.textContent = expenseActiveFilter === 'all'
+    ? 'Most recent first. Click any expense to view the full record.'
+    : `${labels[expenseActiveFilter]} · ${count} matching expense${count === 1 ? '' : 's'}. Click any expense to view the full record.`;
+}
+
+function filterExpensesByTip(filter) {
+  expenseActiveFilter = filter || 'all';
+  renderExpensesList();
+}
+
+function formatExpenseDate(date) {
+  if (!date) return '—';
+  return new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+}
+
+function openExpenseDetail(id) {
+  const e = (allExpensesData || []).find(x => x.id === id);
+  const modal = document.getElementById('expense-detail-modal');
+  const content = document.getElementById('expense-detail-content');
+  if (!e || !modal || !content) return;
+  const catLabels = { materials:'Materials', labor:'Labor / Subcontractor', equipment:'Equipment', fuel:'Fuel', tools:'Tools', food:'Food / Meals', travel:'Travel', other:'Other' };
+  const reimburseLabel = e.reimburse_to === 'none' ? 'Not reimbursable' : e.reimburse_to === 'owner' ? 'Owner reimbursement' : `Employee reimbursement${e.employees?.name ? ': ' + escapeHtml(e.employees.name) : ''}`;
+  content.innerHTML = `
+    <div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:16px">
+      <div>
+        <div style="font-size:18px;font-weight:800;color:#17191c">${escapeHtml(e.name)}</div>
+        <div style="font-size:13px;color:#737475;margin-top:4px">${formatExpenseDate(e.date)}</div>
+      </div>
+      <div style="font-size:22px;font-weight:900;color:#17191c">$${parseFloat(e.amount || 0).toFixed(2)}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:16px">
+      <div class="agd-field"><label>Category</label><span>${catLabels[e.category] || escapeHtml(e.category || 'Other')}</span></div>
+      <div class="agd-field"><label>Job</label><span>${e.jobs?.name ? escapeHtml(e.jobs.name) : 'No job assigned'}</span></div>
+      <div class="agd-field"><label>Reimbursement</label><span>${reimburseLabel}</span></div>
+      <div class="agd-field"><label>Status</label><span>${escapeHtml(e.status || 'pending')}</span></div>
+    </div>
+    ${e.details ? `<div style="font-size:13px;color:#17191c;line-height:1.6;margin-bottom:16px">${escapeHtml(e.details)}</div>` : ''}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+      ${e.receipt_url ? `<a class="lc-btn sm" href="${escapeHtml(e.receipt_url)}" target="_blank" rel="noopener"><i data-lucide="receipt"></i> Open Receipt</a>` : ''}
+      <button class="lc-btn sm danger" onclick="deleteExpense('${e.id}'); closeExpenseDetail();"><i data-lucide="trash-2"></i> Delete</button>
+    </div>`;
+  modal.classList.add('visible');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function closeExpenseDetail() {
+  const modal = document.getElementById('expense-detail-modal');
+  if (modal) modal.classList.remove('visible');
 }
 
 function updateExpensesSummary() {
@@ -10176,7 +10833,7 @@ async function deleteExpense(id) {
   }
 }
 
-function switchMainTab(tab) {
+function switchMainTab(tab, pushHistory = true) {
   if (tab === 'schedule') tab = 'calendar'; // schedule opens the full calendar directly
   const accessibleTabs = getAccessibleTabs();
   if (!accessibleTabs.includes(tab)) {
@@ -10185,7 +10842,12 @@ function switchMainTab(tab) {
   closeQuickLaunchPanel();
   const contentArea = document.querySelector('.content-area');
   writeDashboardState({ mainTab: tab });
-  history.replaceState(null, '', `#${tab}`);
+  const targetHash = `#${tab}`;
+  if (pushHistory && dashboardHistoryReady && window.location.hash !== targetHash) {
+    history.pushState(null, '', targetHash);
+  } else if (window.location.hash !== targetHash) {
+    history.replaceState(null, '', targetHash);
+  }
   updateWorkspaceHeader(tab);
   ['dashboard','requests','quotes','jobs','schedule','jobs-records','team','clients','invoices','expenses','reports','agreements','calendar','timesheets','settings','referrals','service-catalog','service-pro','livemap'].forEach(t => {
     const view = document.getElementById(`${t}-view`);
@@ -10280,6 +10942,7 @@ let editingApptId = null;
 let editingServiceId = null;
 let calInitialized = false;
 let calSelectedDate = null;
+let calFiveDayStart = null;
 let calQuickStartTime = '09:00';
 
 function toLocalDateInputValue(date) {
@@ -10415,8 +11078,9 @@ function renderFiveDayOutlook() {
   const el = document.getElementById('cal-5day-outlook');
   if (!el) return;
   const today = new Date(); today.setHours(0,0,0,0);
+  if (!(calFiveDayStart instanceof Date) || Number.isNaN(calFiveDayStart.getTime())) calFiveDayStart = new Date(today);
   const days = [];
-  const d = new Date(today);
+  const d = new Date(calFiveDayStart);
   while (days.length < 5) { days.push(new Date(d)); d.setDate(d.getDate() + 1); }
   const dayLabels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const monthLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -10456,6 +11120,24 @@ function renderFiveDayOutlook() {
       </div>
     </div>`;
   }).join('');
+}
+
+function calFiveDayToday() {
+  calFiveDayStart = new Date();
+  calFiveDayStart.setHours(0, 0, 0, 0);
+  writeDashboardState({ calendarFiveDayStart: calFiveDayStart.toISOString() });
+  renderFiveDayOutlook();
+}
+
+function calFiveDayOffset(dir) {
+  if (!(calFiveDayStart instanceof Date) || Number.isNaN(calFiveDayStart.getTime())) {
+    calFiveDayStart = new Date();
+    calFiveDayStart.setHours(0, 0, 0, 0);
+  }
+  calFiveDayStart = new Date(calFiveDayStart);
+  calFiveDayStart.setDate(calFiveDayStart.getDate() + (dir * 5));
+  writeDashboardState({ calendarFiveDayStart: calFiveDayStart.toISOString() });
+  renderFiveDayOutlook();
 }
 
 function calSelectDate(dateStr) {
@@ -10498,8 +11180,24 @@ function renderCalendarTeamAvailability() {
 
   const listEl = document.getElementById('cal-team-status-list');
   if (!listEl) return;
+  const personMarkup = person => {
+    const canEdit = canManageSettings();
+    const action = canEdit ? `openEditEmployee('${person.id}')` : `openTeamAvailability('${normalizeEmployeeStatus(person.status)}')`;
+    return `
+      <div onclick="${action}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px solid rgba(226,232,240,0.75);cursor:pointer">
+        <span style="font-weight:700;color:#0f172a">${escapeHtml(person.name || 'Team member')}</span>
+        <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">${escapeHtml(person.role || 'crew')}</span>
+      </div>
+    `;
+  };
 
   const sections = [
+    {
+      title: 'Active',
+      empty: 'No active team members.',
+      color: '#15803d',
+      people: active,
+    },
     {
       title: 'On Vacation',
       empty: 'No one is marked on vacation right now.',
@@ -10519,7 +11217,7 @@ function renderCalendarTeamAvailability() {
       <div style="font-size:12px;font-weight:700;color:${section.color};text-transform:uppercase;letter-spacing:0.08em">${section.title}</div>
       <div style="margin-top:8px;font-size:13px;color:#475569;line-height:1.6">
         ${section.people.length
-          ? section.people.map(person => `${person.name || 'Team member'} (${String(person.role || 'crew').toUpperCase()})`).join('<br>')
+          ? section.people.map(personMarkup).join('')
           : section.empty}
       </div>
     </div>
@@ -10547,6 +11245,8 @@ async function initCalendar() {
       const s = await r.json();
       const sel = document.getElementById('set-appt-reminder');
       if (sel && s.appt_reminder_minutes !== undefined && s.appt_reminder_minutes !== null) sel.value = String(s.appt_reminder_minutes);
+      const channelSel = document.getElementById('set-appt-reminder-channel');
+      if (channelSel && s.appt_reminder_channel) channelSel.value = s.appt_reminder_channel;
     } catch (_) {}
   })();
   if (gridEl && !gridEl.innerHTML.trim()) {
@@ -11851,7 +12551,7 @@ async function loadSettings() {
   const res = await authFetch('/api/settings');
   const data = await res.json();
   ownerTwilioConfigured = !!(data.twilio_account_sid && data.twilio_phone);
-  setText('settings-plan-card', String(currentPlan || 'beta').toUpperCase());
+  setText('settings-plan-card', formatPlanLabel(currentPlan || 'beta'));
   setText('settings-voice-card', data.voicebot_enabled ? 'Active' : 'Off');
   setText('settings-photo-card', data.photo_expiry_days ? `${data.photo_expiry_days}d` : 'Default');
   document.getElementById('set-company-name').value = data.company_name || '';
@@ -11871,6 +12571,7 @@ async function loadSettings() {
   }
   if (data.photo_expiry_days) document.getElementById('set-photo-expiry').value = String(data.photo_expiry_days);
   if (data.appt_reminder_minutes !== undefined && data.appt_reminder_minutes !== null) document.getElementById('set-appt-reminder').value = String(data.appt_reminder_minutes);
+  if (data.appt_reminder_channel) document.getElementById('set-appt-reminder-channel').value = data.appt_reminder_channel;
   document.getElementById('priority-support-section').style.display =
     currentPlan === 'pro' ? 'block' : 'none';
   updateSettingsUsageCard();
@@ -11945,9 +12646,10 @@ async function saveManagerFinancialsSetting() {
 
 async function saveApptReminder() {
   const appt_reminder_minutes = parseInt(document.getElementById('set-appt-reminder').value);
+  const appt_reminder_channel = document.getElementById('set-appt-reminder-channel')?.value || 'email';
   const statusEl = document.getElementById('appt-reminder-status');
   statusEl.style.color = '#737475'; statusEl.textContent = 'Saving…';
-  const res = await authFetch('/api/settings', { method: 'PATCH', body: JSON.stringify({ appt_reminder_minutes }) });
+  const res = await authFetch('/api/settings', { method: 'PATCH', body: JSON.stringify({ appt_reminder_minutes, appt_reminder_channel }) });
   if (res.ok) {
     statusEl.style.color = '#4ade80'; statusEl.textContent = '✓ Saved';
     setTimeout(() => statusEl.textContent = '', 3000);
@@ -12477,14 +13179,15 @@ async function openClientDetail(clientId) {
     <div class="cd-section">
       <div class="cd-section-title">Quick Invoice</div>
       <div style="font-size:12px;color:#64748b;line-height:1.6;margin-bottom:10px">
-        Fill in a short description + amount, click <strong>Send Invoice</strong>, and we'll generate a clean LinkCrew invoice and email it straight to ${client.email ? `<strong>${client.email}</strong>` : 'the client'}. No job or file upload needed — this is a one-off invoice for small work, add-ons, or deposits.
+        Fill in a short description + amount, preview the invoice, then send it when it looks right. We'll generate a clean LinkCrew invoice and email it straight to ${client.email ? `<strong>${client.email}</strong>` : 'the client'}. No job or file upload needed — this is a one-off invoice for small work, add-ons, or deposits.
       </div>
-      <div style="display:grid;grid-template-columns:1.2fr 0.8fr auto;gap:8px;align-items:center">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;align-items:center">
         <input type="text" id="client-invoice-desc-${client.id}" placeholder="e.g. Deposit for March service · Gutter repair · Trip charge"
           style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c">
         <input type="text" inputmode="decimal" id="client-invoice-amount-${client.id}" placeholder="$0.00"
           onfocus="unformatMoneyInput(this)" onblur="formatMoneyInput(this)"
           style="background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c">
+        <button class="btn-cancel" onclick="previewClientInvoice('${client.id}')">Preview Invoice</button>
         <button class="btn-save" id="client-invoice-btn-${client.id}" onclick="createClientInvoice('${client.id}')">Send Invoice</button>
       </div>
       ${clientInvoiceStatusMarkup}
@@ -12949,6 +13652,17 @@ let editingAgreementId = null;
 
 const scheduleLabels = { monthly:'Monthly', quarterly:'Quarterly', biannual:'Bi-annual', annual:'Annual', custom:'Custom' };
 
+function formatAgreementTime(value) {
+  if (!value) return '—';
+  const [hourRaw, minuteRaw] = String(value).split(':');
+  const hour = parseInt(hourRaw, 10);
+  const minute = minuteRaw || '00';
+  if (Number.isNaN(hour)) return String(value);
+  const suffix = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${minute} ${suffix}`;
+}
+
 async function loadAgreements() {
   if (!canViewFinancials()) {
     allAgreementsData = [];
@@ -13067,7 +13781,7 @@ function renderAgreementList(agreements) {
       <div class="ar-client">👤 ${a.clients?.name || 'No client'}</div>
       <div class="ar-meta">
         <span class="ag-status ag-status-${a.status}">${a.status}</span>
-        <span class="ag-due ${overdue ? 'overdue' : ''}">${a.next_due ? (overdue ? '⚠ Overdue: ' : 'Due: ') + a.next_due : 'No due date'}</span>
+        <span class="ag-due ${overdue ? 'overdue' : ''}">${a.next_due ? (overdue ? '⚠ Overdue: ' : 'Due: ') + a.next_due + (a.due_time ? ' at ' + formatAgreementTime(a.due_time) : '') : 'No due date'}</span>
         ${a.value ? `<span class="ag-value">$${parseFloat(a.value).toLocaleString()}</span>` : ''}
       </div>
     </div>`;
@@ -13126,6 +13840,7 @@ async function openAgreementDetail(id) {
         <div class="agd-field"><label>Value</label><span>${agreement.value ? '$' + parseFloat(agreement.value).toLocaleString() : '—'}</span></div>
         <div class="agd-field"><label>Start Date</label><span>${agreement.start_date || '—'}</span></div>
         <div class="agd-field"><label>Next Due</label><span style="${overdue ? 'color:#dc2626' : ''}">${agreement.next_due ? (overdue ? '⚠ ' : '') + agreement.next_due : '—'}</span></div>
+        <div class="agd-field"><label>Time Slot</label><span>${agreement.due_time ? formatAgreementTime(agreement.due_time) : '—'}</span></div>
       </div>
       ${agreement.description ? `<div style="margin-top:12px;font-size:14px;color:#17191c;line-height:1.5">${agreement.description}</div>` : ''}
     </div>
@@ -13165,7 +13880,7 @@ async function openAddAgreement() {
   editingAgreementId = null;
   document.getElementById('ag-modal-title').textContent = 'Add Agreement';
   document.getElementById('ag-modal-save').textContent = 'Add Agreement';
-  ['ag-name','ag-description','ag-value','ag-start','ag-next-due'].forEach(id => document.getElementById(id).value = '');
+  ['ag-name','ag-description','ag-value','ag-start','ag-next-due','ag-due-time'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('ag-schedule').value = 'monthly';
   document.getElementById('ag-client').value = '';
   await populateClientDropdown('ag-client');
@@ -13185,6 +13900,7 @@ async function openEditAgreement(id) {
   document.getElementById('ag-value').value = a.value || '';
   document.getElementById('ag-start').value = a.start_date || '';
   document.getElementById('ag-next-due').value = a.next_due || '';
+  document.getElementById('ag-due-time').value = a.due_time ? String(a.due_time).slice(0, 5) : '';
   await populateClientDropdown('ag-client', a.client_id);
   document.getElementById('agreement-modal').classList.add('visible');
 }
@@ -13213,18 +13929,20 @@ async function saveAgreement() {
     value: document.getElementById('ag-value').value || null,
     start_date: document.getElementById('ag-start').value || null,
     next_due: document.getElementById('ag-next-due').value || null,
+    due_time: document.getElementById('ag-due-time').value || null,
   };
   if (!payload.name) return alert('Agreement name is required');
   const btn = document.getElementById('ag-modal-save');
+  const savedEditingId = editingAgreementId;
   btn.disabled = true;
-  if (editingAgreementId) {
-    await authFetch(`/api/agreements/${editingAgreementId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  if (savedEditingId) {
+    await authFetch(`/api/agreements/${savedEditingId}`, { method: 'PATCH', body: JSON.stringify(payload) });
   } else {
     await authFetch('/api/agreements', { method: 'POST', body: JSON.stringify(payload) });
   }
   closeAgreementModal();
   await loadAgreements();
-  if (editingAgreementId) await openAgreementDetail(editingAgreementId);
+  if (savedEditingId) await openAgreementDetail(savedEditingId);
   btn.disabled = false;
 }
 

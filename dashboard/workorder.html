@@ -128,6 +128,14 @@
       return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     }
 
+    function fmtTime(value) {
+      if (!value) return '';
+      const [hourStr, minuteStr] = String(value).split(':');
+      const d = new Date();
+      d.setHours(parseInt(hourStr, 10), parseInt(minuteStr || '0', 10), 0, 0);
+      return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+
     function woNumber(id, date) {
       const d = new Date(date);
       const y = d.getFullYear();
@@ -180,6 +188,7 @@
         <div class="detail-row">
           <div class="detail-job-name">${job.name}</div>
           ${job.address ? `<div class="detail-address">📍 ${job.address}</div>` : ''}
+          ${job.scheduled_date ? `<div class="detail-address">🗓️ ${fmtDate(job.scheduled_date)}${job.scheduled_time ? ' at ' + fmtTime(job.scheduled_time) : ''}</div>` : ''}
           ${job.description ? `<div class="detail-description">${job.description}</div>` : '<div style="color:#737475;font-size:13px">No description provided.</div>'}
         </div>
 

@@ -1937,9 +1937,12 @@ app.get('/api/supplies/pending', auth, async (req, res) => {
 
 app.patch('/api/supplies/:id', auth, async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { status, notes } = req.body;
+  const updates = { updated_at: new Date().toISOString() };
+  if (status !== undefined) updates.status = status;
+  if (notes !== undefined) updates.notes = notes || null;
   const { data } = await supabaseAdmin.from('supply_requests')
-    .update({ status, updated_at: new Date().toISOString() }).eq('id', id).select().single();
+    .update(updates).eq('id', id).select().single();
   res.json(data);
 });
 
@@ -1950,6 +1953,8 @@ app.post('/api/jobs', auth, requireOperationAccess, ensureFinancialFieldsAllowed
     manager_email,
     description,
     estimate_amount,
+    scheduled_date,
+    scheduled_time,
     status,
     primary_supervisor_employee_id,
     initial_employee_ids = [],
@@ -2006,6 +2011,8 @@ app.post('/api/jobs', auth, requireOperationAccess, ensureFinancialFieldsAllowed
       description,
       status: normalizedStatus,
       estimate_amount: estimate_amount || null,
+      scheduled_date: scheduled_date || null,
+      scheduled_time: scheduled_time || null,
       primary_supervisor_employee_id: primary_supervisor_employee_id || null,
       client_id: client_id || null,
       tenant_id: req.tenantId
@@ -2028,7 +2035,7 @@ app.post('/api/jobs', auth, requireOperationAccess, ensureFinancialFieldsAllowed
 // Public work order page data (no auth — UUID is the access control)
 app.get('/api/workorder/:jobId', async (req, res) => {
   const { data: job, error } = await supabaseAdmin.from('jobs')
-    .select('*, clients(name, email, phone, address)')
+    .select('id, tenant_id, client_id, name, address, description, estimate_amount, invoice_amount, status, payment_status, scheduled_date, scheduled_time, created_at, updated_at, clients(name, email, phone, address)')
     .eq('id', req.params.jobId).single();
   if (error || !job) return res.status(404).json({ error: 'Work order not found' });
   const { data: tenant } = await supabaseAdmin.from('tenants')
@@ -2092,6 +2099,8 @@ app.patch('/api/jobs/:id', auth, requireOperationAccess, ensureFinancialFieldsAl
     'address',
     'description',
     'estimate_amount',
+    'scheduled_date',
+    'scheduled_time',
     'manager_email',
     'primary_supervisor_employee_id',
     'plans_notes',
@@ -2750,10 +2759,10 @@ app.get('/api/agreements', auth, requireFinancialAccess, async (req, res) => {
 });
 
 app.post('/api/agreements', auth, requireFinancialAccess, async (req, res) => {
-  const { name, client_id, description, schedule, value, start_date, next_due } = req.body;
+  const { name, client_id, description, schedule, value, start_date, next_due, due_time } = req.body;
   if (!name) return res.status(400).json({ error: 'Name is required' });
   const { data, error } = await supabaseAdmin.from('service_agreements')
-    .insert({ name, client_id: client_id || null, description, schedule, value: value || null, start_date: start_date || null, next_due: next_due || null, tenant_id: req.tenantId })
+    .insert({ name, client_id: client_id || null, description, schedule, value: value || null, start_date: start_date || null, next_due: next_due || null, due_time: due_time || null, tenant_id: req.tenantId })
     .select('*, clients(name)').single();
   if (error) return res.status(400).json({ error: error.message });
   res.json(data);
@@ -2772,7 +2781,7 @@ app.get('/api/agreements/:id', auth, requireFinancialAccess, async (req, res) =>
 
 app.patch('/api/agreements/:id', auth, requireFinancialAccess, async (req, res) => {
   const { id } = req.params;
-  const fields = ['name','client_id','description','schedule','value','start_date','next_due','status'];
+  const fields = ['name','client_id','description','schedule','value','start_date','next_due','due_time','status'];
   const updates = {};
   fields.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f] || null; });
   if (req.body.name) updates.name = req.body.name.trim();
@@ -3937,8 +3946,6 @@ app.post('/api/billing/extra-users', auth, requireSettingsAccess, requireFinanci
   const { quantity } = req.body;
   if (!quantity || quantity < 1 || quantity > 50)
     return res.status(400).json({ error: 'Quantity must be between 1 and 50' });
-  const priceId = process.env.STRIPE_PRICE_EXTRA_USER;
-  if (!priceId) return res.status(500).json({ error: 'Extra user pricing not configured' });
   const tenantId = await getEffectiveTenantId(req);
   const { data: tenant } = await supabaseAdmin.from('tenants')
     .select('stripe_customer_id, owner_email').eq('id', tenantId).single();
@@ -3950,7 +3957,15 @@ app.post('/api/billing/extra-users', auth, requireSettingsAccess, requireFinanci
       ...(tenant.stripe_customer_id
         ? { customer: tenant.stripe_customer_id }
         : { customer_email: tenant.owner_email }),
-      line_items: [{ price: priceId, quantity: parseInt(quantity) }],
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          unit_amount: 2900,
+          recurring: { interval: 'month' },
+          product_data: { name: 'LinkCrew Additional User' },
+        },
+        quantity: parseInt(quantity),
+      }],
       success_url: `${req.protocol}://${req.get('host')}/app?billing=success`,
       cancel_url: `${req.protocol}://${req.get('host')}/app`,
       metadata: { tenant_id: tenantId, addon: 'extra_users', quantity: String(quantity) },
@@ -4012,10 +4027,10 @@ app.get('/api/settings', auth, async (req, res) => {
   const tenantId = await getEffectiveTenantId(req);
   if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
   const { data, error } = await supabaseAdmin.from('tenants')
-    .select('company_name, owner_email, logo_url, phone, address, voicebot_enabled, twilio_phone, twilio_account_sid, voicebot_knowledge, photo_expiry_days, appt_reminder_minutes, manager_financials_enabled')
+    .select('company_name, owner_email, logo_url, phone, address, voicebot_enabled, twilio_phone, twilio_account_sid, voicebot_knowledge, photo_expiry_days, appt_reminder_minutes, appt_reminder_channel, manager_financials_enabled')
     .eq('id', tenantId).single();
   if (!error && data) return res.json(data);
-  if (error && !/manager_financials_enabled/i.test(error.message || '')) {
+  if (error && !/(manager_financials_enabled|appt_reminder_channel)/i.test(error.message || '')) {
     return res.status(400).json({ error: error.message });
   }
   const fallback = await supabaseAdmin.from('tenants')
@@ -4029,7 +4044,7 @@ app.get('/api/settings', auth, async (req, res) => {
 app.patch('/api/settings', auth, requireSettingsAccess, async (req, res) => {
   const tenantId = await getEffectiveTenantId(req);
   if (!tenantId) return res.status(404).json({ error: 'No tenant found' });
-  const { company_name, phone, address, license_number, voicebot_knowledge, photo_expiry_days, appt_reminder_minutes, manager_financials_enabled } = req.body;
+  const { company_name, phone, address, license_number, voicebot_knowledge, photo_expiry_days, appt_reminder_minutes, appt_reminder_channel, manager_financials_enabled } = req.body;
   const syncManagerFinancialAccess = async enabled => {
     const syncResult = await supabaseAdmin
       .from('tenant_users')
@@ -4048,6 +4063,10 @@ app.patch('/api/settings', auth, requireSettingsAccess, async (req, res) => {
   if (voicebot_knowledge !== undefined) updates.voicebot_knowledge = voicebot_knowledge;
   if (photo_expiry_days !== undefined) updates.photo_expiry_days = photo_expiry_days || null;
   if (appt_reminder_minutes !== undefined) updates.appt_reminder_minutes = appt_reminder_minutes;
+  if (appt_reminder_channel !== undefined) {
+    const validChannels = new Set(['email', 'app', 'sms', 'email_app', 'email_sms', 'all']);
+    updates.appt_reminder_channel = validChannels.has(appt_reminder_channel) ? appt_reminder_channel : 'email';
+  }
   if (manager_financials_enabled !== undefined) updates.manager_financials_enabled = !!manager_financials_enabled;
   const { data, error } = await supabaseAdmin.from('tenants')
     .update(updates).eq('id', tenantId).select().single();
@@ -5547,7 +5566,7 @@ app.get('/api/mobile/crew/schedule', mobileAuth, async (req, res) => {
   const end = String(req.query.end || '');
   const { data: jobs, error: je } = await supabaseAdmin
     .from('jobs')
-    .select('id, name, address, status, scheduled_date, payment_status, invoice_amount, client_id, clients(name)')
+    .select('id, name, address, status, scheduled_date, scheduled_time, payment_status, invoice_amount, client_id, clients(name)')
     .eq('tenant_id', req.tenantId)
     .gte('scheduled_date', start || '1970-01-01')
     .lte('scheduled_date', end || '9999-12-31')
@@ -6532,6 +6551,9 @@ app.patch('/api/mobile/owner/jobs/:id', mobileAuth, requireMobileOwnerOrManager,
     // Accept YYYY-MM-DD string or null. Postgres will reject any malformed value.
     updates.scheduled_date = req.body.scheduled_date || null;
   }
+  if (req.body.scheduled_time !== undefined) {
+    updates.scheduled_time = req.body.scheduled_time || null;
+  }
   if (!Object.keys(updates).length) return res.status(400).json({ error: 'no updates' });
   const scopeTouched = scopeFieldsTouched(updates);
   const { data, error } = await supabaseAdmin
@@ -6582,7 +6604,7 @@ app.post('/api/mobile/owner/jobs/:id/send-workorder', mobileAuth, requireMobileO
 // Create a job
 // Crew-open — any role can create a job or quote from the field.
 app.post('/api/mobile/owner/jobs', mobileAuth, async (req, res) => {
-  const { name, address, description, estimate_amount, scheduled_date, client_id, workflow_id, status } = req.body || {};
+  const { name, address, description, estimate_amount, scheduled_date, scheduled_time, client_id, workflow_id, status } = req.body || {};
   if (!name || !address) return res.status(400).json({ error: 'name and address required' });
   // If a workflow_id is supplied, verify it belongs to this tenant.
   if (workflow_id) {
@@ -6601,6 +6623,7 @@ app.post('/api/mobile/owner/jobs', mobileAuth, async (req, res) => {
       description: description || null,
       estimate_amount: estimate_amount != null ? Number(estimate_amount) : null,
       scheduled_date: scheduled_date || null,
+      scheduled_time: scheduled_time || null,
       client_id: client_id || null,
       workflow_id: workflow_id || null,
     }).select().single();
@@ -7045,7 +7068,7 @@ app.get('/api/mobile/owner/search', mobileAuth, requireMobileOwnerOrManager, asy
   if (type === 'all' || type === 'estimates') {
     // Estimates = jobs in pre-booking status (quoted/lead/draft).
     let qb = supabaseAdmin.from('jobs')
-      .select('id, name, address, description, status, invoice_amount, updated_at, clients(name)')
+      .select('id, name, address, description, status, invoice_amount, scheduled_date, scheduled_time, updated_at, clients(name)')
       .eq('tenant_id', req.tenantId)
       .in('status', ['quoted', 'lead', 'draft']);
     if (hasQ) qb = qb.or(`name.ilike.${like},address.ilike.${like},description.ilike.${like}`);
@@ -8194,9 +8217,15 @@ cron.schedule('*/15 * * * *', async () => {
   }
 
   for (const [tenantId, tenantAppts] of Object.entries(byTenant)) {
-    const { data: tenant } = await supabaseAdmin.from('tenants')
-      .select('plan, owner_email, company_name, appt_reminder_minutes, twilio_phone, twilio_account_sid, twilio_auth_token')
+    let { data: tenant, error: tenantError } = await supabaseAdmin.from('tenants')
+      .select('plan, owner_email, phone, company_name, appt_reminder_minutes, appt_reminder_channel, twilio_phone, twilio_account_sid, twilio_auth_token')
       .eq('id', tenantId).single();
+    if (tenantError && /appt_reminder_channel/i.test(tenantError.message || '')) {
+      const fallback = await supabaseAdmin.from('tenants')
+        .select('plan, owner_email, phone, company_name, appt_reminder_minutes, twilio_phone, twilio_account_sid, twilio_auth_token')
+        .eq('id', tenantId).single();
+      tenant = fallback.data ? { ...fallback.data, appt_reminder_channel: 'email' } : null;
+    }
     if (!tenant || !tenant.owner_email) continue;
     if (!hasFeature(tenant.plan, 'appt_reminders')) continue;
 
@@ -8210,31 +8239,60 @@ cron.schedule('*/15 * * * *', async () => {
     });
     if (!eligibleAppts.length) continue;
 
+    const channel = tenant.appt_reminder_channel || 'email';
+    const wantsEmail = ['email', 'email_app', 'email_sms', 'all'].includes(channel);
+    const wantsApp = ['app', 'email_app', 'all'].includes(channel);
+    const wantsSms = ['sms', 'email_sms', 'all'].includes(channel);
+    const label = reminderMinutes >= 1440
+      ? `${reminderMinutes / 1440} day${reminderMinutes / 1440 > 1 ? 's' : ''}`
+      : reminderMinutes >= 60
+        ? `${reminderMinutes / 60} hour${reminderMinutes / 60 > 1 ? 's' : ''}`
+        : `${reminderMinutes} minutes`;
+    const title = `Upcoming in ${label}: ${eligibleAppts.length > 1 ? eligibleAppts.length + ' appointments' : eligibleAppts[0].title}`;
+    const textList = eligibleAppts.map(a => {
+      const t = new Date(a.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      return `${a.title} at ${t}${a.clients ? ' - ' + a.clients.name : ''}`;
+    });
+
+    if (wantsApp) {
+      try {
+        await notifyApprovers(tenantId, title, textList.join('\n'), { screen: 'schedule', appointment_ids: eligibleAppts.map(a => a.id) });
+      } catch (e) { console.error('[appt reminder] app push error:', e.message); }
+    }
+
+    if (wantsSms && tenant.phone && tenant.twilio_account_sid && tenant.twilio_phone) {
+      try {
+        const twilioClient = twilio(tenant.twilio_account_sid, tenant.twilio_auth_token);
+        await twilioClient.messages.create({
+          from: tenant.twilio_phone,
+          to: tenant.phone,
+          body: `${tenant.company_name || 'LinkCrew'} reminder: ${title}. ${textList.join('; ')}`,
+        });
+      } catch (e) { console.error('[appt reminder] owner sms error:', e.message); }
+    }
+
     // Send owner email
-    try {
-      const { Resend } = require('resend');
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      const label = reminderMinutes >= 1440
-        ? `${reminderMinutes / 1440} day${reminderMinutes / 1440 > 1 ? 's' : ''}`
-        : reminderMinutes >= 60
-          ? `${reminderMinutes / 60} hour${reminderMinutes / 60 > 1 ? 's' : ''}`
-          : `${reminderMinutes} minutes`;
-      const list = eligibleAppts.map(a => {
-        const t = new Date(a.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        return `<li style="margin-bottom:6px"><strong>${a.title}</strong> at ${t}${a.clients ? ' — ' + a.clients.name : ''}</li>`;
-      }).join('');
-      await resend.emails.send({
-        from: LINKCREW_FROM,
-        to: tenant.owner_email,
-        subject: `📅 Upcoming in ${label}: ${eligibleAppts.length > 1 ? eligibleAppts.length + ' appointments' : eligibleAppts[0].title}`,
-        html: `<div style="font-family:sans-serif;max-width:500px">
-          <h2 style="color:#0265dc">Upcoming Appointment${eligibleAppts.length > 1 ? 's' : ''}</h2>
-          <p>Starting in <strong>${label}</strong>:</p>
-          <ul style="padding-left:20px;line-height:1.8">${list}</ul>
-          <p style="color:#737475;font-size:12px">${tenant.company_name || 'LinkCrew'}</p>
-        </div>`,
-      });
-    } catch (e) { console.error('[appt reminder] owner email error:', e.message); }
+    if (wantsEmail) {
+      try {
+        const { Resend } = require('resend');
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const list = eligibleAppts.map(a => {
+          const t = new Date(a.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          return `<li style="margin-bottom:6px"><strong>${a.title}</strong> at ${t}${a.clients ? ' — ' + a.clients.name : ''}</li>`;
+        }).join('');
+        await resend.emails.send({
+          from: LINKCREW_FROM,
+          to: tenant.owner_email,
+          subject: title,
+          html: `<div style="font-family:sans-serif;max-width:500px">
+            <h2 style="color:#0265dc">Upcoming Appointment${eligibleAppts.length > 1 ? 's' : ''}</h2>
+            <p>Starting in <strong>${label}</strong>:</p>
+            <ul style="padding-left:20px;line-height:1.8">${list}</ul>
+            <p style="color:#737475;font-size:12px">${tenant.company_name || 'LinkCrew'}</p>
+          </div>`,
+        });
+      } catch (e) { console.error('[appt reminder] owner email error:', e.message); }
+    }
 
     // Mark as reminded
     await supabaseAdmin.from('appointments')
@@ -8363,7 +8421,7 @@ function nowIn(tz) {
 async function sendCrewJobReminders(tenantId, date, mode /* 'today' | 'tomorrow' */) {
   const { data: jobs } = await supabaseAdmin
     .from('jobs')
-    .select('id, name, address, scheduled_date, job_assignments(employee_id, employees(id, name, push_token))')
+    .select('id, name, address, scheduled_date, scheduled_time, job_assignments(employee_id, employees(id, name, push_token))')
     .eq('tenant_id', tenantId)
     .eq('scheduled_date', date);
   if (!jobs?.length) return { sent: 0, jobsFound: 0, assigned: 0, noToken: 0, noTokenNames: [] };
@@ -9242,7 +9300,7 @@ app.get('/api/dashboard/jobs-today', auth, async (req, res) => {
   const today = new Date().toISOString().slice(0,10);
   const { data, error } = await supabaseAdmin
     .from('jobs')
-    .select('id, name, address, status, lat, lng, scheduled_date')
+    .select('id, name, address, status, lat, lng, scheduled_date, scheduled_time')
     .eq('tenant_id', tenantId)
     .or(`scheduled_date.eq.${today},status.in.(scheduled,dispatched,en_route,on_site,active,in_progress)`)
     .not('lat', 'is', null)

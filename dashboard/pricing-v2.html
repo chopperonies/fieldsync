@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plans & Pricing — LinkCrew (v2 mockup)</title>
+  <link rel="icon" type="image/svg+xml" href="/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #17191c; min-height: 100vh; }
+
+    /* ── Nav ── */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 48px; background: #fff; border-bottom: 1px solid #e8ecf0;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-brand-wordmark { display: flex; flex-direction: column; gap: 0; }
+    .nav-brand-name { font-family: 'Lato', sans-serif; font-size: 18px; font-weight: 900; color: #17191c; line-height: 1; letter-spacing: -0.3px; }
+    .nav-brand-name b { color: #0ea5e9; }
+    .nav-brand-sub { font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px; font-family: 'Lato', sans-serif; }
+    .nav-actions { display: flex; align-items: center; gap: 8px; }
+    .btn-ghost { background: none; border: 1.5px solid #e0e5ea; color: #555; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    .btn-ghost:hover { border-color: #0ea5e9; color: #0ea5e9; }
+    .btn-primary { background: #0ea5e9; color: #fff; border: none; padding: 9px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+    .btn-primary:hover { background: #0284c7; }
+
+    /* ── Hero ── */
+    .hero { text-align: center; padding: 72px 24px 24px; }
+    .hero-eyebrow { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #0ea5e9; background: #e0f2fe; padding: 5px 14px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-family: 'Lato', sans-serif; font-size: 48px; font-weight: 900; color: #17191c; line-height: 1.1; letter-spacing: -1px; margin-bottom: 14px; }
+    .hero h1 span { color: #0ea5e9; }
+    .hero p { font-size: 17px; color: #64748b; max-width: 520px; margin: 0 auto 28px; line-height: 1.65; }
+    .trust-strip { display: flex; align-items: center; justify-content: center; gap: 24px; font-size: 13px; color: #94a3b8; margin-bottom: 0; flex-wrap: wrap; }
+    .trust-strip span { display: flex; align-items: center; gap: 6px; }
+    .trust-strip span::before { content: '✓'; color: #0ea5e9; font-weight: 700; }
+
+    /* ── Billing toggle ── */
+    .billing-toggle { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 28px; }
+    .toggle-btn {
+      background: #fff; border: 1.5px solid #e0e5ea; color: #64748b;
+      padding: 8px 18px; border-radius: 999px; font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: all 0.15s;
+    }
+    .toggle-btn.active { background: #0ea5e9; color: #fff; border-color: #0ea5e9; }
+    .toggle-save { font-size: 11px; font-weight: 700; color: #16a34a; background: #dcfce7; padding: 3px 8px; border-radius: 4px; margin-left: 6px; }
+
+    /* ── Plans grid (3 columns) ── */
+    .plans-wrap { max-width: 1080px; margin: 0 auto; padding: 48px 24px 16px; }
+    .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+
+    .plan-card {
+      background: #fff; border: 1.5px solid #e8ecf0; border-radius: 16px;
+      padding: 36px 30px; display: flex; flex-direction: column; position: relative;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .plan-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .plan-card.popular {
+      border-color: #0ea5e9; border-width: 2px;
+      box-shadow: 0 4px 20px rgba(14,165,233,0.15);
+    }
+    .popular-badge {
+      position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+      background: #0ea5e9; color: #fff; font-size: 11px; font-weight: 700;
+      padding: 4px 14px; border-radius: 20px; white-space: nowrap; letter-spacing: 0.04em;
+    }
+    .plan-name {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #94a3b8; margin-bottom: 12px;
+    }
+    .plan-tag { font-size: 13px; color: #64748b; margin-bottom: 20px; font-style: italic; }
+    .plan-price { font-family: 'Lato', sans-serif; font-size: 48px; font-weight: 900; color: #17191c; line-height: 1; margin-bottom: 4px; letter-spacing: -1px; }
+    .plan-price sub { font-size: 16px; font-weight: 400; color: #94a3b8; font-family: 'Inter', sans-serif; vertical-align: baseline; }
+    .plan-price-annual { font-size: 12px; color: #16a34a; font-weight: 600; margin-bottom: 4px; }
+    .plan-seats { font-size: 13px; color: #64748b; margin-bottom: 22px; padding-bottom: 22px; border-bottom: 1px solid #f1f5f9; }
+    .plan-seats strong { color: #17191c; font-weight: 700; }
+
+    .plan-features { list-style: none; margin-bottom: 28px; flex: 1; display: flex; flex-direction: column; gap: 9px; }
+    .plan-features li { font-size: 13px; color: #374151; display: flex; align-items: flex-start; gap: 8px; line-height: 1.45; }
+    .plan-features li .check { color: #0ea5e9; font-weight: 700; flex-shrink: 0; margin-top: 1px; font-size: 13px; }
+    .plan-features li.dim { color: #94a3b8; }
+    .plan-features li.dim .check { color: #cbd5e1; }
+    .plan-features li.highlight { color: #0c4a6e; font-weight: 600; background: #f0f9ff; margin-left: -8px; padding: 6px 8px; border-radius: 6px; }
+    .plan-features li.highlight .check { color: #0ea5e9; }
+    .plan-features .divider { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #cbd5e1; margin-top: 4px; padding-top: 4px; display: block; }
+    .plan-features .divider::before { content: none !important; }
+
+    .btn-plan { width: 100%; padding: 14px; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: all 0.15s; font-family: inherit; letter-spacing: 0.01em; }
+    .btn-plan-solid { background: #0ea5e9; color: #fff; }
+    .btn-plan-solid:hover { background: #0284c7; }
+    .btn-plan-outline { background: #fff; color: #374151; border: 1.5px solid #e0e5ea !important; }
+    .btn-plan-outline:hover { border-color: #0ea5e9 !important; color: #0ea5e9; }
+    .btn-plan:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ── Compare callout ── */
+    .compare-strip {
+      max-width: 1080px; margin: 36px auto 0; padding: 0 24px;
+    }
+    .compare-card {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #fff; border-radius: 16px; padding: 28px 36px;
+      display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+    }
+    .compare-card .compare-left { flex: 1; min-width: 280px; }
+    .compare-card h3 { font-family: 'Lato', sans-serif; font-size: 20px; font-weight: 900; margin-bottom: 6px; }
+    .compare-card p { font-size: 14px; color: #cbd5e1; line-height: 1.55; }
+    .compare-card strong { color: #38bdf8; }
+    .compare-card .price-pill {
+      background: #0ea5e9; color: #fff; padding: 10px 18px; border-radius: 10px;
+      font-family: 'Lato', sans-serif; font-size: 18px; font-weight: 900; white-space: nowrap;
+    }
+
+    /* ── Addons ── */
+    .addons-wrap { max-width: 1080px; margin: 36px auto 0; padding: 0 24px; }
+    .addons-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; margin-bottom: 14px; }
+    .addons { display: flex; flex-direction: column; gap: 14px; margin-bottom: 64px; }
+    .addon-card {
+      background: #fff; border: 1.5px solid #e8ecf0; border-radius: 14px;
+      padding: 24px 28px; display: flex; align-items: center; justify-content: space-between;
+      gap: 24px; flex-wrap: wrap;
+    }
+    .addon-info h3 { font-family: 'Lato', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 5px; color: #17191c; }
+    .addon-info h3 .included-pill { font-size: 10px; font-weight: 700; color: #16a34a; background: #dcfce7; padding: 3px 8px; border-radius: 4px; margin-left: 8px; vertical-align: middle; letter-spacing: 0.04em; text-transform: uppercase; }
+    .addon-info p { font-size: 13px; color: #64748b; max-width: 520px; line-height: 1.55; }
+    .addon-right { display: flex; align-items: center; gap: 20px; flex-shrink: 0; }
+    .addon-price-val { font-family: 'Lato', sans-serif; font-size: 30px; font-weight: 900; color: #17191c; white-space: nowrap; }
+    .addon-price-val sub { font-size: 14px; font-weight: 400; color: #94a3b8; font-family: 'Inter', sans-serif; }
+
+    /* ── Footer strip ── */
+    .footer-strip { text-align: center; padding: 24px; font-size: 13px; color: #94a3b8; border-top: 1px solid #e8ecf0; background: #fff; }
+    .footer-strip a { color: #0ea5e9; text-decoration: none; }
+
+    #status-msg { text-align: center; padding: 16px 24px 0; font-size: 14px; min-height: 20px; }
+
+    /* ── Mockup banner ── */
+    .mockup-banner {
+      background: #fef3c7; border-bottom: 1px solid #fde68a; color: #78350f;
+      padding: 8px 16px; font-size: 12px; font-weight: 600; text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .plans { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      nav { padding: 14px 20px; }
+      .hero h1 { font-size: 34px; }
+      .hero p { font-size: 15px; }
+      .addon-card { flex-direction: column; align-items: flex-start; }
+      .addon-right { width: 100%; justify-content: space-between; }
+      .compare-card { flex-direction: column; align-items: flex-start; text-align: left; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="mockup-banner">
+  ⚙️ Pricing v2 mockup — 3-tier proposal. Not live. Compare to <a href="/pricing.html" style="color:#78350f;text-decoration:underline">current pricing</a>.
+</div>
+
+<nav>
+  <a href="/" class="nav-brand">
+    <img src="/logo.svg" alt="LinkCrew" style="width:32px;height:32px">
+    <div class="nav-brand-wordmark">
+      <span class="nav-brand-name">Link<b>Crew</b></span>
+      <span class="nav-brand-sub">Field Crew Management</span>
+    </div>
+  </a>
+  <div class="nav-actions">
+    <button class="btn-ghost" onclick="location.href='/app'">Sign In</button>
+    <button class="btn-primary" onclick="location.href='/app'">Start Free Trial</button>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-eyebrow">Pricing</div>
+  <h1>More seats. Same price.<br><span>Voice receptionist</span> included.</h1>
+  <p>Everything you need to run your jobs, crew, clients, and invoices — including a built-in AI voice receptionist on Pro. No setup fees, no nickel-and-dime add-ons.</p>
+  <div class="trust-strip">
+    <span>14-day free trial</span>
+    <span>No credit card required</span>
+    <span>Cancel anytime</span>
+  </div>
+  <div class="billing-toggle">
+    <button class="toggle-btn active" data-billing="monthly" onclick="setBilling('monthly')">Monthly</button>
+    <button class="toggle-btn" data-billing="annual" onclick="setBilling('annual')">Annual <span class="toggle-save">SAVE 17%</span></button>
+  </div>
+</div>
+
+<div id="status-msg"></div>
+
+<div class="plans-wrap">
+  <div class="plans">
+
+    <!-- Crew -->
+    <div class="plan-card">
+      <div class="plan-name">Crew</div>
+      <div class="plan-tag">For solo operators</div>
+      <div class="plan-price"><span data-price="crew">$49</span><sub>/mo</sub></div>
+      <div class="plan-price-annual" data-annual="crew" style="display:none">Billed annually — $490/yr</div>
+      <div class="plan-seats">For <strong>1 crew member</strong></div>
+      <ul class="plan-features">
+        <li><span class="check">✓</span>Job tracking &amp; pipeline</li>
+        <li><span class="check">✓</span>Client CRM</li>
+        <li><span class="check">✓</span>Client portal (jobs, photos &amp; invoices)</li>
+        <li><span class="check">✓</span>Online booking page <em style="color:#0ea5e9;font-style:normal">NEW</em></li>
+        <li><span class="check">✓</span>Appointments &amp; calendar</li>
+        <li><span class="check">✓</span>Site photo uploads</li>
+        <li><span class="check">✓</span>Stripe invoicing &amp; payments — <strong>0% markup</strong></li>
+        <li><span class="check">✓</span>Work orders &amp; service agreements</li>
+        <li><span class="check">✓</span>Timesheets with punch in/out</li>
+        <li><span class="check">✓</span>Mobile app (iOS &amp; Android)</li>
+        <li><span class="check">✓</span>Email &amp; SMS notifications</li>
+      </ul>
+      <button class="btn-plan btn-plan-outline" onclick="choosePlan('crew')">Get Started</button>
+    </div>
+
+    <!-- Team -->
+    <div class="plan-card popular">
+      <div class="popular-badge">Most Popular</div>
+      <div class="plan-name">Team</div>
+      <div class="plan-tag">For growing crews</div>
+      <div class="plan-price"><span data-price="team">$99</span><sub>/mo</sub></div>
+      <div class="plan-price-annual" data-annual="team" style="display:none">Billed annually — $990/yr</div>
+      <div class="plan-seats">Up to <strong>5 crew members</strong></div>
+      <ul class="plan-features">
+        <li class="dim"><span class="check">✓</span><span class="divider">Everything in Crew, plus:</span></li>
+        <li><span class="check">✓</span>Up to 5 crew members</li>
+        <li><span class="check">✓</span>Real-time crew check-ins</li>
+        <li><span class="check">✓</span>Per-crew photo tracking</li>
+        <li><span class="check">✓</span>Daily email digest summary</li>
+        <li><span class="check">✓</span>Appointment reminders for owner &amp; clients</li>
+        <li class="highlight"><span class="check">✓</span>Reports &amp; analytics dashboard</li>
+        <li class="highlight"><span class="check">✓</span>GPS-verified punch in/out</li>
+        <li class="highlight"><span class="check">✓</span>Custom branding on invoices &amp; timesheets</li>
+      </ul>
+      <button class="btn-plan btn-plan-solid" onclick="choosePlan('team')">Get Started</button>
+    </div>
+
+    <!-- Pro -->
+    <div class="plan-card">
+      <div class="plan-name">Pro</div>
+      <div class="plan-tag">For established service businesses</div>
+      <div class="plan-price"><span data-price="pro">$199</span><sub>/mo</sub></div>
+      <div class="plan-price-annual" data-annual="pro" style="display:none">Billed annually — $1,990/yr</div>
+      <div class="plan-seats">Up to <strong>15 crew members</strong></div>
+      <ul class="plan-features">
+        <li class="dim"><span class="check">✓</span><span class="divider">Everything in Team, plus:</span></li>
+        <li><span class="check">✓</span>Up to 15 crew members</li>
+        <li class="highlight"><span class="check">✓</span><strong>AI Voice Receptionist included</strong> — 500 min/mo, then $0.05/min</li>
+        <li><span class="check">✓</span>Two-way SMS center</li>
+        <li><span class="check">✓</span>QuickBooks Online sync</li>
+        <li><span class="check">✓</span>Priority support</li>
+        <li><span class="check">✓</span>Dedicated onboarding call</li>
+        <li><span class="check">✓</span>Free data migration from Jobber/HCP</li>
+      </ul>
+      <button class="btn-plan btn-plan-outline" onclick="choosePlan('pro')">Get Started</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Compare strip -->
+<div class="compare-strip">
+  <div class="compare-card">
+    <div class="compare-left">
+      <h3>Same $199. <strong>+5 seats. Voice bot bundled.</strong></h3>
+      <p>LinkCrew Pro at <strong>$199/mo</strong> includes 15 seats and the AI voice receptionist. Jobber Grow at the same $199/mo includes 10 seats — and their Receptionist add-on is an extra <strong>$99/mo on top</strong>.</p>
+      <p style="margin-top:14px;font-size:12px;color:#94a3b8;line-height:1.5">
+        Pricing as of April 2026, verified at <a href="https://www.getjobber.com/pricing" target="_blank" rel="noopener" style="color:#7dd3fc;text-decoration:underline">getjobber.com/pricing</a>.
+        LinkCrew is not affiliated with or endorsed by Jobber. Jobber is a trademark of Jobber Software Inc.
+      </p>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+      <div class="price-pill">$199 vs $298</div>
+      <a href="/compare.html" style="font-size:12px;color:#7dd3fc;text-decoration:underline;font-weight:600">See full comparison →</a>
+    </div>
+  </div>
+</div>
+
+<!-- Add-ons -->
+<div class="addons-wrap">
+  <div class="addons-label">Add-ons — available on any plan</div>
+  <div class="addons">
+
+    <div class="addon-card">
+      <div class="addon-info">
+        <h3>Extra Crew Members</h3>
+        <p>Need more seats than your plan includes? Add individual crew members at a flat monthly rate. Each extra user gets full app access and shows up in your timesheets and check-in tracking.</p>
+        <p style="margin-top:10px;font-size:13px;color:#64748b">For larger teams (20+) or higher-volume user counts, email <a href="mailto:sales@linkcrew.io" style="color:#0f172a;font-weight:800;text-decoration:none">sales@linkcrew.io</a> for a custom quote.</p>
+      </div>
+      <div class="addon-right">
+        <div class="addon-price-val">$25<sub>/user/mo</sub></div>
+        <button class="btn-plan btn-plan-outline" style="width:auto;padding:10px 20px" onclick="choosePlan('extra_users')">Add Users</button>
+      </div>
+    </div>
+
+    <div class="addon-card">
+      <div class="addon-info">
+        <h3>AI Voice Receptionist <span class="included-pill">Included on Pro</span></h3>
+        <p>Give your business a 24/7 AI phone assistant powered by LinkCrew. It answers calls with your company name, handles common questions, takes messages, and routes requests straight to your dashboard. No voicemail, no missed leads.</p>
+        <p style="margin-top:10px;font-size:12px;color:#94a3b8">Crew/Team: 200 minutes/mo included, then $0.05/min. Pro: 500 minutes/mo included, then $0.05/min. Live usage shown in your dashboard.</p>
+      </div>
+      <div class="addon-right">
+        <div class="addon-price-val">$30<sub>/mo</sub></div>
+        <button class="btn-plan btn-plan-solid" style="width:auto;padding:10px 20px" onclick="choosePlan('voicebot')">Add to Plan</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="footer-strip">
+  All plans include a 14-day free trial. &nbsp;·&nbsp; No contracts. Cancel anytime. &nbsp;·&nbsp;
+  <a href="/faq">FAQ</a> &nbsp;·&nbsp; Call or text <a href="tel:+12603005565">(260) 300-5565</a> &nbsp;·&nbsp; Questions? <a href="mailto:sales@linkcrew.io">sales@linkcrew.io</a>
+</div>
+
+<script>
+  const TOKEN_KEY = 'fs_token';
+
+  // Annual = ~17% off (2 months free)
+  const PRICES = {
+    monthly: { crew: 49, team: 99, pro: 199 },
+    annual:  { crew: 41, team: 82, pro: 165 },
+  };
+  const ANNUAL_TOTAL = { crew: 490, team: 990, pro: 1990 };
+
+  function setBilling(mode) {
+    document.querySelectorAll('.toggle-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.billing === mode);
+    });
+    Object.entries(PRICES[mode]).forEach(([plan, price]) => {
+      const el = document.querySelector(`[data-price="${plan}"]`);
+      if (el) el.textContent = '$' + price;
+    });
+    document.querySelectorAll('[data-annual]').forEach(el => {
+      el.style.display = mode === 'annual' ? 'block' : 'none';
+    });
+  }
+
+  async function choosePlan(plan) {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      location.href = '/app?plan=' + plan;
+      return;
+    }
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = 'Loading…';
+    try {
+      const res = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ plan }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        alert('Error: ' + (json.error || 'Could not start checkout'));
+        btn.disabled = false;
+        btn.textContent = 'Get Started';
+        return;
+      }
+      location.href = json.url;
+    } catch (err) {
+      alert('Error: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = 'Get Started';
+    }
+  }
+
+  const params = new URLSearchParams(location.search);
+  if (params.get('billing') === 'success') {
+    document.getElementById('status-msg').innerHTML =
+      '<span style="color:#16a34a;font-weight:600">✅ Subscription activated! <a href="/app" style="color:#0ea5e9">Go to dashboard →</a></span>';
+  }
+</script>
+</body>
+</html>

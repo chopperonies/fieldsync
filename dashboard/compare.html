@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkCrew vs Jobber vs Housecall Pro — Pricing & Feature Comparison</title>
+  <meta name="description" content="Honest, dated, side-by-side comparison of LinkCrew, Jobber, and Housecall Pro. Per-seat pricing, AI features, and gating — verified April 2026.">
+  <link rel="icon" type="image/svg+xml" href="/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #17191c; min-height: 100vh; }
+
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 48px; background: #fff; border-bottom: 1px solid #e8ecf0;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-brand-name { font-family: 'Lato', sans-serif; font-size: 18px; font-weight: 900; color: #17191c; line-height: 1; letter-spacing: -0.3px; }
+    .nav-brand-name b { color: #0ea5e9; }
+    .nav-brand-sub { font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px; font-family: 'Lato', sans-serif; }
+    .nav-actions { display: flex; align-items: center; gap: 8px; }
+    .btn-ghost { background: none; border: 1.5px solid #e0e5ea; color: #555; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .btn-primary { background: #0ea5e9; color: #fff; border: none; padding: 9px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+    /* Hero */
+    .hero { text-align: center; padding: 64px 24px 32px; max-width: 980px; margin: 0 auto; }
+    .hero-eyebrow { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #0ea5e9; background: #e0f2fe; padding: 5px 14px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-family: 'Lato', sans-serif; font-size: 42px; font-weight: 900; color: #17191c; line-height: 1.15; letter-spacing: -1px; margin-bottom: 16px; }
+    .hero h1 .lc { color: #0ea5e9; }
+    .hero h1 .vs { color: #94a3b8; font-weight: 700; }
+    .hero p { font-size: 16px; color: #64748b; line-height: 1.6; max-width: 640px; margin: 0 auto; }
+    .hero-meta { font-size: 13px; color: #94a3b8; margin-top: 16px; }
+
+    /* TL;DR */
+    .tldr-wrap { max-width: 1080px; margin: 16px auto 0; padding: 0 24px; }
+    .tldr { background: #fff; border: 1.5px solid #e8ecf0; border-radius: 16px; padding: 32px 36px; }
+    .tldr h2 { font-family: 'Lato', sans-serif; font-size: 20px; font-weight: 900; margin-bottom: 18px; color: #17191c; }
+    .tldr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .tldr-cell .num { font-family: 'Lato', sans-serif; font-size: 32px; font-weight: 900; color: #0ea5e9; line-height: 1; margin-bottom: 6px; letter-spacing: -1px; }
+    .tldr-cell .label { font-size: 13px; color: #64748b; line-height: 1.5; }
+
+    /* Sections */
+    .section { max-width: 1080px; margin: 56px auto 0; padding: 0 24px; }
+    .section-title { font-family: 'Lato', sans-serif; font-size: 28px; font-weight: 900; color: #17191c; margin-bottom: 8px; letter-spacing: -0.5px; }
+    .section-sub { font-size: 14px; color: #64748b; margin-bottom: 28px; line-height: 1.55; }
+
+    /* Tables — 4 columns: label | LinkCrew | Jobber | HCP */
+    .ctable { background: #fff; border: 1.5px solid #e8ecf0; border-radius: 16px; overflow: hidden; }
+    .crow {
+      display: grid; grid-template-columns: 2fr 1.1fr 1.1fr 1.1fr;
+      align-items: center; padding: 18px 24px; border-bottom: 1px solid #f1f5f9;
+    }
+    .crow:last-child { border-bottom: none; }
+    .crow.header {
+      background: #f8fafc; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8;
+    }
+    .crow.header .vendor-lc { color: #0ea5e9; font-weight: 800; }
+    .crow.section-divider {
+      background: #f8fafc; font-weight: 800; color: #17191c; font-size: 13px;
+      padding: 12px 24px; grid-template-columns: 1fr; text-transform: uppercase; letter-spacing: 0.06em;
+    }
+
+    .label { font-size: 14px; color: #17191c; font-weight: 600; }
+    .label small { display: block; color: #64748b; font-size: 12px; margin-top: 3px; font-weight: 400; }
+
+    .cell { font-size: 13px; }
+    .cell.lc { background: rgba(14,165,233,0.04); padding: 8px 12px; border-radius: 8px; margin-right: 4px; }
+    .cell .v-yes { color: #16a34a; font-weight: 700; }
+    .cell .v-no { color: #cbd5e1; }
+    .cell .v-partial { color: #d97706; font-weight: 600; font-size: 12px; }
+    .cell .v-gated { color: #64748b; font-weight: 600; font-size: 12px; }
+    .cell small { display: block; color: #94a3b8; font-size: 11px; margin-top: 3px; font-weight: 400; }
+    .cell .price { font-family: 'Lato', sans-serif; font-size: 20px; font-weight: 900; color: #17191c; line-height: 1; }
+    .cell.lc .price { color: #0ea5e9; }
+    .cell .seats { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+    .winner-row { background: #f0f9ff !important; }
+    .winner-row .label { color: #0c4a6e; font-weight: 700; }
+    .winner-row .label small { color: #0369a1; }
+
+    /* Migration CTA */
+    .cta-wrap { max-width: 1080px; margin: 56px auto 0; padding: 0 24px; }
+    .cta {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #fff; border-radius: 16px; padding: 40px 44px;
+      display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+    }
+    .cta-left { flex: 1; min-width: 280px; }
+    .cta h2 { font-family: 'Lato', sans-serif; font-size: 24px; font-weight: 900; margin-bottom: 10px; line-height: 1.25; }
+    .cta p { color: #cbd5e1; font-size: 15px; line-height: 1.6; }
+    .cta-btn {
+      background: #0ea5e9; color: #fff; border: none;
+      padding: 14px 26px; border-radius: 10px; font-size: 15px; font-weight: 700;
+      cursor: pointer; font-family: inherit; text-decoration: none; display: inline-block;
+    }
+    .cta-btn:hover { background: #0284c7; }
+
+    .disclaimer { max-width: 1080px; margin: 56px auto 0; padding: 0 24px; }
+    .disclaimer-card {
+      background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px;
+      padding: 20px 24px; font-size: 12px; color: #78350f; line-height: 1.7;
+    }
+    .disclaimer-card a { color: #78350f; text-decoration: underline; }
+    .disclaimer-card strong { font-weight: 700; }
+
+    .footer-strip { text-align: center; padding: 28px 24px 36px; font-size: 13px; color: #94a3b8; margin-top: 48px; border-top: 1px solid #e8ecf0; background: #fff; }
+    .footer-strip a { color: #0ea5e9; text-decoration: none; }
+
+    .mockup-banner {
+      background: #fef3c7; border-bottom: 1px solid #fde68a; color: #78350f;
+      padding: 8px 16px; font-size: 12px; font-weight: 600; text-align: center;
+    }
+
+    @media (max-width: 880px) {
+      nav { padding: 14px 20px; }
+      .hero h1 { font-size: 30px; }
+      .tldr-grid { grid-template-columns: 1fr; }
+      .crow { grid-template-columns: 1.4fr 1fr 1fr 1fr; padding: 14px 16px; gap: 6px; font-size: 12px; }
+      .label { font-size: 13px; }
+      .label small { font-size: 11px; }
+      .cell { font-size: 12px; }
+      .cell .price { font-size: 16px; }
+      .cell.lc { padding: 6px 8px; }
+      .cta { flex-direction: column; align-items: flex-start; padding: 28px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="mockup-banner">
+  ⚙️ Comparison page mockup — not live
+</div>
+
+<nav>
+  <a href="/" class="nav-brand">
+    <img src="/logo.svg" alt="LinkCrew" style="width:32px;height:32px">
+    <div>
+      <span class="nav-brand-name">Link<b>Crew</b></span>
+      <span class="nav-brand-sub" style="display:block">Field Crew Management</span>
+    </div>
+  </a>
+  <div class="nav-actions">
+    <button class="btn-ghost" onclick="location.href='/pricing-v2.html'">Pricing</button>
+    <button class="btn-primary" onclick="location.href='/app'">Start Free Trial</button>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-eyebrow">Comparison</div>
+  <h1><span class="lc">LinkCrew</span> <span class="vs">vs</span> Jobber <span class="vs">vs</span> Housecall Pro</h1>
+  <p>If you're shopping field-service software, you're probably comparing all three. Here's an honest, dated, side-by-side look at price and features — pulled from each company's public pricing page.</p>
+  <div class="hero-meta">
+    Last verified: April 2026 · Sources:
+    <a href="https://www.getjobber.com/pricing" target="_blank" rel="noopener" style="color:#0ea5e9">getjobber.com</a> ·
+    <a href="https://www.housecallpro.com/pricing/" target="_blank" rel="noopener" style="color:#0ea5e9">housecallpro.com</a>
+  </div>
+</div>
+
+<!-- TL;DR -->
+<div class="tldr-wrap">
+  <div class="tldr">
+    <h2>The 30-second version</h2>
+    <div class="tldr-grid">
+      <div class="tldr-cell">
+        <div class="num">$13/seat</div>
+        <div class="label">LinkCrew Pro is ~$13/seat-equivalent at 15 seats. Jobber Grow is ~$20/seat at 10 seats. Housecall Pro MAX is ~$64/seat at 10 seats (1 included + 9 add-ons).</div>
+      </div>
+      <div class="tldr-cell">
+        <div class="num">Voice bundled</div>
+        <div class="label">LinkCrew Pro includes the AI voice receptionist. Jobber's Receptionist is a $99/mo add-on (free on $699 Plus). Housecall Pro doesn't offer one on any plan.</div>
+      </div>
+      <div class="tldr-cell">
+        <div class="num">No lock-in</div>
+        <div class="label">LinkCrew's listed prices are month-to-month. Jobber's lowest advertised prices require an annual commitment. Both LinkCrew and HCP offer optional annual discounts.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Plan-to-plan prices -->
+<div class="section">
+  <h2 class="section-title">What you pay at each tier</h2>
+  <p class="section-sub">All prices USD, <strong>monthly billing</strong>, no commitment. Annual prepay discounts available on all three products.</p>
+
+  <div class="ctable">
+    <div class="crow header">
+      <div>Use case</div>
+      <div class="vendor-lc">LinkCrew</div>
+      <div>Jobber</div>
+      <div>Housecall Pro</div>
+    </div>
+
+    <div class="crow">
+      <div class="label">Solo / 1 seat<small>One-person operation</small></div>
+      <div class="cell lc"><div class="price">$49</div><div class="seats">Crew · 1 seat</div></div>
+      <div class="cell"><div class="price">$49</div><div class="seats">Core · 1 seat (annual only)</div></div>
+      <div class="cell"><div class="price">$79</div><div class="seats">Basic · 1 seat</div></div>
+    </div>
+    <div class="crow">
+      <div class="label">Small crew / 5 seats<small>Owner + 4 techs</small></div>
+      <div class="cell lc"><div class="price">$99</div><div class="seats">Team · 5 seats</div></div>
+      <div class="cell"><div class="price">$139</div><div class="seats">Connect · 5 seats</div></div>
+      <div class="cell"><div class="price">$189</div><div class="seats">Essentials · 5 seats</div></div>
+    </div>
+    <div class="crow">
+      <div class="label">Established / 10 seats<small>Apples-to-apples seat count</small></div>
+      <div class="cell lc"><div class="price">$199</div><div class="seats">Pro · 15 incl. ($13.27/seat eq.)</div></div>
+      <div class="cell"><div class="price">$199</div><div class="seats">Grow · 10 incl. ($19.90/seat eq.)</div></div>
+      <div class="cell"><div class="price">$644</div><div class="seats">MAX $329 + 9×$35 ($64.40/seat eq.)</div></div>
+    </div>
+    <div class="crow">
+      <div class="label">+ AI voice receptionist<small>Cost when you add the voice bot to the matched 10-seat tier</small></div>
+      <div class="cell lc"><div class="price">$199</div><div class="seats">Included on Pro · 500 min/mo, then $0.05/min</div></div>
+      <div class="cell"><div class="price">$298</div><div class="seats">Grow $199 + Receptionist $99</div></div>
+      <div class="cell"><div class="price">N/A</div><div class="seats">Not offered</div></div>
+    </div>
+    <div class="crow">
+      <div class="label">Extra seat<small>Cost per additional user beyond the included count</small></div>
+      <div class="cell lc"><div class="price">$25</div><div class="seats">/user/mo</div></div>
+      <div class="cell"><div class="price">$29</div><div class="seats">/user/mo</div></div>
+      <div class="cell"><div class="price">$35</div><div class="seats">/user/mo</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Feature matrix -->
+<div class="section">
+  <h2 class="section-title">Feature-by-feature</h2>
+  <p class="section-sub">A green check means the feature is included in the plan tier shown. Plan tiers in parentheses indicate the lowest plan where the feature is available.</p>
+
+  <div class="ctable">
+    <div class="crow header">
+      <div>Feature</div>
+      <div class="vendor-lc">LinkCrew</div>
+      <div>Jobber</div>
+      <div>Housecall Pro</div>
+    </div>
+
+    <div class="crow section-divider">Core operations</div>
+    <div class="crow">
+      <div class="label">Job scheduling &amp; pipeline<small>Create, assign, track jobs to completion</small></div>
+      <div class="cell lc"><span class="v-yes">✓</span><small>all plans</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>all plans</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>all plans</small></div>
+    </div>
+    <div class="crow">
+      <div class="label">Client CRM &amp; portal<small>Customer profiles, photos, invoices, history</small></div>
+      <div class="cell lc"><span class="v-yes">✓</span><small>all plans</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>all plans</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>all plans</small></div>
+    </div>
+    <div class="crow">
+      <div class="label">Quotes &amp; service agreements<small>Send a quote, convert to a job</small></div>
+      <div class="cell lc"><span class="v-yes">✓</span><small>all plans</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>all plans</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>all plans</small></div>
+    </div>
+    <div class="crow">
+      <div class="label">Online booking page<small>Public-facing booking widget for clients</small></div>
+      <div class="cell lc"><span class="v-yes">✓</span><small>all plans</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>Core+</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>all plans</small></div>
+    </div>
+
+    <div class="crow section-divider">Crew &amp; field</div>
+    <div class="crow">
+      <div class="label">Mobile app (iOS &amp; Android)<small>Owner + crew, full functionality on phone</small></div>
+      <div class="cell lc"><span class="v-yes">✓</span><small>full-power owner mobile</small></div>
+      <div class="cell"><span class="v-yes">✓</span></div>
+      <div class="cell"><span class="v-yes">✓</span></div>
+    </div>
+    <div class="crow">
+      <div class="label">Real-time crew check-ins<small>Punch in/out, photos from the field</small></div>
+      <div class="cell lc"><span class="v-yes">✓</span><small>Team $99+</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>Connect $139+</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>Essentials $189+</small></div>
+    </div>
+    <div class="crow">
+      <div class="label">GPS-verified clock-in<small>Captures lat/lng on punch events</small></div>
+      <div class="cell lc"><span class="v-yes">✓</span><small>Team $99+</small></div>
+      <div class="cell"><span class="v-partial">Partial</span><small>basic GPS all plans · location-timed clock-in Grow+</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>Essentials $189+</small></div>
+    </div>
+    <div class="crow">
+      <div class="label">Two-way SMS center<small>Reply to client texts inside the app</small></div>
+      <div class="cell lc"><span class="v-yes">✓</span><small>Pro $199</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>Connect $139+</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>included</small></div>
+    </div>
+
+    <div class="crow section-divider">Money</div>
+    <div class="crow">
+      <div class="label">Card processing rate<small>Per-transaction fee on client card payments</small></div>
+      <div class="cell lc"><span class="v-yes">Stripe direct</span><small>2.9% + $0.30 (Stripe standard)</small></div>
+      <div class="cell"><span class="v-yes">Jobber Payments</span><small>rates on Jobber site</small></div>
+      <div class="cell"><span class="v-yes">2.59%</span><small>"as low as" — same on all plans</small></div>
+    </div>
+    <div class="crow">
+      <div class="label">Reports &amp; analytics<small>Revenue, hours, job profit</small></div>
+      <div class="cell lc"><span class="v-yes">✓</span><small>Team $99+</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>Grow $199+</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>Essentials $189+</small></div>
+    </div>
+    <div class="crow">
+      <div class="label">QuickBooks Online sync<small>Push invoices &amp; payments to QBO</small></div>
+      <div class="cell lc"><span class="v-yes">✓</span><small>Pro $199</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>Connect $139+</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>Essentials $189+</small></div>
+    </div>
+    <div class="crow">
+      <div class="label">Custom branding (invoices, timesheets)<small>Your logo on client-facing docs</small></div>
+      <div class="cell lc"><span class="v-yes">✓</span><small>Team $99+</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>Grow $199+</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>MAX $329+</small></div>
+    </div>
+
+    <div class="crow section-divider">AI &amp; automation</div>
+    <div class="crow winner-row">
+      <div class="label">AI voice receptionist<small>24/7 answers calls, takes messages, routes to dashboard</small></div>
+      <div class="cell lc"><span class="v-yes">✓ Included</span><small>Pro $199 · 500 min/mo, then $0.05/min</small></div>
+      <div class="cell"><span class="v-partial">$99/mo add-on</span><small>free on Plus $699</small></div>
+      <div class="cell"><span class="v-no">✗</span><small>not offered</small></div>
+    </div>
+    <div class="crow">
+      <div class="label">Automated client reminders<small>SMS + email for upcoming appointments</small></div>
+      <div class="cell lc"><span class="v-yes">✓</span><small>Team $99+</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>Connect $139+</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>Basic $79+</small></div>
+    </div>
+    <div class="crow">
+      <div class="label">Marketing automation suite<small>Reviews, campaigns, referrals</small></div>
+      <div class="cell lc"><span class="v-partial">Roadmap</span><small>add-on, planned</small></div>
+      <div class="cell"><span class="v-partial">Add-on</span><small>$29–$39/mo each, any plan</small></div>
+      <div class="cell"><span class="v-partial">Add-on</span><small>$40–$149/mo</small></div>
+    </div>
+
+    <div class="crow section-divider">Buying &amp; switching</div>
+    <div class="crow">
+      <div class="label">14-day free trial<small>No credit card required</small></div>
+      <div class="cell lc"><span class="v-yes">✓</span></div>
+      <div class="cell"><span class="v-yes">✓</span></div>
+      <div class="cell"><span class="v-yes">✓</span></div>
+    </div>
+    <div class="crow">
+      <div class="label">Month-to-month at advertised price<small>No annual commitment required to get listed prices</small></div>
+      <div class="cell lc"><span class="v-yes">✓</span></div>
+      <div class="cell"><span class="v-no">✗</span><small>monthly is higher</small></div>
+      <div class="cell"><span class="v-yes">✓</span><small>annual gives discount</small></div>
+    </div>
+    <div class="crow">
+      <div class="label">Free data migration<small>We move your jobs, clients, history</small></div>
+      <div class="cell lc"><span class="v-yes">✓</span><small>Pro $199</small></div>
+      <div class="cell"><span class="v-no">✗</span></div>
+      <div class="cell"><span class="v-no">✗</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Migration CTA -->
+<div class="cta-wrap">
+  <div class="cta">
+    <div class="cta-left">
+      <h2>Switching from Jobber or Housecall Pro? We'll move you over for free.</h2>
+      <p>Sign up for LinkCrew Pro and we'll import your clients, jobs, and history at no extra cost. Most accounts go live the same day.</p>
+    </div>
+    <a href="/app?plan=pro&from=switch" class="cta-btn">Start Free Trial →</a>
+  </div>
+</div>
+
+<!-- Disclaimer -->
+<div class="disclaimer">
+  <div class="disclaimer-card">
+    <strong>Sources &amp; disclaimer.</strong> Pricing and feature data on this page were retrieved from
+    <a href="https://www.getjobber.com/pricing" target="_blank" rel="noopener">getjobber.com/pricing</a>
+    and
+    <a href="https://www.housecallpro.com/pricing/" target="_blank" rel="noopener">housecallpro.com/pricing</a>
+    in April 2026. All prices are USD, monthly billing where available. "Jobber" is a trademark of Jobber Software Inc.
+    "Housecall Pro" is a trademark of Codefied Inc. LinkCrew is an independent product and is not affiliated with,
+    endorsed by, or sponsored by either company. We've done our best to make every comparison accurate; if you find an
+    error, email <a href="mailto:hello@linkcrew.io">hello@linkcrew.io</a> and we'll correct it within one business day.
+  </div>
+</div>
+
+<div class="footer-strip">
+  <a href="/pricing-v2.html">Pricing</a> &nbsp;·&nbsp;
+  <a href="/faq">FAQ</a> &nbsp;·&nbsp;
+  Call or text <a href="tel:+12603005565">(260) 300-5565</a> &nbsp;·&nbsp;
+  <a href="mailto:sales@linkcrew.io">sales@linkcrew.io</a>
+</div>
+
+</body>
+</html>
