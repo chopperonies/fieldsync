@@ -6494,6 +6494,105 @@ app.get('/api/mobile/owner/jobs', mobileAuth, requireMobileOwnerOrManager, async
   res.json(data || []);
 });
 
+// Mobile requests are pre-booking job rows. Keep this schema-safe until a
+// dedicated request table exists: requests are jobs with status = quoted.
+app.get('/api/mobile/owner/requests', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from('jobs')
+    .select('id, name, address, description, status, estimate_amount, scheduled_date, scheduled_time, created_at, updated_at, client_id, clients(id, name, email, phone)')
+    .eq('tenant_id', req.tenantId)
+    .eq('status', 'quoted')
+    .order('updated_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+app.get('/api/mobile/owner/requests/:id', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from('jobs')
+    .select('id, name, address, description, status, estimate_amount, scheduled_date, scheduled_time, created_at, updated_at, client_id, clients(id, name, email, phone, address)')
+    .eq('id', req.params.id)
+    .eq('tenant_id', req.tenantId)
+    .eq('status', 'quoted')
+    .maybeSingle();
+  if (error) return res.status(500).json({ error: error.message });
+  if (!data) return res.status(404).json({ error: 'Request not found' });
+  res.json(data);
+});
+
+app.post('/api/mobile/owner/requests', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
+  const { name, address, description, estimate_amount, client_id } = req.body || {};
+  if (!name || !address) return res.status(400).json({ error: 'name and address required' });
+
+  if (client_id) {
+    const { data: client, error: clientError } = await supabaseAdmin
+      .from('clients').select('id').eq('id', client_id).eq('tenant_id', req.tenantId).maybeSingle();
+    if (clientError) return res.status(500).json({ error: clientError.message });
+    if (!client) return res.status(400).json({ error: 'Invalid client' });
+  }
+
+  const estimate = estimate_amount == null || estimate_amount === '' ? null : Number(estimate_amount);
+  if (estimate !== null && (!Number.isFinite(estimate) || estimate < 0)) {
+    return res.status(400).json({ error: 'Invalid estimate amount' });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('jobs')
+    .insert({
+      name: String(name).trim(),
+      address: String(address).trim(),
+      description: description || null,
+      estimate_amount: estimate,
+      client_id: client_id || null,
+      tenant_id: req.tenantId,
+      status: 'quoted',
+    })
+    .select('id, name, address, description, status, estimate_amount, scheduled_date, scheduled_time, created_at, updated_at, client_id, clients(id, name, email, phone)')
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.patch('/api/mobile/owner/requests/:id/action', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
+  const action = String(req.body?.action || '').trim();
+  const updates = {};
+
+  if (action === 'book') {
+    updates.status = 'scheduled';
+    if (req.body.scheduled_date !== undefined) updates.scheduled_date = req.body.scheduled_date || null;
+    if (req.body.scheduled_time !== undefined) updates.scheduled_time = req.body.scheduled_time || null;
+  } else if (action === 'decline') {
+    updates.status = 'cancelled';
+  } else {
+    return res.status(400).json({ error: 'Invalid request action' });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('jobs')
+    .update(updates)
+    .eq('id', req.params.id)
+    .eq('tenant_id', req.tenantId)
+    .eq('status', 'quoted')
+    .select('id, name, address, description, status, estimate_amount, scheduled_date, scheduled_time, created_at, updated_at, client_id, clients(id, name, email, phone)')
+    .maybeSingle();
+  if (error) return res.status(500).json({ error: error.message });
+  if (!data) return res.status(404).json({ error: 'Request not found' });
+  res.json(data);
+});
+
+// Mobile service catalog — shared picker for requests, quotes, jobs, and invoices.
+app.get('/api/mobile/owner/service-catalog', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from('service_catalog')
+    .select('id, name, description, unit_price, category, sort_order')
+    .eq('tenant_id', req.tenantId)
+    .eq('active', true)
+    .order('sort_order')
+    .order('name');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
 // Dashboard = jobs + joined crew-on-site + pending supplies + last 5 updates per job.
 // One round trip; client just renders.
 app.get('/api/mobile/owner/dashboard', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
