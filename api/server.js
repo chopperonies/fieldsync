@@ -5566,7 +5566,7 @@ app.get('/api/mobile/crew/schedule', mobileAuth, async (req, res) => {
   const end = String(req.query.end || '');
   const { data: jobs, error: je } = await supabaseAdmin
     .from('jobs')
-    .select('id, name, address, status, scheduled_date, scheduled_time, payment_status, invoice_amount, client_id, clients(name)')
+    .select('id, name, address, status, scheduled_date, scheduled_time, expected_duration_hours, payment_status, invoice_amount, client_id, clients(name)')
     .eq('tenant_id', req.tenantId)
     .gte('scheduled_date', start || '1970-01-01')
     .lte('scheduled_date', end || '9999-12-31')
@@ -6705,7 +6705,7 @@ app.post('/api/mobile/owner/jobs/:id/send-workorder', mobileAuth, requireMobileO
 // Create a job
 // Crew-open — any role can create a job or quote from the field.
 app.post('/api/mobile/owner/jobs', mobileAuth, async (req, res) => {
-  const { name, address, description, estimate_amount, scheduled_date, scheduled_time, client_id, workflow_id, status } = req.body || {};
+  const { name, address, description, estimate_amount, scheduled_date, scheduled_time, expected_duration_hours, client_id, workflow_id, status } = req.body || {};
   if (!name || !address) return res.status(400).json({ error: 'name and address required' });
   // If a workflow_id is supplied, verify it belongs to this tenant.
   if (workflow_id) {
@@ -6725,6 +6725,7 @@ app.post('/api/mobile/owner/jobs', mobileAuth, async (req, res) => {
       estimate_amount: estimate_amount != null ? Number(estimate_amount) : null,
       scheduled_date: scheduled_date || null,
       scheduled_time: scheduled_time || null,
+      expected_duration_hours: expected_duration_hours == null || expected_duration_hours === '' ? null : Number(expected_duration_hours),
       client_id: client_id || null,
       workflow_id: workflow_id || null,
     }).select().single();
