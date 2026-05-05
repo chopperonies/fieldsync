@@ -5521,8 +5521,7 @@ app.post('/api/mobile/crew/jobs/:id/check-out', mobileAuth, async (req, res) => 
   res.json({ ok: true, job_name: job.name, checked_out_at: checkedOutAt });
 });
 
-// Create a job update (note, bottleneck, photo)
-app.post('/api/mobile/crew/jobs/:id/updates', mobileAuth, async (req, res) => {
+async function createMobileJobUpdate(req, res) {
   const { type, message, photo_url } = req.body || {};
   const allowed = new Set(['note', 'bottleneck', 'photo', 'update']);
   if (!allowed.has(type)) return res.status(400).json({ error: 'Invalid update type' });
@@ -5544,7 +5543,10 @@ app.post('/api/mobile/crew/jobs/:id/updates', mobileAuth, async (req, res) => {
     .single();
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
-});
+}
+
+// Create a job update (note, bottleneck, photo)
+app.post('/api/mobile/crew/jobs/:id/updates', mobileAuth, createMobileJobUpdate);
 
 // My assignment history (for the Hours tab)
 app.get('/api/mobile/crew/my-assignments', mobileAuth, async (req, res) => {
@@ -6464,7 +6466,7 @@ app.get('/api/mobile/owner/jobs/:id', mobileAuth, async (req, res) => {
 
   const [{ data: assignments }, { data: updates }, { count: photoCount }, { data: acks }] = await Promise.all([
     supabaseAdmin.from('job_assignments')
-      .select('id, employee_id, checked_in_at, checked_out_at, employees(id, name, phone, push_token)')
+      .select('id, employee_id, checked_in_at, checked_out_at, employees(id, name, phone, role, push_token)')
       .eq('job_id', job.id).order('checked_in_at', { ascending: false }),
     supabaseAdmin.from('job_updates')
       .select('id, type, message, photo_url, created_at, employees(name)')
@@ -6485,6 +6487,8 @@ app.get('/api/mobile/owner/jobs/:id', mobileAuth, async (req, res) => {
     scope_acks: acks || [],
   });
 });
+
+app.post('/api/mobile/owner/jobs/:id/updates', mobileAuth, requireMobileApprover, createMobileJobUpdate);
 
 // All tenant jobs with recent activity (for Jobs / Dashboard tabs)
 app.get('/api/mobile/owner/jobs', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
@@ -7015,6 +7019,13 @@ function requireMobileOwner(req, res, next) {
 function requireMobileOwnerOrManager(req, res, next) {
   if (req.role !== 'owner' && req.role !== 'manager') {
     return res.status(403).json({ error: 'Owner or manager access required' });
+  }
+  next();
+}
+
+function requireMobileApprover(req, res, next) {
+  if (req.role !== 'owner' && req.role !== 'manager' && req.role !== 'supervisor') {
+    return res.status(403).json({ error: 'Owner, manager, or supervisor access required' });
   }
   next();
 }
