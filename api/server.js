@@ -6705,14 +6705,63 @@ app.post('/api/mobile/owner/jobs/:id/send-workorder', mobileAuth, requireMobileO
 // Create a job
 // Crew-open — any role can create a job or quote from the field.
 app.post('/api/mobile/owner/jobs', mobileAuth, async (req, res) => {
-  const { name, address, description, estimate_amount, scheduled_date, scheduled_time, expected_duration_hours, client_id, workflow_id, status } = req.body || {};
+  const {
+    name,
+    address,
+    description,
+    estimate_amount,
+    scheduled_date,
+    scheduled_time,
+    expected_duration_hours,
+    client_id,
+    client_name,
+    client_phone,
+    client_email,
+    workflow_id,
+    status,
+  } = req.body || {};
   if (!name || !address) return res.status(400).json({ error: 'name and address required' });
   // If a workflow_id is supplied, verify it belongs to this tenant.
+  let initialWorkflowProgress = null;
   if (workflow_id) {
     const { data: wf } = await supabaseAdmin
       .from('service_workflows').select('id').eq('id', workflow_id).eq('tenant_id', req.tenantId).maybeSingle();
     if (!wf) return res.status(400).json({ error: 'Invalid workflow' });
+    const { data: firstStatus } = await supabaseAdmin
+      .from('workflow_statuses')
+      .select('id')
+      .eq('workflow_id', workflow_id)
+      .order('order_index', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (firstStatus?.id) initialWorkflowProgress = { current_status_id: firstStatus.id, completed_steps: {} };
   }
+
+  let finalClientId = client_id || null;
+  if (finalClientId) {
+    const { data: client, error: clientError } = await supabaseAdmin
+      .from('clients').select('id').eq('id', finalClientId).eq('tenant_id', req.tenantId).maybeSingle();
+    if (clientError) return res.status(500).json({ error: clientError.message });
+    if (!client) return res.status(400).json({ error: 'Invalid client' });
+  } else if (client_name || client_phone || client_email) {
+    const normalizedPhone = client_phone
+      ? String(client_phone).replace(/\D/g, '').replace(/^1(\d{10})$/, '$1')
+      : null;
+    const { data: createdClient, error: clientCreateError } = await supabaseAdmin
+      .from('clients')
+      .insert({
+        name: String(client_name || name).trim(),
+        phone: normalizedPhone || null,
+        email: client_email ? String(client_email).trim().toLowerCase() : null,
+        address: String(address).trim(),
+        tenant_id: req.tenantId,
+      })
+      .select('id')
+      .single();
+    if (clientCreateError) return res.status(500).json({ error: clientCreateError.message });
+    finalClientId = createdClient.id;
+  }
+
   const allowedStatuses = new Set(['quoted', 'scheduled', 'in_progress', 'complete', 'invoiced', 'on_hold']);
   const startStatus = typeof status === 'string' && allowedStatuses.has(status) ? status : 'scheduled';
   const { data, error } = await supabaseAdmin
@@ -6726,8 +6775,10 @@ app.post('/api/mobile/owner/jobs', mobileAuth, async (req, res) => {
       scheduled_date: scheduled_date || null,
       scheduled_time: scheduled_time || null,
       expected_duration_hours: expected_duration_hours == null || expected_duration_hours === '' ? null : Number(expected_duration_hours),
-      client_id: client_id || null,
+      client_id: finalClientId,
       workflow_id: workflow_id || null,
+      workflow_progress: initialWorkflowProgress,
+      primary_supervisor_employee_id: req.employeeId || null,
     }).select().single();
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
