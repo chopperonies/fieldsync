@@ -6664,6 +6664,9 @@ app.patch('/api/mobile/owner/jobs/:id', mobileAuth, requireMobileOwnerOrManager,
   if (req.body.scheduled_time !== undefined) {
     updates.scheduled_time = req.body.scheduled_time || null;
   }
+  if (req.body.requires_owner_approval !== undefined) {
+    updates.requires_owner_approval = !!req.body.requires_owner_approval;
+  }
 
   if (clientFieldsTouched) {
     const { data: jobForClient, error: jobForClientError } = await supabaseAdmin
