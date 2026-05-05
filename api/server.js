@@ -5212,6 +5212,7 @@ app.post('/api/mobile/me/desktop-magic-link', mobileAuth, async (req, res) => {
   if (req.role !== 'owner' && req.role !== 'manager' && req.role !== 'supervisor') {
     return res.status(403).json({ error: 'Only owners and managers can open the web dashboard' });
   }
+  const skipEmail = req.body?.skip_email === true;
   const { data: tenant } = await supabaseAdmin
     .from('tenants').select('owner_email, company_name').eq('id', req.tenantId).maybeSingle();
   if (!tenant?.owner_email) return res.status(400).json({ error: 'No owner email on file' });
@@ -5224,6 +5225,9 @@ app.post('/api/mobile/me/desktop-magic-link', mobileAuth, async (req, res) => {
     if (error) return res.status(500).json({ error: error.message });
     const magicUrl = linkData?.properties?.action_link;
     if (!magicUrl) return res.status(500).json({ error: 'Magic link generation failed' });
+    if (skipEmail) {
+      return res.json({ ok: true, magic_url: magicUrl, emailed: false });
+    }
     // Send via Resend (same transport as our invoice + payment emails).
     try {
       const { Resend } = require('resend');
