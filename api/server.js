@@ -6628,6 +6628,7 @@ app.get('/api/mobile/owner/dashboard', mobileAuth, requireMobileOwnerOrManager, 
 // Update a job's status
 app.patch('/api/mobile/owner/jobs/:id', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
   const updates = {};
+  const clientFieldsTouched = ['client_name', 'client_phone', 'client_email'].some(f => req.body[f] !== undefined);
   if (req.body.status) updates.status = req.body.status;
   if (req.body.name) updates.name = req.body.name;
   if (req.body.address !== undefined) updates.address = req.body.address;
@@ -6659,7 +6660,67 @@ app.patch('/api/mobile/owner/jobs/:id', mobileAuth, requireMobileOwnerOrManager,
   if (req.body.scheduled_time !== undefined) {
     updates.scheduled_time = req.body.scheduled_time || null;
   }
-  if (!Object.keys(updates).length) return res.status(400).json({ error: 'no updates' });
+
+  if (clientFieldsTouched) {
+    const { data: jobForClient, error: jobForClientError } = await supabaseAdmin
+      .from('jobs')
+      .select('id, name, client_id')
+      .eq('id', req.params.id)
+      .eq('tenant_id', req.tenantId)
+      .maybeSingle();
+    if (jobForClientError) return res.status(500).json({ error: jobForClientError.message });
+    if (!jobForClient) return res.status(404).json({ error: 'Job not found' });
+
+    const clientName = req.body.client_name !== undefined ? String(req.body.client_name || '').trim() : undefined;
+    const clientPhone = req.body.client_phone !== undefined
+      ? String(req.body.client_phone || '').replace(/\D/g, '').replace(/^1(\d{10})$/, '$1')
+      : undefined;
+    const clientEmail = req.body.client_email !== undefined
+      ? String(req.body.client_email || '').trim().toLowerCase()
+      : undefined;
+
+    if (jobForClient.client_id) {
+      const clientUpdates = {};
+      if (clientName !== undefined) {
+        if (!clientName) return res.status(400).json({ error: 'Client name cannot be empty' });
+        clientUpdates.name = clientName;
+      }
+      if (clientPhone !== undefined) clientUpdates.phone = clientPhone || null;
+      if (clientEmail !== undefined) clientUpdates.email = clientEmail || null;
+      if (Object.keys(clientUpdates).length) {
+        const { error: clientUpdateError } = await supabaseAdmin
+          .from('clients')
+          .update(clientUpdates)
+          .eq('id', jobForClient.client_id)
+          .eq('tenant_id', req.tenantId);
+        if (clientUpdateError) return res.status(500).json({ error: clientUpdateError.message });
+      }
+    } else if (clientName || clientPhone || clientEmail) {
+      const { data: newClient, error: clientInsertError } = await supabaseAdmin
+        .from('clients')
+        .insert({
+          tenant_id: req.tenantId,
+          name: clientName || jobForClient.name || 'Client',
+          phone: clientPhone || null,
+          email: clientEmail || null,
+        })
+        .select('id')
+        .single();
+      if (clientInsertError) return res.status(500).json({ error: clientInsertError.message });
+      updates.client_id = newClient.id;
+    }
+  }
+
+  if (!Object.keys(updates).length) {
+    const { data, error } = await supabaseAdmin
+      .from('jobs')
+      .select()
+      .eq('id', req.params.id)
+      .eq('tenant_id', req.tenantId)
+      .single();
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json(data);
+  }
   const scopeTouched = scopeFieldsTouched(updates);
   const { data, error } = await supabaseAdmin
     .from('jobs').update(updates).eq('id', req.params.id).eq('tenant_id', req.tenantId).select().single();
