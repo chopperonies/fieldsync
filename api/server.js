@@ -7271,8 +7271,15 @@ app.post('/api/mobile/owner/jobs/:id/invoice', mobileAuth, requireMobileOwner, a
   if (!amount || isNaN(amount) || amount <= 0) {
     return res.status(400).json({ error: 'Valid amount required' });
   }
+  const update = { invoice_amount: amount, status: 'invoiced', payment_status: 'unpaid' };
+  // Optional: the mobile invoice editor lets the owner revise the scope of
+  // work before sending. If it sends a description, persist it onto the job
+  // in the same write so the email and the job detail screen stay aligned.
+  if (typeof req.body?.description === 'string') {
+    update.description = req.body.description.trim() || null;
+  }
   const { data, error } = await supabaseAdmin.from('jobs')
-    .update({ invoice_amount: amount, status: 'invoiced', payment_status: 'unpaid' })
+    .update(update)
     .eq('id', req.params.id).eq('tenant_id', req.tenantId)
     .select('*, clients(name, email)').single();
   if (error) return res.status(400).json({ error: error.message });
