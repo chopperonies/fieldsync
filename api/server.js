@@ -25,11 +25,12 @@ const LINKCREW_SYSTEM = `You are an embedded chat assistant on linkcrew.io. The 
 LinkCrew is a field service management platform for contractors and field service crews. It helps them manage jobs, track crew in real time, handle client invoices, and give clients their own portal.
 
 PRICING PLANS:
-- Solo: $49/mo, 1 user
-- Team: $97/mo, up to 5 users
-- Pro: $165/mo, up to 10 users
-- Business: $299/mo, up to 20 users
-- Voice Bot add-on: $30/mo, available on any plan
+- Crew: $49/mo, 1 user
+- Team: $99/mo, up to 5 users (Most Popular)
+- Pro: $199/mo, up to 15 users — AI Voice Receptionist included (500 min/mo, then $0.05/min)
+- Voice Bot add-on: $30/mo for Crew & Team (200 min/mo included, then $0.05/min)
+- Extra crew members: $25/user/mo
+- Annual billing saves ~17% (two months free)
 - All plans include a 14-day free trial — no credit card required
 
 FEATURES (all plans):
@@ -1043,14 +1044,23 @@ function requireFinancialAccess(req, res, next) {
   return res.status(403).json({ error: 'financial_access_required', message: 'Financial access is disabled for your role.' });
 }
 
+// True while a tenant is inside their 14-day free trial. During trial, all
+// Team/Pro features unlock so the prospect actually uses what they're being
+// asked to pay for — when the trial ends, paywalls re-engage.
+function isTrialActive(tenant) {
+  if (!tenant || tenant.subscription_status !== 'trialing') return false;
+  if (!tenant.trial_ends_at) return true;
+  return new Date(tenant.trial_ends_at) > new Date();
+}
+
 // Gate a route by plan tier. Returns 403 with { error: 'upgrade_required', required_plan, feature }.
 // Admins bypass. The auth middleware stashes req.tenantPlan for non-billing/auth/admin paths;
 // this middleware falls back to a tenants query if it's missing (impersonation, skipped subscription
 // check paths, etc.).
 // Strip GPS coords for tenants whose plan doesn't include GPS-verified punch.
 // Source can be { lat, lng } or { gps: { lat, lng } } — we accept either shape.
-function gpsForPlan(plan, source) {
-  if (!hasFeature(plan, 'gps_punch')) return { lat: null, lng: null };
+function gpsForPlan(plan, source, trialActive = false) {
+  if (!trialActive && !hasFeature(plan, 'gps_punch')) return { lat: null, lng: null };
   return {
     lat: source?.lat ?? source?.gps?.lat ?? null,
     lng: source?.lng ?? source?.gps?.lng ?? null,
@@ -1060,11 +1070,18 @@ function gpsForPlan(plan, source) {
 function requireFeature(featureName) {
   return async function (req, res, next) {
     if (req.isAdmin) return next();
+    if (req.trialActive) return next();
     let plan = req.tenantPlan;
-    if (!plan && req.tenantId) {
-      const { data: t } = await supabaseAdmin.from('tenants').select('plan').eq('id', req.tenantId).single();
+    if ((!plan || req.trialActive === undefined) && req.tenantId) {
+      const { data: t } = await supabaseAdmin.from('tenants')
+        .select('plan, subscription_status, trial_ends_at')
+        .eq('id', req.tenantId).single();
       plan = t?.plan;
       if (plan) req.tenantPlan = plan;
+      if (isTrialActive(t)) {
+        req.trialActive = true;
+        return next();
+      }
     }
     if (!hasFeature(plan, featureName)) {
       return res.status(403).json({
@@ -1539,6 +1556,7 @@ async function auth(req, res, next) {
       .eq('id', req.tenantId).single();
     if (tenant) {
       req.tenantPlan = tenant.plan;
+      req.trialActive = isTrialActive(tenant);
       if (tenant.blocked) {
         return res.status(403).json({ error: 'account_blocked' });
       }
@@ -3009,7 +3027,7 @@ app.get('/api/timesheets', auth, requireOperationAccess, async (req, res) => {
 app.post('/api/timesheets/punch-in', auth, requireOperationAccess, async (req, res) => {
   const { employee_id, job_id, work_type } = req.body;
   if (!employee_id) return res.status(400).json({ error: 'employee_id required' });
-  const { lat, lng } = gpsForPlan(req.tenantPlan, req.body);
+  const { lat, lng } = gpsForPlan(req.tenantPlan, req.body, req.trialActive);
 
   // Check not already punched in
   const { data: existing } = await supabaseAdmin
@@ -3066,7 +3084,7 @@ app.post('/api/timesheets/punch-in', auth, requireOperationAccess, async (req, r
 app.post('/api/timesheets/punch-out', auth, requireOperationAccess, async (req, res) => {
   const { employee_id } = req.body;
   if (!employee_id) return res.status(400).json({ error: 'employee_id required' });
-  const { lat, lng } = gpsForPlan(req.tenantPlan, req.body);
+  const { lat, lng } = gpsForPlan(req.tenantPlan, req.body, req.trialActive);
 
   const { data: entry } = await supabaseAdmin
     .from('job_assignments')
@@ -3899,12 +3917,18 @@ app.get('/api/billing/status', auth, requireFinancialAccess, async (req, res) =>
     .select('plan, subscription_status, trial_ends_at, stripe_customer_id, max_users, extra_users')
     .eq('id', tenantId).single();
   if (!data) return res.json({});
-  // Compute feature flags so the client doesn't duplicate the matrix
+  // Compute feature flags so the client doesn't duplicate the matrix.
+  // During the free trial, unlock everything — the prospect should experience
+  // the full product before being asked to choose a plan.
+  const trialActive = isTrialActive(data);
   const features = {};
   for (const feature of Object.keys(FEATURES)) {
-    features[feature] = hasFeature(data.plan, feature);
+    features[feature] = trialActive || hasFeature(data.plan, feature);
   }
-  res.json({ ...data, features });
+  const trialDaysLeft = data.trial_ends_at
+    ? Math.max(0, Math.ceil((new Date(data.trial_ends_at) - new Date()) / (1000 * 60 * 60 * 24)))
+    : null;
+  res.json({ ...data, features, trial_active: trialActive, trial_days_left: trialDaysLeft });
 });
 
 app.post('/api/billing/checkout', auth, requireSettingsAccess, requireFinancialAccess, async (req, res) => {
@@ -5471,7 +5495,7 @@ app.get('/api/mobile/crew/assignment', mobileAuth, async (req, res) => {
 
 // Check in to a job
 app.post('/api/mobile/crew/jobs/:id/check-in', mobileAuth, async (req, res) => {
-  const gps = gpsForPlan(req.tenantPlan, req.body?.gps);
+  const gps = gpsForPlan(req.tenantPlan, req.body?.gps, req.trialActive);
   const checkedInAt = new Date().toISOString();
   const { data: job } = await supabaseAdmin
     .from('jobs').select('id, name').eq('id', req.params.id).eq('tenant_id', req.tenantId).maybeSingle();
@@ -5500,7 +5524,7 @@ app.post('/api/mobile/crew/jobs/:id/check-in', mobileAuth, async (req, res) => {
 
 // Check out of a job
 app.post('/api/mobile/crew/jobs/:id/check-out', mobileAuth, async (req, res) => {
-  const gps = gpsForPlan(req.tenantPlan, req.body?.gps);
+  const gps = gpsForPlan(req.tenantPlan, req.body?.gps, req.trialActive);
   const checkedOutAt = new Date().toISOString();
   const { data: job } = await supabaseAdmin
     .from('jobs').select('id, name').eq('id', req.params.id).eq('tenant_id', req.tenantId).maybeSingle();
@@ -6051,7 +6075,7 @@ app.get('/api/mobile/me/today-progress', mobileAuth, async (req, res) => {
 // etc. GPS lat/lng captured at both ends power the office map on Home.
 
 app.post('/api/mobile/clock-in', mobileAuth, async (req, res) => {
-  const gps = gpsForPlan(req.tenantPlan, req.body?.gps);
+  const gps = gpsForPlan(req.tenantPlan, req.body?.gps, req.trialActive);
   // Reject if there's already an open entry for this employee (idempotent).
   const { data: existing } = await supabaseAdmin
     .from('time_entries')
@@ -6081,7 +6105,7 @@ app.post('/api/mobile/clock-in', mobileAuth, async (req, res) => {
 });
 
 app.post('/api/mobile/clock-out', mobileAuth, async (req, res) => {
-  const gps = gpsForPlan(req.tenantPlan, req.body?.gps);
+  const gps = gpsForPlan(req.tenantPlan, req.body?.gps, req.trialActive);
   const { data: open } = await supabaseAdmin
     .from('time_entries')
     .select('id')
@@ -6112,7 +6136,7 @@ app.post('/api/mobile/clock-out', mobileAuth, async (req, res) => {
 // by the Live Map on the web dashboard. Writes to time_entries on the open
 // entry only; no-op if not clocked in.
 app.post('/api/mobile/me/heartbeat', mobileAuth, async (req, res) => {
-  const { lat, lng } = gpsForPlan(req.tenantPlan, req.body);
+  const { lat, lng } = gpsForPlan(req.tenantPlan, req.body, req.trialActive);
   if (lat == null || lng == null) return res.json({ ok: true, gps_disabled: true });
   const { data: open } = await supabaseAdmin
     .from('time_entries')

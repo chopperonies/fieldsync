@@ -1781,6 +1781,13 @@
     <button class="sidebar-action-btn signout" onclick="doLogout()">
       <i data-lucide="log-out" style="width:13px;height:13px"></i> Sign Out
     </button>
+    <div id="sidebar-trial-info" style="display:none;margin:8px 8px 0;padding:10px 12px 12px;background:#fef3c7;border:1px solid #fde68a;border-radius:8px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#92400e;margin-bottom:2px">Free Trial</div>
+      <div style="font-size:12px;font-weight:700;color:#78350f;line-height:1.3;margin-bottom:8px"><span id="sidebar-trial-days">—</span> days left</div>
+      <button onclick="switchMainTab('settings')" style="display:block;width:100%;padding:7px 10px;background:#0265dc;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.01em" onmouseover="this.style.background='#0254b8'" onmouseout="this.style.background='#0265dc'">
+        Upgrade now
+      </button>
+    </div>
   </nav>
 </div>
 
@@ -3934,7 +3941,7 @@
       <div class="owner-kpi-card" onclick="openPlanUpgradeCheckout()" style="cursor:pointer" title="Upgrade or manage your subscription">
         <div class="owner-kpi-label">Current Plan</div>
         <div class="owner-kpi-value" id="settings-plan-card">—</div>
-        <div class="owner-kpi-meta">Active subscription tier for this owner account. <strong style="color:#0265dc">Upgrade →</strong></div>
+        <div class="owner-kpi-meta" id="settings-plan-meta">Active subscription tier for this owner account. <strong style="color:#0265dc">Upgrade →</strong></div>
       </div>
       <div class="owner-kpi-card">
         <div class="owner-kpi-label">Voice Bot</div>
@@ -5023,12 +5030,37 @@ async function loadBillingStatus() {
 
     if (data.subscription_status === 'trialing' && data.trial_ends_at) {
       const ends = new Date(data.trial_ends_at);
-      const daysLeft = Math.ceil((ends - now) / (1000 * 60 * 60 * 24));
+      const daysLeft = Math.max(0, Math.ceil((ends - now) / (1000 * 60 * 60 * 24)));
+      const dayWord = daysLeft === 1 ? 'day' : 'days';
+
+      // Top banner — only show in the final week to avoid banner fatigue
       if (daysLeft <= 7 && daysLeft > 0) {
         document.getElementById('trial-banner-text').textContent =
-          `⏰ Your free trial ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`;
+          `⏰ Your free trial ends in ${daysLeft} ${dayWord}`;
         document.getElementById('trial-banner').style.display = 'block';
       }
+
+      // Sidebar pill (always shown during trial)
+      const sidebarTrial = document.getElementById('sidebar-trial-info');
+      const sidebarDays = document.getElementById('sidebar-trial-days');
+      if (sidebarTrial && sidebarDays) {
+        sidebarDays.textContent = daysLeft;
+        sidebarTrial.style.display = 'block';
+      }
+
+      // Settings plan card meta — replace the upgrade pitch with a clear countdown
+      const planMeta = document.getElementById('settings-plan-meta');
+      if (planMeta) {
+        planMeta.innerHTML =
+          `Free trial — <strong style="color:#92400e">${daysLeft} ${dayWord} left</strong>. ` +
+          `All Team and Pro features are unlocked during your trial. ` +
+          `<strong style="color:#0265dc">Choose a plan →</strong>`;
+      }
+
+      // Settings plan card value — overrides the underlying tier ("Free", "Crew", etc.)
+      // so the trialing user sees one consistent story.
+      const planCard = document.getElementById('settings-plan-card');
+      if (planCard) planCard.textContent = 'Free Trial';
     }
 
     // Show Upgrade button in header during trial
@@ -12551,7 +12583,7 @@ async function loadSettings() {
   const res = await authFetch('/api/settings');
   const data = await res.json();
   ownerTwilioConfigured = !!(data.twilio_account_sid && data.twilio_phone);
-  setText('settings-plan-card', formatPlanLabel(currentPlan || 'beta'));
+  setText('settings-plan-card', currentSubscriptionStatus === 'trialing' ? 'Free Trial' : formatPlanLabel(currentPlan || 'beta'));
   setText('settings-voice-card', data.voicebot_enabled ? 'Active' : 'Off');
   setText('settings-photo-card', data.photo_expiry_days ? `${data.photo_expiry_days}d` : 'Default');
   document.getElementById('set-company-name').value = data.company_name || '';
