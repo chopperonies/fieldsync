@@ -242,8 +242,12 @@ async function sendNote({ subject, body }) {
   });
 }
 
-async function sendInvoiceToClient({ clientName, clientEmail, jobName, amount, portalUrl, tenantName, description }) {
-  const formattedAmount = Number(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+async function sendInvoiceToClient({
+  clientName, clientEmail, jobName, amount, portalUrl, tenantName, description,
+  subtotal, taxAmount, discountAmount, discountLabel,
+}) {
+  const fmt = (n) => Number(n).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  const formattedAmount = fmt(amount);
   const safeDescription = description ? String(description).trim() : '';
   const descriptionBlock = safeDescription
     ? `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px 18px;margin-bottom:20px">
@@ -251,6 +255,28 @@ async function sendInvoiceToClient({ clientName, clientEmail, jobName, amount, p
          <div style="font-size:14px;color:#111827;line-height:1.6;white-space:pre-wrap">${safeDescription.replace(/</g, '&lt;')}</div>
        </div>`
     : '';
+
+  // Show a breakdown (subtotal / discount / tax / total) when the caller
+  // sent line-level numbers. Discount only renders when populated — keeps
+  // the customer-facing invoice clean unless there's a real discount.
+  const hasBreakdown = (subtotal != null && subtotal > 0) || (taxAmount != null && taxAmount > 0) || (discountAmount != null && discountAmount > 0);
+  const row = (label, value, opts = {}) => `
+    <div style="display:flex;justify-content:space-between;gap:24px;padding:6px 0;${opts.border ? 'border-top:1px solid #e5e7eb;margin-top:6px;padding-top:10px;' : ''}">
+      <span style="color:${opts.tone === 'positive' ? '#059669' : '#475569'};font-size:${opts.large ? 15 : 13}px;font-weight:${opts.large ? 800 : 600}">${label}</span>
+      <strong style="color:${opts.tone === 'positive' ? '#059669' : (opts.large ? '#0a0a0a' : '#0f172a')};font-size:${opts.large ? 17 : 13}px;font-weight:${opts.large ? 900 : 800}">${value}</strong>
+    </div>`;
+  const totalsBlock = hasBreakdown
+    ? `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px 18px;margin-bottom:24px">
+         ${subtotal != null ? row('Subtotal', fmt(subtotal)) : ''}
+         ${discountAmount != null && discountAmount > 0 ? row(`Discount${discountLabel ? ' (' + discountLabel + ')' : ''}`, '−' + fmt(discountAmount), { tone: 'positive' }) : ''}
+         ${taxAmount != null ? row('Tax', fmt(taxAmount)) : ''}
+         ${row('Total due', formattedAmount, { large: true, border: true })}
+       </div>`
+    : `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin-bottom:24px;text-align:center">
+         <div style="font-size:13px;color:#6b7280;margin-bottom:4px">Invoice Total</div>
+         <div style="font-size:36px;font-weight:800;color:#0a0a0a">${formattedAmount}</div>
+         <div style="font-size:13px;color:#6b7280;margin-top:4px">${jobName}</div>
+       </div>`;
   const html = `
 <!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:20px">
 <div style="background:white;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb">
@@ -264,11 +290,7 @@ async function sendInvoiceToClient({ clientName, clientEmail, jobName, amount, p
       An invoice has been created for <strong>${jobName}</strong>.
     </p>
     ${descriptionBlock}
-    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin-bottom:24px;text-align:center">
-      <div style="font-size:13px;color:#6b7280;margin-bottom:4px">Invoice Total</div>
-      <div style="font-size:36px;font-weight:800;color:#0a0a0a">${formattedAmount}</div>
-      <div style="font-size:13px;color:#6b7280;margin-top:4px">${jobName}</div>
-    </div>
+    ${totalsBlock}
     ${portalUrl ? `
     <a href="${portalUrl}" style="display:block;background:#0265dc;color:white;text-decoration:none;text-align:center;padding:14px 24px;border-radius:8px;font-weight:700;font-size:15px;margin-bottom:16px">
       View &amp; Pay Invoice

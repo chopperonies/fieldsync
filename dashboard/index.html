@@ -2434,6 +2434,21 @@
                 <strong id="inv-subtotal">$0.00</strong>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;gap:12px;background:var(--surface)">
+                <span style="color:var(--text-soft)">Discount</span>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <select id="inv-discount-mode" onchange="recalcInvoiceTotals()"
+                    style="background:#fff;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px">
+                    <option value="pct">%</option>
+                    <option value="amt">$</option>
+                  </select>
+                  <input type="number" id="inv-discount-value" placeholder="optional" min="0" step="0.01"
+                    style="width:88px;text-align:right;background:#fff;border:1px solid var(--border);border-radius:5px;padding:4px 7px;font-size:12px;color:var(--muted)"
+                    oninput="recalcInvoiceTotals()">
+                  <span style="color:var(--text-soft);font-size:12px">→</span>
+                  <strong id="inv-discount-amt" style="color:#059669">$0.00</strong>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;gap:12px;background:var(--surface)">
                 <span style="color:var(--text-soft)">Tax %</span>
                 <div style="display:flex;align-items:center;gap:8px">
                   <input type="number" id="inv-tax-pct" value="0" min="0" max="100" step="0.5"
@@ -10476,11 +10491,22 @@ function recalcInvoiceTotals() {
     const el = document.getElementById('inv-line-total-' + id);
     if (el) el.textContent = '$' + lineTotal.toFixed(2);
   });
+  // Discount applies before tax. Stays $0.00 / hidden in the customer-facing
+  // preview unless the owner actually populates the field.
+  const discMode = document.getElementById('inv-discount-mode')?.value || 'pct';
+  const discRaw = parseFloat(document.getElementById('inv-discount-value')?.value || 0) || 0;
+  let discountAmt = 0;
+  if (discRaw > 0) {
+    discountAmt = discMode === 'pct' ? subtotal * discRaw / 100 : discRaw;
+    discountAmt = Math.min(discountAmt, subtotal);
+  }
+  const taxableSubtotal = subtotal - discountAmt;
   const taxPct = parseFloat(document.getElementById('inv-tax-pct')?.value || 0) || 0;
-  const taxAmt = subtotal * taxPct / 100;
+  const taxAmt = taxableSubtotal * taxPct / 100;
   setText('inv-subtotal', '$' + subtotal.toFixed(2));
+  setText('inv-discount-amt', '−$' + discountAmt.toFixed(2));
   setText('inv-tax-amt', '$' + taxAmt.toFixed(2));
-  setText('inv-total', '$' + (subtotal + taxAmt).toFixed(2));
+  setText('inv-total', '$' + (taxableSubtotal + taxAmt).toFixed(2));
 }
 
 function showInvoiceStatus(msg, tone) {
@@ -10508,13 +10534,23 @@ function collectInvoiceWorksheetDraft() {
     if (name || price > 0) rows.push({ name, qty, price });
   });
   const taxPct = parseFloat(document.getElementById('inv-tax-pct')?.value || 0) || 0;
+  const discMode = document.getElementById('inv-discount-mode')?.value || 'pct';
+  const discRaw = parseFloat(document.getElementById('inv-discount-value')?.value || 0) || 0;
   const subtotal = rows.reduce((s, r) => s + r.qty * r.price, 0);
-  const taxAmount = subtotal * taxPct / 100;
-  const total = subtotal + taxAmount;
+  let discountAmount = 0;
+  let discountLabel = null;
+  if (discRaw > 0) {
+    discountAmount = discMode === 'pct' ? subtotal * discRaw / 100 : discRaw;
+    discountAmount = Math.min(discountAmount, subtotal);
+    discountLabel = discMode === 'pct' ? `${discRaw}%` : null;
+  }
+  const taxableSubtotal = subtotal - discountAmount;
+  const taxAmount = taxableSubtotal * taxPct / 100;
+  const total = taxableSubtotal + taxAmount;
   if (total <= 0) return { error: 'Total must be greater than $0.' };
   const lineDesc = rows.map(r => `${r.qty}× ${r.name || 'Item'} @ $${r.price.toFixed(2)}`).join(', ');
   const description = subject + (lineDesc ? ' (' + lineDesc + ')' : '') + (notes ? ` Notes: ${notes}` : '');
-  return { clientId, client, subject, sendEmail, notes, rows, taxPct, subtotal, taxAmount, total, description };
+  return { clientId, client, subject, sendEmail, notes, rows, taxPct, subtotal, discountAmount, discountLabel, taxAmount, total, description };
 }
 
 function previewInvoiceWorksheet() {
@@ -10558,6 +10594,7 @@ function previewInvoiceWorksheet() {
       </table>
       <div style="display:grid;gap:6px;justify-content:end;margin-top:14px;font-size:13px">
         <div style="display:flex;justify-content:space-between;gap:60px"><span style="color:#64748b">Subtotal</span><strong>$${draft.subtotal.toFixed(2)}</strong></div>
+        ${draft.discountAmount > 0 ? `<div style="display:flex;justify-content:space-between;gap:60px"><span style="color:#059669">Discount${draft.discountLabel ? ' (' + draft.discountLabel + ')' : ''}</span><strong style="color:#059669">−$${draft.discountAmount.toFixed(2)}</strong></div>` : ''}
         <div style="display:flex;justify-content:space-between;gap:60px"><span style="color:#64748b">Tax ${draft.taxPct}%</span><strong>$${draft.taxAmount.toFixed(2)}</strong></div>
         <div style="display:flex;justify-content:space-between;gap:60px;font-size:16px"><span style="font-weight:800">Total Due</span><strong style="color:#0265dc">$${draft.total.toFixed(2)}</strong></div>
       </div>
@@ -10579,7 +10616,15 @@ async function saveInvoiceWorksheet() {
   showInvoiceStatus('Saving invoice…', 'info');
   try {
     const res = await authFetch('/api/clients/' + draft.clientId + '/invoice', {
-      method: 'POST', body: JSON.stringify({ amount: draft.total, description: draft.description }),
+      method: 'POST',
+      body: JSON.stringify({
+        amount: draft.total,
+        description: draft.description,
+        subtotal: draft.subtotal,
+        tax_amount: draft.taxAmount,
+        discount_amount: draft.discountAmount,
+        discount_label: draft.discountLabel,
+      }),
     });
     const json = await res.json();
     if (!res.ok) {

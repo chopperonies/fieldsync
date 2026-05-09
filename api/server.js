@@ -2699,6 +2699,10 @@ app.post('/api/clients/:id/invoice', auth, requireFinancialAccess, async (req, r
       const portalUrl = clientUser?.portal_token
         ? `${host}/portal?token=${clientUser.portal_token}`
         : `${host}/portal`;
+      const sub = parseFloat(req.body?.subtotal);
+      const tax = parseFloat(req.body?.tax_amount);
+      const disc = parseFloat(req.body?.discount_amount);
+      const discLabel = typeof req.body?.discount_label === 'string' ? req.body.discount_label : null;
       await sendInvoiceToClient({
         clientName: client.name,
         clientEmail: client.email,
@@ -2706,6 +2710,10 @@ app.post('/api/clients/:id/invoice', auth, requireFinancialAccess, async (req, r
         amount: parseFloat(amount),
         portalUrl,
         tenantName: tenant?.company_name,
+        subtotal: Number.isFinite(sub) && sub > 0 ? sub : null,
+        taxAmount: Number.isFinite(tax) && tax > 0 ? tax : null,
+        discountAmount: Number.isFinite(disc) && disc > 0 ? disc : null,
+        discountLabel: disc > 0 ? discLabel : null,
       });
       invoiceEmailSent = true;
     } catch (emailErr) {
@@ -7296,6 +7304,13 @@ app.post('/api/mobile/owner/jobs/:id/invoice', mobileAuth, requireMobileOwner, a
       const portalUrl = clientUser?.portal_token
         ? `${host}/portal?token=${clientUser.portal_token}`
         : `${host}/portal`;
+      // Forward optional breakdown fields if the editor computed them.
+      // Email template renders subtotal / discount / tax rows when present;
+      // falls back to a single Invoice Total when they're absent.
+      const sub = parseFloat(req.body?.subtotal);
+      const tax = parseFloat(req.body?.tax_amount);
+      const disc = parseFloat(req.body?.discount_amount);
+      const discLabel = typeof req.body?.discount_label === 'string' ? req.body.discount_label : null;
       await sendInvoiceToClient({
         clientName: client.name,
         clientEmail: client.email,
@@ -7304,6 +7319,10 @@ app.post('/api/mobile/owner/jobs/:id/invoice', mobileAuth, requireMobileOwner, a
         portalUrl,
         tenantName: tenant?.company_name,
         description: data.description,
+        subtotal: Number.isFinite(sub) && sub > 0 ? sub : null,
+        taxAmount: Number.isFinite(tax) && tax > 0 ? tax : null,
+        discountAmount: Number.isFinite(disc) && disc > 0 ? disc : null,
+        discountLabel: disc > 0 ? discLabel : null,
       });
       emailSent = true;
     } catch (emailErr) {
