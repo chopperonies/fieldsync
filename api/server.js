@@ -6929,9 +6929,38 @@ app.patch('/api/mobile/owner/jobs/:id', mobileAuth, requireMobileOwnerOrManager,
     return res.json(data);
   }
   const scopeTouched = scopeFieldsTouched(updates);
+
+  // Capture the prior status before we update so the audit row can record
+  // from→to. This PATCH path doesn't go through transition(), so we need
+  // to write the job_status_events row ourselves to populate the lifecycle
+  // timestamp tooltips.
+  let priorStatus = null;
+  if (updates.status !== undefined) {
+    const { data: prior } = await supabaseAdmin
+      .from('jobs')
+      .select('status')
+      .eq('id', req.params.id)
+      .eq('tenant_id', req.tenantId)
+      .maybeSingle();
+    priorStatus = prior?.status || null;
+  }
+
   const { data, error } = await supabaseAdmin
     .from('jobs').update(updates).eq('id', req.params.id).eq('tenant_id', req.tenantId).select().single();
   if (error) return res.status(500).json({ error: error.message });
+
+  if (updates.status !== undefined && updates.status !== priorStatus) {
+    supabaseAdmin.from('job_status_events').insert({
+      job_id: req.params.id,
+      tenant_id: req.tenantId,
+      from_status: priorStatus,
+      to_status: updates.status,
+      actor_employee_id: req.employeeId || null,
+      trigger: 'manual',
+    }).then(({ error: evtErr }) => {
+      if (evtErr) console.warn('[status event]', evtErr.message);
+    });
+  }
 
   if (scopeTouched) {
     try {
