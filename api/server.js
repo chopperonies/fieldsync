@@ -2703,6 +2703,7 @@ app.post('/api/clients/:id/invoice', auth, requireFinancialAccess, async (req, r
       const tax = parseFloat(req.body?.tax_amount);
       const disc = parseFloat(req.body?.discount_amount);
       const discLabel = typeof req.body?.discount_label === 'string' ? req.body.discount_label : null;
+      const customerNotes = typeof req.body?.customer_notes === 'string' ? req.body.customer_notes.trim() : '';
       await sendInvoiceToClient({
         clientName: client.name,
         clientEmail: client.email,
@@ -2710,6 +2711,9 @@ app.post('/api/clients/:id/invoice', auth, requireFinancialAccess, async (req, r
         amount: parseFloat(amount),
         portalUrl,
         tenantName: tenant?.company_name,
+        // Same separation as the mobile path: only customer-facing notes
+        // appear on the email; the internal description stays on the job.
+        description: customerNotes || null,
         subtotal: Number.isFinite(sub) && sub > 0 ? sub : null,
         taxAmount: Number.isFinite(tax) && tax > 0 ? tax : null,
         discountAmount: Number.isFinite(disc) && disc > 0 ? disc : null,
@@ -6942,6 +6946,30 @@ app.patch('/api/mobile/owner/jobs/:id', mobileAuth, requireMobileOwnerOrManager,
     }
   }
 
+  // Mirror high-signal job edits into the thread so the chat is the
+  // canonical activity log. Skip noisy/minor fields (checklist counts,
+  // photo requirements, plans_notes) to keep the thread readable.
+  const changeBits = [];
+  if (updates.description !== undefined) changeBits.push('Scope updated');
+  if (updates.status !== undefined) changeBits.push(`Status → ${String(updates.status).replace(/_/g, ' ')}`);
+  if (updates.estimate_amount !== undefined) {
+    const v = updates.estimate_amount;
+    changeBits.push(v == null || v === 0 ? 'Estimate cleared' : `Estimate $${Number(v).toFixed(2)}`);
+  }
+  if (updates.scheduled_date !== undefined) {
+    changeBits.push(updates.scheduled_date ? `Scheduled ${updates.scheduled_date}` : 'Schedule cleared');
+  }
+  if (clientFieldsTouched) changeBits.push('Client contact updated');
+  if (changeBits.length > 0) {
+    mirrorJobUpdateToThread({
+      jobId: req.params.id,
+      tenantId: req.tenantId,
+      employeeId: req.employeeId,
+      type: 'update',
+      message: changeBits.join(' · '),
+    }).catch(err => console.warn('[mirror to thread]', err?.message));
+  }
+
   res.json(data);
 });
 
@@ -7399,6 +7427,11 @@ app.post('/api/mobile/owner/jobs/:id/invoice', mobileAuth, requireMobileOwner, a
       const tax = parseFloat(req.body?.tax_amount);
       const disc = parseFloat(req.body?.discount_amount);
       const discLabel = typeof req.body?.discount_label === 'string' ? req.body.discount_label : null;
+      // The customer-facing email shows ONLY customer_notes — the job's
+      // full description (subject + line items + internal notes) stays
+      // private. Falls back to data.description for older callers that
+      // didn't separate the two streams.
+      const customerNotes = typeof req.body?.customer_notes === 'string' ? req.body.customer_notes.trim() : '';
       await sendInvoiceToClient({
         clientName: client?.name || 'there',
         clientEmail: emailToUse,
@@ -7406,7 +7439,7 @@ app.post('/api/mobile/owner/jobs/:id/invoice', mobileAuth, requireMobileOwner, a
         amount,
         portalUrl,
         tenantName: tenant?.company_name,
-        description: data.description,
+        description: customerNotes || (req.body?.customer_notes === undefined ? data.description : null),
         subtotal: Number.isFinite(sub) && sub > 0 ? sub : null,
         taxAmount: Number.isFinite(tax) && tax > 0 ? tax : null,
         discountAmount: Number.isFinite(disc) && disc > 0 ? disc : null,
@@ -7417,6 +7450,15 @@ app.post('/api/mobile/owner/jobs/:id/invoice', mobileAuth, requireMobileOwner, a
       console.error('[mobile invoice] email error:', emailErr.message);
     }
   }
+
+  mirrorJobUpdateToThread({
+    jobId: data.id,
+    tenantId: req.tenantId,
+    employeeId: req.employeeId,
+    type: 'update',
+    message: `Invoice ${emailSent ? 'sent' : 'updated'} for $${amount.toFixed(2)}${emailSent ? ` to ${emailToUse}` : ''}.`,
+  }).catch(err => console.warn('[mirror to thread]', err?.message));
+
   res.json({ job: data, invoice_email_sent: emailSent, invoice_emailed_to: emailSent ? emailToUse : null });
 });
 
@@ -7724,6 +7766,15 @@ app.post('/api/mobile/owner/jobs/:id/mark-paid', mobileAuth, requireMobileOwner,
       emailSent = true;
     } catch (e) { console.error('[mobile mark-paid] email error:', e.message); }
   }
+
+  mirrorJobUpdateToThread({
+    jobId: job.id,
+    tenantId: req.tenantId,
+    employeeId: req.employeeId,
+    type: 'update',
+    message: `Payment of $${(parseFloat(job.invoice_amount) || 0).toFixed(2)} marked received${emailSent ? ` — receipt emailed to ${job.clients?.email}` : ''}.`,
+  }).catch(err => console.warn('[mirror to thread]', err?.message));
+
   res.json({ job, receipt_email_sent: emailSent });
 });
 

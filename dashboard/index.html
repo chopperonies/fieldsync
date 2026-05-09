@@ -2465,10 +2465,22 @@
             </div>
           </div>
 
-          <!-- Notes -->
+          <!-- Customer-facing notes -->
+          <div class="composer-field" style="margin-bottom:12px">
+            <label style="display:flex;align-items:center;gap:8px">
+              Notes for client (on invoice)
+              <span style="font-size:10px;font-weight:800;color:#0265dc;background:#e8f0fd;padding:2px 8px;border-radius:999px;letter-spacing:0.04em">ON INVOICE</span>
+            </label>
+            <textarea id="inv-notes" placeholder="Payment terms, thank-you message, special instructions for the client..." rows="2"></textarea>
+          </div>
+
+          <!-- Internal notes -->
           <div class="composer-field" style="margin-bottom:16px">
-            <label>Notes to Client (optional)</label>
-            <textarea id="inv-notes" placeholder="Payment terms, thank you message, or special instructions..." rows="2"></textarea>
+            <label style="display:flex;align-items:center;gap:8px">
+              Internal notes
+              <span style="font-size:10px;font-weight:800;color:#475569;background:#f1f5f9;padding:2px 8px;border-radius:999px;letter-spacing:0.04em">CREW ONLY</span>
+            </label>
+            <textarea id="inv-internal-notes" placeholder="Private context for crew or your records — never sent to the client." rows="2"></textarea>
           </div>
 
           <!-- Receipt / attachment -->
@@ -10540,6 +10552,7 @@ function collectInvoiceWorksheetDraft() {
   const subject = document.getElementById('inv-subject')?.value.trim() || 'For Services Rendered';
   const sendEmail = document.getElementById('inv-send-email')?.checked !== false;
   const notes = document.getElementById('inv-notes')?.value.trim() || '';
+  const internalNotes = document.getElementById('inv-internal-notes')?.value.trim() || '';
   const rows = [];
   document.querySelectorAll('#inv-line-items tr').forEach(tr => {
     const inputs = tr.querySelectorAll('input');
@@ -10564,8 +10577,10 @@ function collectInvoiceWorksheetDraft() {
   const total = taxableSubtotal + taxAmount;
   if (total <= 0) return { error: 'Total must be greater than $0.' };
   const lineDesc = rows.map(r => `${r.qty}× ${r.name || 'Item'} @ $${r.price.toFixed(2)}`).join(', ');
-  const description = subject + (lineDesc ? ' (' + lineDesc + ')' : '') + (notes ? ` Notes: ${notes}` : '');
-  return { clientId, client, subject, sendEmail, notes, rows, taxPct, subtotal, discountAmount, discountLabel, taxAmount, total, description };
+  // description is the internal record on the job. Only internal notes
+  // belong here — customer notes ride separately on the email payload.
+  const description = subject + (lineDesc ? ' (' + lineDesc + ')' : '') + (internalNotes ? ` Internal: ${internalNotes}` : '');
+  return { clientId, client, subject, sendEmail, notes, internalNotes, rows, taxPct, subtotal, discountAmount, discountLabel, taxAmount, total, description };
 }
 
 function previewInvoiceWorksheet() {
@@ -10613,7 +10628,14 @@ function previewInvoiceWorksheet() {
         <div style="display:flex;justify-content:space-between;gap:60px"><span style="color:#64748b">Tax ${draft.taxPct}%</span><strong>$${draft.taxAmount.toFixed(2)}</strong></div>
         <div style="display:flex;justify-content:space-between;gap:60px;font-size:16px"><span style="font-weight:800">Total Due</span><strong style="color:#0265dc">$${draft.total.toFixed(2)}</strong></div>
       </div>
-      ${draft.notes ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:12px;color:#475569;line-height:1.5">${escapeHtml(draft.notes)}</div>` : ''}
+      ${draft.notes ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid #e5e7eb">
+        <div style="font-size:11px;font-weight:800;color:#0265dc;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Notes</div>
+        <div style="font-size:13px;color:#475569;line-height:1.5">${escapeHtml(draft.notes)}</div>
+      </div>` : ''}
+      ${draft.internalNotes ? `<div style="margin-top:10px;padding:10px 12px;background:#f1f5f9;border-radius:8px;border-left:3px solid #475569">
+        <div style="font-size:10px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">Internal — not on customer invoice</div>
+        <div style="font-size:12px;color:#475569;line-height:1.5">${escapeHtml(draft.internalNotes)}</div>
+      </div>` : ''}
     </div>`;
   modal.classList.add('visible');
 }
@@ -10635,6 +10657,7 @@ async function saveInvoiceWorksheet() {
       body: JSON.stringify({
         amount: draft.total,
         description: draft.description,
+        customer_notes: draft.notes || null,
         subtotal: draft.subtotal,
         tax_amount: draft.taxAmount,
         discount_amount: draft.discountAmount,
@@ -10661,6 +10684,7 @@ async function saveInvoiceWorksheet() {
         document.getElementById('inv-client-id').value = '';
         document.getElementById('inv-subject').value = '';
         document.getElementById('inv-notes').value = '';
+        const inEl = document.getElementById('inv-internal-notes'); if (inEl) inEl.value = '';
         document.getElementById('inv-issue-date').value = '';
         document.getElementById('inv-due-date').value = '';
         document.getElementById('inv-number').value = '';

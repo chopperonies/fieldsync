@@ -251,7 +251,7 @@ async function sendInvoiceToClient({
   const safeDescription = description ? String(description).trim() : '';
   const descriptionBlock = safeDescription
     ? `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px 18px;margin-bottom:20px">
-         <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Scope of work</div>
+         <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Notes</div>
          <div style="font-size:14px;color:#111827;line-height:1.6;white-space:pre-wrap">${safeDescription.replace(/</g, '&lt;')}</div>
        </div>`
     : '';
