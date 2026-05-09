@@ -7102,6 +7102,26 @@ app.get('/api/mobile/owner/jobs/:id/assignments', mobileAuth, requireMobileOwner
   res.json(data || []);
 });
 
+// Status transition history for the lifecycle popups. Powers the
+// "entered at <time>" tooltip + revert prompt on the job detail card.
+app.get('/api/mobile/owner/jobs/:id/status-history', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from('job_status_events')
+    .select('id, to_status, from_status, created_at, trigger, employees:actor_employee_id(name)')
+    .eq('job_id', req.params.id)
+    .eq('tenant_id', req.tenantId)
+    .order('created_at', { ascending: true });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json((data || []).map(e => ({
+    id: e.id,
+    to_status: e.to_status,
+    from_status: e.from_status,
+    created_at: e.created_at,
+    trigger: e.trigger,
+    actor_name: e.employees?.name || null,
+  })));
+});
+
 // Replace the assignment set for a job (diff with current, add/remove)
 app.post('/api/mobile/owner/jobs/:id/assignments', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
   const jobId = req.params.id;
