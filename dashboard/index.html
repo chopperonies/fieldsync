@@ -6021,6 +6021,15 @@ function setText(id, value) {
   if (el) el.textContent = value;
 }
 
+// Grow a textarea to fit its content so long scope/notes are visible at a
+// glance instead of trapped behind an internal scrollbar. Set min-height in
+// CSS and overflow:hidden to keep things stable while typing.
+function autoGrowTextarea(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = (el.scrollHeight + 2) + 'px';
+}
+
 function getJobStatusChip(status) {
   const normalized = normalizeJobStatus(status);
   if (normalized === 'quoted') return { cls: 'chip-blue', label: 'Lead / Estimate' };
@@ -7956,7 +7965,12 @@ async function openDetail(jobId, jobName) {
       ${checklistHtml}
       <div class="form-group" style="margin-top:12px;margin-bottom:0">
         <label>Scope / Work Being Done</label>
-        <textarea id="detail-job-description" rows="5" style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:10px 12px;font-size:13px;color:#17191c;resize:vertical;font-family:inherit">${job?.description || ''}</textarea>
+        <textarea
+          id="detail-job-description"
+          rows="10"
+          oninput="autoGrowTextarea(this)"
+          style="width:100%;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.55;color:#17191c;resize:vertical;font-family:inherit;min-height:200px;overflow:hidden"
+        >${job?.description || ''}</textarea>
       </div>
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px">
         <button class="btn-save" onclick="saveJobOverview('${job.id}')">Save Job Details</button>
@@ -7971,6 +7985,7 @@ async function openDetail(jobId, jobName) {
     </div>
   `;
   if (window.lucide) { try { lucide.createIcons({ nodes: [overviewEl] }); } catch (_) {} }
+  autoGrowTextarea(document.getElementById('detail-job-description'));
 
   const woEl = document.getElementById('detail-workorder');
   const hasEstimate = canViewFinancials() && job?.estimate_amount > 0;
