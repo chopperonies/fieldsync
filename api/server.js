@@ -7465,8 +7465,12 @@ app.post('/api/mobile/owner/jobs/:id/invoice', mobileAuth, requireMobileOwner, a
     ? req.body.recipient_email.trim().toLowerCase()
     : '';
   const emailToUse = overrideEmail || client?.email || '';
+  // The mobile editor's "Save changes (don't send)" path posts send_email:false
+  // so the owner can fix typos / line items on an issued invoice without firing
+  // a fresh email to the customer every time they tap save.
+  const sendEmail = req.body?.send_email !== false;
   let emailSent = false;
-  if (emailToUse) {
+  if (sendEmail && emailToUse) {
     try {
       const [{ data: tenant }, { data: clientUser }] = await Promise.all([
         supabaseAdmin.from('tenants').select('company_name').eq('id', req.tenantId).single(),
@@ -7512,7 +7516,7 @@ app.post('/api/mobile/owner/jobs/:id/invoice', mobileAuth, requireMobileOwner, a
     tenantId: req.tenantId,
     employeeId: req.employeeId,
     type: 'update',
-    message: `Invoice ${emailSent ? 'sent' : 'updated'} for $${amount.toFixed(2)}${emailSent ? ` to ${emailToUse}` : ''}.`,
+    message: `Invoice ${emailSent ? 'sent' : sendEmail ? 'updated' : 'saved (not emailed)'} for $${amount.toFixed(2)}${emailSent ? ` to ${emailToUse}` : ''}.`,
   }).catch(err => console.warn('[mirror to thread]', err?.message));
 
   res.json({ job: data, invoice_email_sent: emailSent, invoice_emailed_to: emailSent ? emailToUse : null });
