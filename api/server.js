@@ -5609,15 +5609,20 @@ async function mirrorJobUpdateToThread({ jobId, tenantId, employeeId, type, mess
     photoUrl ? `\n${photoUrl}` : '',
   ].filter(Boolean).join(' ');
 
-  const { data: msg } = await supabaseAdmin
+  const { data: msg, error: insertError } = await supabaseAdmin
     .from('chat_messages')
     .insert({
       thread_id: thread.id,
+      tenant_id: tenantId,
       sender_id: employeeId,
       body,
     })
     .select()
     .single();
+  if (insertError) {
+    console.warn('[mirror to thread] insert failed:', insertError.message);
+    return;
+  }
 
   // Bump the thread so it floats to the top of the Messages list.
   if (msg?.created_at) {
