@@ -7633,9 +7633,11 @@ app.get('/api/mobile/owner/search', mobileAuth, requireMobileOwnerOrManager, asy
     tasks.clients = qb.order('name').limit(LIMIT);
   }
   if (type === 'all' || type === 'quotes') {
-    // Quotes = recurring service agreements.
+    // Quotes = recurring service agreements. Real columns: schedule, value
+    // (not frequency, price — those were a misnamed select that 500'd the
+    // whole search route).
     let qb = supabaseAdmin.from('service_agreements')
-      .select('id, name, frequency, price, next_due, status, clients(name)')
+      .select('id, name, schedule, value, next_due, status, clients(name)')
       .eq('tenant_id', req.tenantId);
     if (hasQ) qb = qb.or(`name.ilike.${like}`);
     tasks.quotes = qb.order('next_due').limit(LIMIT);
