@@ -7122,14 +7122,25 @@ app.post('/api/mobile/owner/jobs', mobileAuth, async (req, res) => {
 });
 
 // List tenant's enabled Service PRO workflows (for the new-job type picker).
+// Includes `stages` — the ordered list of workflow stage names — so the
+// mobile picker can render a "Quote → Schedule → On site → Invoice" preview.
 app.get('/api/mobile/owner/workflows', mobileAuth, requireMobileOwnerOrManager, async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('service_workflows')
-    .select('id, name, description, industry')
+    .select('id, name, description, industry, workflow_statuses(name, order_index)')
     .eq('tenant_id', req.tenantId)
     .order('created_at', { ascending: true });
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data || []);
+  const shaped = (data || []).map(w => ({
+    id: w.id,
+    name: w.name,
+    description: w.description,
+    industry: w.industry,
+    stages: Array.isArray(w.workflow_statuses)
+      ? [...w.workflow_statuses].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)).map(s => s.name)
+      : [],
+  }));
+  res.json(shaped);
 });
 
 // Assignments for a job (active, not checked out)
