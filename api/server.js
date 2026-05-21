@@ -6422,6 +6422,61 @@ function getGoogleMapsApiKey() {
     || null;
 }
 
+app.get('/api/mobile/places/autocomplete', mobileAuth, async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  if (q.length < 3) return res.json({ predictions: [] });
+  const key = getGoogleMapsApiKey();
+  if (!key) return res.status(500).json({ error: 'Google API key not configured' });
+  try {
+    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(q)}&types=address&components=country:us&key=${key}`;
+    const r = await fetch(url);
+    const data = await r.json();
+    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+      return res.status(502).json({ error: data.error_message || data.status });
+    }
+    const predictions = (data.predictions || []).slice(0, 5).map(p => ({
+      place_id: p.place_id,
+      description: p.description,
+      main: p.structured_formatting?.main_text || p.description,
+      secondary: p.structured_formatting?.secondary_text || '',
+    }));
+    res.json({ predictions });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/mobile/places/details', mobileAuth, async (req, res) => {
+  const placeId = String(req.query.place_id || '').trim();
+  if (!placeId) return res.status(400).json({ error: 'place_id required' });
+  const key = getGoogleMapsApiKey();
+  if (!key) return res.status(500).json({ error: 'Google API key not configured' });
+  try {
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&fields=address_components,formatted_address&key=${key}`;
+    const r = await fetch(url);
+    const data = await r.json();
+    if (data.status !== 'OK') {
+      return res.status(502).json({ error: data.error_message || data.status });
+    }
+    const parts = data.result?.address_components || [];
+    const get = (type) => parts.find(p => p.types.includes(type))?.short_name || '';
+    const streetNum = get('street_number');
+    const route = get('route');
+    const city = get('locality') || get('sublocality') || get('postal_town');
+    const state = get('administrative_area_level_1');
+    const zip = get('postal_code');
+    res.json({
+      street: [streetNum, route].filter(Boolean).join(' '),
+      city,
+      state,
+      zip,
+      formatted: data.result?.formatted_address || '',
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Inline auth for /api/mobile/map because React Native <Image> sends
 // limited headers depending on platform — accept token via ?token= too.
 async function mapAuth(req, res, next) {
