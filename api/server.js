@@ -5572,7 +5572,7 @@ app.post('/api/mobile/crew/jobs/:id/check-out', mobileAuth, async (req, res) => 
 // Mirror a job_update into the job's chat thread (if one exists) so the
 // thread is the central feed for that job — notes, photos, supply
 // requests, bottlenecks all surface in Messages.
-async function mirrorJobUpdateToThread({ jobId, tenantId, employeeId, type, message, photoUrl }) {
+async function mirrorJobUpdateToThread({ jobId, tenantId, employeeId, type, message, photoUrl, photoKind }) {
   const { data: thread } = await supabaseAdmin
     .from('chat_threads')
     .select('id')
@@ -5602,7 +5602,9 @@ async function mirrorJobUpdateToThread({ jobId, tenantId, employeeId, type, mess
     checkin: 'Clocked in',
     checkout: 'Clocked out',
   };
-  const label = labelMap[type] || 'Update';
+  let label = labelMap[type] || 'Update';
+  if (type === 'photo' && photoKind === 'before') label = 'Before photo';
+  else if (type === 'photo' && photoKind === 'after') label = 'After photo';
   const body = [
     `[${label}]`,
     message ? message.trim() : (photoUrl ? 'New photo posted' : ''),
@@ -5634,10 +5636,11 @@ async function mirrorJobUpdateToThread({ jobId, tenantId, employeeId, type, mess
 }
 
 async function createMobileJobUpdate(req, res) {
-  const { type, message, photo_url } = req.body || {};
+  const { type, message, photo_url, photo_kind } = req.body || {};
   const allowed = new Set(['note', 'bottleneck', 'photo', 'update']);
   if (!allowed.has(type)) return res.status(400).json({ error: 'Invalid update type' });
   if (!message && !photo_url) return res.status(400).json({ error: 'Message or photo required' });
+  const kind = type === 'photo' && ['before', 'after', 'other'].includes(photo_kind) ? photo_kind : null;
   const { data: job } = await supabaseAdmin
     .from('jobs').select('id').eq('id', req.params.id).eq('tenant_id', req.tenantId).maybeSingle();
   if (!job) return res.status(404).json({ error: 'Job not found' });
@@ -5650,12 +5653,12 @@ async function createMobileJobUpdate(req, res) {
       type,
       message: message || null,
       photo_url: photo_url || null,
+      photo_kind: kind,
     })
     .select()
     .single();
   if (error) return res.status(500).json({ error: error.message });
 
-  // Best-effort: also post into the job's chat thread.
   mirrorJobUpdateToThread({
     jobId: job.id,
     tenantId: req.tenantId,
@@ -5663,6 +5666,7 @@ async function createMobileJobUpdate(req, res) {
     type,
     message,
     photoUrl: photo_url,
+    photoKind: kind,
   }).catch(err => console.warn('[mirror to thread]', err?.message));
 
   res.json(data);
@@ -6685,7 +6689,7 @@ app.get('/api/mobile/owner/jobs/:id', mobileAuth, async (req, res) => {
       .select('id, employee_id, checked_in_at, checked_out_at, employees(id, name, phone, role, push_token)')
       .eq('job_id', job.id).order('checked_in_at', { ascending: false }),
     supabaseAdmin.from('job_updates')
-      .select('id, type, message, photo_url, created_at, employees(name)')
+      .select('id, type, message, photo_url, photo_kind, created_at, employees(name)')
       .eq('job_id', job.id).order('created_at', { ascending: false }).limit(30),
     supabaseAdmin.from('job_updates').select('id', { count: 'exact', head: true })
       .eq('job_id', job.id).eq('type', 'photo').not('photo_url', 'is', null),
